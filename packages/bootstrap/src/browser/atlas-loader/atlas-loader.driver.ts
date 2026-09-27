@@ -6,20 +6,28 @@ import type { fetchBytes, fetchJson } from '../fetch-json/index.js';
 import type { loadHostModule } from '../host-loader/index.js';
 import type { installModuleShim } from '../module-shim/index.js';
 import type { applyOverrides } from '../overrides/index.js';
+import type { requestDevelopmentSession } from '../development-session/index.js';
 import type { loadPublishedArtifact } from '../published-artifact/index.js';
 import type { validateCatalog } from '../validation/index.js';
 import { HOST_ROOT_ELEMENT_ID } from './atlas-loader.constants.js';
+import type { preconnectArtifactRegistry as preconnectArtifactRegistryType } from './artifact-registry-preconnect/artifact-registry-preconnect.js';
 import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot/runtime-snapshot.js';
 import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog/startup-catalog.js';
 
 const loadStartupCatalog = jest.fn<typeof loadStartupCatalogType>();
 const publishRuntimeSnapshot = jest.fn<typeof publishRuntimeSnapshotType>();
+const preconnectArtifactRegistry =
+  jest.fn<typeof preconnectArtifactRegistryType>();
 jest.unstable_mockModule('./startup-catalog/startup-catalog.js', () => ({
   loadStartupCatalog,
 }));
 jest.unstable_mockModule('./runtime-snapshot/runtime-snapshot.js', () => ({
   publishRuntimeSnapshot,
 }));
+jest.unstable_mockModule(
+  './artifact-registry-preconnect/artifact-registry-preconnect.js',
+  () => ({ preconnectArtifactRegistry }),
+);
 const { startAtlasLoader } = await import('./atlas-loader.js');
 
 export class AtlasLoaderDriver {
@@ -50,6 +58,7 @@ export class AtlasLoaderDriver {
   constructor() {
     loadStartupCatalog.mockReset();
     publishRuntimeSnapshot.mockReset();
+    preconnectArtifactRegistry.mockReset();
 
     this.hostRoot.id = HOST_ROOT_ELEMENT_ID;
     this.hostRoot.textContent = faker.lorem.sentence();
@@ -80,6 +89,21 @@ export class AtlasLoaderDriver {
 
       return this;
     },
+    moduleShimFailure: (error: Error) => {
+      this.installModuleShim.mockRejectedValue(error);
+
+      return this;
+    },
+    pendingStartupCatalog: () => {
+      loadStartupCatalog.mockReturnValue(new Promise(() => undefined));
+
+      return this;
+    },
+    pendingModuleShim: () => {
+      this.installModuleShim.mockReturnValue(new Promise(() => undefined));
+
+      return this;
+    },
     hostRootPresent: (present: boolean) => {
       if (!present) this.hostRoot.remove();
 
@@ -88,6 +112,10 @@ export class AtlasLoaderDriver {
   };
 
   readonly when = {
+    startRequested: async () => {
+      void this.when.started();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
     started: async () => {
       try {
         await startAtlasLoader({
@@ -98,6 +126,8 @@ export class AtlasLoaderDriver {
           installModuleShim: this.installModuleShim,
           loadHostModule: this.loadHostModule,
           loadPublishedArtifact: this.loadPublishedArtifact,
+          requestDevelopmentSession:
+            jest.fn<typeof requestDevelopmentSession>(),
           applyOverrides: this.applyOverrides,
           validateCatalog: this.validateCatalog,
         });
@@ -118,6 +148,7 @@ export class AtlasLoaderDriver {
     applyOverridesMock: () => this.applyOverrides,
     validateCatalogMock: () => this.validateCatalog,
     publishRuntimeSnapshotMock: () => publishRuntimeSnapshot,
+    preconnectArtifactRegistryMock: () => preconnectArtifactRegistry,
     loadHostModuleMock: () => this.loadHostModule,
     mountMock: () => this.mount,
   };

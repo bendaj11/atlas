@@ -17,9 +17,11 @@ export async function loadPublishedArtifact({
   dependencies = createBrowserPublishedArtifactDependencies(),
 }: LoadPublishedArtifactOptions): Promise<AtlasManifest | AtlasHostManifest> {
   const url = buildArtifactUrl(runtime, reference.path);
-  const bytes = await dependencies.fetchBytes({ url, runtime });
-
-  await assertBytesMatchDescriptor(bytes, reference);
+  const bytes = await dependencies.fetchBytes({
+    url,
+    runtime,
+    verify: (fetched) => assertBytesMatchDescriptor(fetched, reference),
+  });
 
   return dependencies.hydratePublishedArtifactManifest(decodeJson(bytes), url);
 }

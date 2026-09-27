@@ -30,6 +30,7 @@ describe('loadPublishedArtifact', () => {
       expect(driver.get.fetchBytesMock()).toHaveBeenCalledWith({
         url: `${runtime.artifactRegistryUrl}/${reference.path}`,
         runtime,
+        verify: expect.any(Function),
       });
     });
 

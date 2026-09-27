@@ -40,8 +40,8 @@ Use `--template` to customize `index.html`. Template must retain
 
 ## Browser flow
 
-1. Browser loads `index.html`, `atlas.loader.js`, and `es-module-shims.js`
-   from host origin.
+1. Browser loads `index.html` and `atlas.loader.js` from host origin. The loader
+   starts loading `es-module-shims.js` at the same time as steps 2 to 4.
 2. Loader reads `/atlas.runtime.json` from same origin.
 3. Loader reads active host manifest from:
 
@@ -49,9 +49,21 @@ Use `--template` to customize `index.html`. Template must retain
    <environmentRegistryUrl>/environments/<environment>/hosts/<hostId>/manifest.json
    ```
 
+   When the Columbus extension is installed, the loader asks it for local
+   overrides at the same time.
+
 4. Loader resolves selected host and app descriptors against
-   `artifactRegistryUrl`.
-5. Loader verifies and mounts immutable artifact payloads.
+   `artifactRegistryUrl`. When that registry uses its own origin, the loader
+   opens the connection to it during step 3.
+5. Loader starts host stylesheets, then verifies and mounts immutable artifact
+   payloads.
+6. Host runtime mounts slot apps and the current route app at the same time.
+
+The loader always revalidates `atlas.runtime.json` and the environment host
+manifest. It lets the browser HTTP cache serve content it verifies itself:
+artifact manifests (checked against their registry digest) and host remote
+entries that carry an integrity value. If cached bytes fail verification, the
+loader fetches them again from the network before it reports an error.
 
 One host origin maps to one environment. Changing host domain does not require
 Atlas deploy: platform/IaC writes runtime config for that host.

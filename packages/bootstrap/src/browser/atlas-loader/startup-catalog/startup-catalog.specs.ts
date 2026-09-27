@@ -30,6 +30,57 @@ describe('loadStartupCatalog', () => {
     it('should not fetch a session when loaded', () => {
       expect(driver.get.fetchJsonMock()).not.toHaveBeenCalled();
     });
+
+    it('should ask the development bridge for the runtime host when loaded', () => {
+      expect(driver.get.requestDevelopmentSessionMock()).toHaveBeenCalledWith({
+        hostId: runtime.hostId,
+      });
+    });
+  });
+
+  describe('when the runtime names no development session and the development bridge answers', () => {
+    const runtime = aHostRuntimeConfig();
+    const catalog = aHostCatalog();
+    const session = { hostId: runtime.hostId, overrides: [] };
+
+    beforeEach(() => {
+      driver.given
+        .runtime(runtime)
+        .given.deploymentCatalog(catalog)
+        .given.bridgeSession(session);
+    });
+
+    it('should return the deployment catalog with the bridge session when loaded', async () => {
+      await driver.when.loaded();
+
+      expect(driver.get.result()).toEqual({
+        catalog,
+        developmentSession: session,
+      });
+    });
+
+    it('should reject with the deployment catalog failure without waiting for the development bridge', async () => {
+      const failure = new Error('deployment unavailable');
+      driver.given
+        .pendingBridgeSession()
+        .given.deploymentCatalogFailure(failure);
+      await driver.when.loaded();
+
+      expect(driver.get.error()).toBe(failure);
+    });
+
+    it('should ignore a bridge reply that is not a development session', async () => {
+      driver.given.malformedBridgeSession();
+      await driver.when.loaded();
+
+      expect(driver.get.result()).toEqual({ catalog });
+    });
+
+    it('should ask the development bridge while the deployment catalog is still loading', () => {
+      driver.given.pendingDeploymentCatalog().when.loadStarted();
+
+      expect(driver.get.requestDevelopmentSessionMock()).toHaveBeenCalled();
+    });
   });
 
   describe('when the runtime names a development session', () => {
@@ -62,6 +113,13 @@ describe('loadStartupCatalog', () => {
         catalog: session.catalog,
         developmentSession: session,
       });
+    });
+
+    it('should not ask the development bridge when loaded', async () => {
+      driver.given.developmentSession({ catalog: aHostCatalog() });
+      await driver.when.loaded();
+
+      expect(driver.get.requestDevelopmentSessionMock()).not.toHaveBeenCalled();
     });
 
     it('should not load a deployment catalog when loaded', async () => {

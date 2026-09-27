@@ -1,4 +1,5 @@
 import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { requestDevelopmentSession } from '../development-session/index.js';
 import type { fetchBytes, fetchJson } from '../fetch-json/index.js';
 import type { loadHostModule } from '../host-loader/index.js';
 import type { installModuleShim } from '../module-shim/index.js';
@@ -19,6 +20,7 @@ export interface AtlasLoaderDependencies {
   readonly installModuleShim: typeof installModuleShim;
   readonly loadHostModule: typeof loadHostModule;
   readonly loadPublishedArtifact: typeof loadPublishedArtifact;
+  readonly requestDevelopmentSession: typeof requestDevelopmentSession;
   readonly applyOverrides: typeof applyOverrides;
   readonly validateCatalog: typeof validateCatalog;
 }

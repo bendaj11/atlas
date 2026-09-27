@@ -1,7 +1,10 @@
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { CatalogInvalidError } from '../../../shared/errors/index.js';
 import type { FetchOptions } from '../../fetch-json/index.js';
-import type { DevSession } from '../../overrides/index.js';
+import {
+  isDevelopmentSession,
+  type DevSession,
+} from '../../overrides/index.js';
 import type {
   AtlasLoaderDependencies,
   LoaderContext,
@@ -14,7 +17,7 @@ export type FetchDevelopmentSession = (
 
 export type StartupCatalogDependencies = Pick<
   AtlasLoaderDependencies,
-  'fetchBytes' | 'loadPublishedArtifact'
+  'fetchBytes' | 'loadPublishedArtifact' | 'requestDevelopmentSession'
 > & { fetchJson: FetchDevelopmentSession };
 
 export interface StartupCatalogContext extends Pick<LoaderContext, 'runtime'> {
@@ -31,7 +34,14 @@ export async function loadStartupCatalog({
   dependencies,
 }: StartupCatalogContext): Promise<StartupCatalog> {
   if (!runtime.developmentSessionUrl) {
-    return { catalog: await loadDeploymentCatalog({ runtime, dependencies }) };
+    const [catalog, bridgeSession] = await Promise.all([
+      loadDeploymentCatalog({ runtime, dependencies }),
+      dependencies.requestDevelopmentSession({ hostId: runtime.hostId }),
+    ]);
+
+    return isDevelopmentSession(bridgeSession)
+      ? { catalog, developmentSession: bridgeSession }
+      : { catalog };
   }
 
   const developmentSession = await dependencies.fetchJson({

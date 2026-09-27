@@ -2,7 +2,6 @@ import { AtlasError } from '@atlas/schema';
 import { decodeJson } from '../../shared/decode-json/decode-json.js';
 import { ResourceUnavailableError } from '../../shared/errors/index.js';
 import type { FetchOptions } from './fetch-json.types.js';
-import { validateIntegrity } from './validate-integrity/validate-integrity.js';
 
 const DEFAULT_RETRY_COUNT = 3;
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -17,7 +16,7 @@ export async function fetchJson<T>(options: FetchOptions): Promise<T> {
 export async function fetchBytes({
   url,
   runtime = {},
-  integrity,
+  verify,
 }: FetchOptions): Promise<Uint8Array> {
   const retries = runtime.resourcesRetryCount ?? DEFAULT_RETRY_COUNT;
   const timeout = runtime.resourcesTimeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -25,20 +24,12 @@ export async function fetchBytes({
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      const response = await fetch(url, {
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(timeout),
+      return await requestBytes({
+        url,
+        timeout,
+        cache: selectCacheMode({ attempt, verified: verify !== undefined }),
+        ...(verify ? { verify } : {}),
       });
-
-      if (!response.ok) {
-        throw new Error(`${url} returned HTTP ${response.status}.`);
-      }
-
-      const bytes = new Uint8Array(await response.arrayBuffer());
-
-      if (integrity) await validateIntegrity(bytes, integrity);
-
-      return bytes;
     } catch (error) {
       lastError = error;
 
@@ -60,4 +51,51 @@ export async function fetchBytes({
     `Atlas could not fetch "${url}" after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${detail}`,
     { cause: lastError },
   );
+}
+
+async function requestBytes({
+  url,
+  timeout,
+  cache,
+  verify,
+}: {
+  url: string;
+  timeout: number;
+  cache: RequestCache;
+  verify?: (bytes: Uint8Array) => Promise<void>;
+}): Promise<Uint8Array> {
+  const response = await fetch(url, {
+    cache,
+    signal: AbortSignal.timeout(timeout),
+  });
+
+  if (!response.ok) {
+    throw new Error(`${url} returned HTTP ${response.status}.`);
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+
+  if (!verify) return bytes;
+
+  try {
+    await verify(bytes);
+  } catch (error) {
+    if (cache !== 'default') throw error;
+
+    return requestBytes({ url, timeout, cache: 'reload', verify });
+  }
+
+  return bytes;
+}
+
+function selectCacheMode({
+  attempt,
+  verified,
+}: {
+  attempt: number;
+  verified: boolean;
+}): RequestCache {
+  if (!verified) return 'no-cache';
+
+  return attempt === 0 ? 'default' : 'reload';
 }

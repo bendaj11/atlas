@@ -3,6 +3,7 @@ import type { DevSession } from '../../overrides/index.js';
 import { jest } from '@jest/globals';
 import type { FetchOptions, fetchBytes } from '../../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../../published-artifact/index.js';
+import type { requestDevelopmentSession } from '../../development-session/index.js';
 import type { loadDeploymentCatalog as loadDeploymentCatalogType } from '../deployment-catalog/deployment-catalog.js';
 
 const loadDeploymentCatalog = jest.fn<typeof loadDeploymentCatalogType>();
@@ -19,6 +20,9 @@ export class StartupCatalogDriver {
   private readonly fetchBytes = jest.fn<typeof fetchBytes>();
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
+  private readonly requestDevelopmentSession = jest
+    .fn<typeof requestDevelopmentSession>()
+    .mockResolvedValue(undefined);
   private result: StartupCatalog | undefined;
   private error: unknown;
 
@@ -42,9 +46,39 @@ export class StartupCatalogDriver {
 
       return this;
     },
+    bridgeSession: (session: DevSession) => {
+      this.requestDevelopmentSession.mockResolvedValue(session);
+
+      return this;
+    },
+    pendingBridgeSession: () => {
+      this.requestDevelopmentSession.mockReturnValue(
+        new Promise(() => undefined),
+      );
+
+      return this;
+    },
+    deploymentCatalogFailure: (error: Error) => {
+      loadDeploymentCatalog.mockRejectedValue(error);
+
+      return this;
+    },
+    malformedBridgeSession: () => {
+      this.requestDevelopmentSession.mockResolvedValue({ overrides: 'none' });
+
+      return this;
+    },
+    pendingDeploymentCatalog: () => {
+      loadDeploymentCatalog.mockReturnValue(new Promise(() => undefined));
+
+      return this;
+    },
   };
 
   readonly when = {
+    loadStarted: () => {
+      void this.when.loaded();
+    },
     loaded: async () => {
       try {
         this.result = await loadStartupCatalog({
@@ -53,6 +87,7 @@ export class StartupCatalogDriver {
             fetchJson: this.fetchJson,
             fetchBytes: this.fetchBytes,
             loadPublishedArtifact: this.loadPublishedArtifact,
+            requestDevelopmentSession: this.requestDevelopmentSession,
           },
         });
       } catch (error) {
@@ -66,5 +101,6 @@ export class StartupCatalogDriver {
     error: () => this.error,
     fetchJsonMock: () => this.fetchJson,
     loadDeploymentCatalogMock: () => loadDeploymentCatalog,
+    requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
   };
 }

@@ -19,6 +19,18 @@ describe('loadHostStyles', () => {
     expect(driver.get.stylesheetLinks()).toEqual([]);
   });
 
+  it('should append no stylesheet when any stylesheet URL is rejected', () => {
+    const rejected = faker.internet.url();
+    driver.given.rejectedStylesheet(rejected).when.loaded({
+      manifest: aHostManifest({
+        styles: [{ href: faker.internet.url() }, { href: rejected }],
+      }),
+      runtime: aHostRuntimeConfig(),
+    });
+
+    expect(driver.get.stylesheetLinks()).toEqual([]);
+  });
+
   describe('when the manifest declares styles', () => {
     const runtime = aHostRuntimeConfig();
     const plain = { href: faker.internet.url() };
@@ -56,6 +68,12 @@ describe('loadHostStyles', () => {
         integrity: verified.integrity,
         crossOrigin: 'anonymous',
       });
+    });
+
+    it('should remove the appended stylesheet links when the returned cleanup runs', () => {
+      driver.when.stylesRemoved();
+
+      expect(driver.get.stylesheetLinks()).toEqual([]);
     });
   });
 });

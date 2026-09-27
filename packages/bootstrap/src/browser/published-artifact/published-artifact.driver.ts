@@ -50,7 +50,11 @@ export class PublishedArtifactDriver {
       return this;
     },
     fetchedBytes: (bytes: Uint8Array) => {
-      this.fetchBytes.mockResolvedValue(bytes);
+      this.fetchBytes.mockImplementation(async ({ verify }) => {
+        await verify?.(bytes);
+
+        return bytes;
+      });
 
       return this;
     },

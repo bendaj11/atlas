@@ -46,6 +46,7 @@ export class HostLoaderDriver {
   private readonly validateArtifactUrl = jest.fn<typeof validateArtifactUrl>();
   private readonly validateHostManifest =
     jest.fn<typeof validateHostManifest>();
+  private readonly removeHostStyles = jest.fn<() => void>();
   private module: HostModule | undefined;
   private error: unknown;
 
@@ -53,6 +54,7 @@ export class HostLoaderDriver {
     watchHostBuildNotifications.mockReset();
     loadHostStyles.mockReset();
     installHostSharedDependencies.mockReset();
+    loadHostStyles.mockReturnValue(this.removeHostStyles);
   }
 
   readonly given = {
@@ -103,11 +105,13 @@ export class HostLoaderDriver {
     module: () => this.module,
     error: () => this.error,
     fetchJsonMock: () => this.fetchJson,
+    remoteEntryVerification: () => this.fetchJson.mock.calls[0]?.[0].verify,
     importModuleMock: () => this.importModule,
     validateArtifactUrlMock: () => this.validateArtifactUrl,
     validateHostManifestMock: () => this.validateHostManifest,
     watchHostBuildNotificationsMock: () => watchHostBuildNotifications,
     loadHostStylesMock: () => loadHostStyles,
+    removeHostStylesMock: () => this.removeHostStyles,
     installHostSharedDependenciesMock: () => installHostSharedDependencies,
   };
 }

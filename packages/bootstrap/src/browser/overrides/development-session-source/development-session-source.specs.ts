@@ -1,93 +1,10 @@
 /** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
-import { aHostRuntimeConfig } from '@atlas/testkit';
 import { DevelopmentSessionSourceDriver } from './development-session-source.driver.js';
 import {
-  discoverDevelopmentSession,
   readDismissedDevelopmentOffers,
   readStoredOverridesDocument,
 } from './development-session-source.js';
-
-describe('discoverDevelopmentSession', () => {
-  let driver: DevelopmentSessionSourceDriver;
-
-  beforeEach(() => {
-    driver = new DevelopmentSessionSourceDriver();
-  });
-
-  describe('when the runtime names a development session URL', () => {
-    const developmentSessionUrl = faker.internet.url();
-    const runtime = aHostRuntimeConfig({ developmentSessionUrl });
-
-    it('should fetch the session from that URL when discovered', async () => {
-      driver.given.fetchedSession({});
-
-      await discoverDevelopmentSession({
-        runtime,
-        dependencies: driver.get.dependencies(),
-      });
-
-      expect(driver.get.fetchJsonMock()).toHaveBeenCalledWith({
-        url: developmentSessionUrl,
-        runtime,
-      });
-    });
-
-    it('should return the fetched session when discovered', async () => {
-      const session = { hostId: runtime.hostId };
-
-      driver.given.fetchedSession(session);
-
-      await expect(
-        discoverDevelopmentSession({
-          runtime,
-          dependencies: driver.get.dependencies(),
-        }),
-      ).resolves.toBe(session);
-    });
-
-    it('should not ask the bridge when discovered', async () => {
-      driver.given.fetchedSession({});
-
-      await discoverDevelopmentSession({
-        runtime,
-        dependencies: driver.get.dependencies(),
-      });
-
-      expect(driver.get.requestDevelopmentSessionMock()).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('when the runtime names no development session URL', () => {
-    const runtime = aHostRuntimeConfig({ developmentSessionUrl: undefined });
-
-    it('should ask the bridge for the runtime host when discovered', async () => {
-      driver.given.bridgeSession(undefined);
-
-      await discoverDevelopmentSession({
-        runtime,
-        dependencies: driver.get.dependencies(),
-      });
-
-      expect(driver.get.requestDevelopmentSessionMock()).toHaveBeenCalledWith({
-        hostId: runtime.hostId,
-      });
-    });
-
-    it('should return the bridge session when discovered', async () => {
-      const session = { hostId: runtime.hostId };
-
-      driver.given.bridgeSession(session);
-
-      await expect(
-        discoverDevelopmentSession({
-          runtime,
-          dependencies: driver.get.dependencies(),
-        }),
-      ).resolves.toBe(session);
-    });
-  });
-});
 
 describe('readStoredOverridesDocument', () => {
   let driver: DevelopmentSessionSourceDriver;

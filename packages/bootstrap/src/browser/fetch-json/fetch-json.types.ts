@@ -6,5 +6,5 @@ export interface FetchOptions {
     AtlasHostRuntimeConfig,
     'resourcesRetryCount' | 'resourcesTimeoutMs'
   >;
-  integrity?: string;
+  verify?: (bytes: Uint8Array) => Promise<void>;
 }

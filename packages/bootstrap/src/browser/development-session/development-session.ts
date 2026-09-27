@@ -41,7 +41,8 @@ export function requestDevelopmentSession({
         hostId,
       });
 
-      if (response) settle(response.document);
+      if (response)
+        settle(response.error === undefined ? response.document : undefined);
     };
 
     const timeout = bridge.scheduleTimeout(() => settle(), BRIDGE_TIMEOUT_MS);
@@ -75,8 +76,7 @@ function matchDevelopmentSessionResponse({
   const matches =
     response.type === ATLAS_DEV_SESSION_RESPONSE &&
     response.requestId === requestId &&
-    response.hostId === hostId &&
-    response.error === undefined;
+    response.hostId === hostId;
 
   return matches ? (response as AtlasDevelopmentSessionResponse) : undefined;
 }
@@ -92,9 +92,17 @@ function createBrowserBridgeDependencies():
     document,
     window,
     origin: globalThis.location.origin,
-    requestId: () => crypto.randomUUID(),
+    requestId: createRequestId,
     scheduleTimeout: (operation, milliseconds) =>
       window.setTimeout(operation, milliseconds),
     clearScheduledTimeout: (timeout) => window.clearTimeout(timeout),
   };
+}
+
+function createRequestId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
 }

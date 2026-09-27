@@ -60,8 +60,19 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
     slotPlacements: filterSlotPlacements(placements),
   });
 
-  await controller.reconcileSlots();
-  await controller.reconcileRoute(navigation.getCurrentLocation().pathname);
+  const initialReconciliation = await Promise.allSettled([
+    controller.reconcileSlots(),
+    controller.reconcileRoute(navigation.getCurrentLocation().pathname),
+  ]);
+  const failure = initialReconciliation.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+
+  if (failure) {
+    await controller.stop(() => undefined);
+
+    throw failure.reason;
+  }
 
   const reconcileCurrentRoute = () =>
     controller.enqueueRouteReconcile(navigation.getCurrentLocation().pathname);
@@ -77,6 +88,8 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
       reconcileCurrentRoute();
       controller.enqueueSlotReconcile();
     }) ?? (() => undefined);
+
+  controller.enqueueSlotReconcile();
 
   return {
     hostId: options.hostId,

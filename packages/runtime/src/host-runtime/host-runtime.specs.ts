@@ -407,4 +407,88 @@ describe('startAtlasHostRuntime', () => {
       ['second'],
     ]);
   });
+
+  it('should mount the route app while a slot app is still mounting', async () => {
+    const slot = faker.word.noun();
+    driver.given
+      .manifests([
+        anAppManifest({
+          id: 'header',
+          channel: 'production',
+          placements: [aSlotPlacement({ hostId: driver.hostId, slot })],
+        }),
+        anAppManifest({
+          id: 'page',
+          channel: 'production',
+          placements: [
+            aRoutePlacement({
+              hostId: driver.hostId,
+              route: { path: driver.get.currentPathname() },
+            }),
+          ],
+        }),
+      ])
+      .given.slotAnchor(slot)
+      .given.mountBlockedFor('header');
+    void driver.when.started();
+
+    await driver.when.waited(0);
+
+    expect(driver.get.states('page')).toContain('mounted');
+  });
+
+  it('should mount a slot app whose anchor appears while the route app mounts', async () => {
+    const slot = faker.word.noun();
+    driver.given
+      .manifests([
+        anAppManifest({
+          id: 'header',
+          channel: 'production',
+          placements: [aSlotPlacement({ hostId: driver.hostId, slot })],
+        }),
+        anAppManifest({
+          id: 'page',
+          channel: 'production',
+          placements: [
+            aRoutePlacement({
+              hostId: driver.hostId,
+              route: { path: driver.get.currentPathname() },
+            }),
+          ],
+        }),
+      ])
+      .given.slotAnchorRegisteredOnMountOf('page', slot);
+
+    await driver.when.started();
+
+    expect(driver.get.states('header')).toContain('mounted');
+  });
+
+  describe('when the initial route reconciliation fails', () => {
+    const failure = new Error(faker.lorem.sentence());
+
+    beforeEach(async () => {
+      const slot = faker.word.noun();
+      driver.given
+        .manifests([
+          anAppManifest({
+            id: 'header',
+            channel: 'production',
+            placements: [aSlotPlacement({ hostId: driver.hostId, slot })],
+          }),
+        ])
+        .given.slotAnchor(slot)
+        .given.layoutFailure(failure);
+
+      await driver.when.startAttempted();
+    });
+
+    it('should reject the start with the route failure', () => {
+      expect(driver.get.startError()).toBe(failure);
+    });
+
+    it('should unmount the slot apps it already mounted', () => {
+      expect(driver.get.unmountsMock()).toHaveBeenCalledWith('header');
+    });
+  });
 });

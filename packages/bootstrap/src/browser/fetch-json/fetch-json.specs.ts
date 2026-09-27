@@ -61,7 +61,7 @@ describe('fetchJson', () => {
   });
 
   it.each(REQUEST_URLS)(
-    'should fetch with no-cache and a timeout signal only when requesting %s',
+    'should revalidate with no-cache and a timeout signal when requesting unverified %s',
     async (url) => {
       driver.given.url(url).given.response('{}').when.jsonRequested();
       await driver.get.result();
@@ -113,27 +113,92 @@ describe('fetchJson', () => {
     });
   });
 
-  describe('when an integrity value is required', () => {
-    const integrity = `sha256-${faker.string.alphanumeric(43)}=`;
+  describe('when the response bytes are verified', () => {
     const body = JSON.stringify({ name: faker.person.fullName() });
 
     beforeEach(() => {
-      driver.given.integrity(integrity).given.response(body);
+      driver.given.verification();
     });
 
-    it('should validate the fetched bytes against the integrity when requested', async () => {
-      driver.when.jsonRequested();
+    it('should let the browser HTTP cache serve the first request', async () => {
+      driver.given.response(body).when.jsonRequested();
       await driver.get.result();
 
-      expect(driver.get.validateIntegrityMock()).toHaveBeenCalledWith(
+      expect(driver.get.cacheModes()).toStrictEqual(['default']);
+    });
+
+    it('should verify the fetched bytes when requested', async () => {
+      driver.given.response(body).when.jsonRequested();
+      await driver.get.result();
+
+      expect(driver.get.verifyMock()).toHaveBeenCalledWith(
         new TextEncoder().encode(body),
-        integrity,
       );
     });
 
-    it('should reject with the integrity failure when validation fails', async () => {
+    it('should bypass the HTTP cache when cached bytes fail verification', async () => {
+      driver.given
+        .verificationFailure(new Error(faker.lorem.sentence()))
+        .given.response(body)
+        .given.response(body)
+        .when.jsonRequested();
+      await driver.get.result();
+
+      expect(driver.get.cacheModes()).toStrictEqual(['default', 'reload']);
+    });
+
+    it('should resolve the network body when cached bytes fail verification', async () => {
+      const fresh = { name: faker.person.fullName() };
+      driver.given
+        .verificationFailure(new Error(faker.lorem.sentence()))
+        .given.response(body)
+        .given.response(JSON.stringify(fresh))
+        .when.jsonRequested();
+
+      await expect(driver.get.result()).resolves.toEqual(fresh);
+    });
+
+    it('should keep bypassing the HTTP cache when a retry follows a failed verification', async () => {
+      driver.given
+        .retryCount(1)
+        .given.verificationFailure(new Error(faker.lorem.sentence()))
+        .given.verificationFailure(new Error(faker.lorem.sentence()))
+        .given.response(body)
+        .given.response(body)
+        .given.response(body)
+        .when.jsonRequested();
+      await driver.get.result();
+
+      expect(driver.get.cacheModes()).toStrictEqual([
+        'default',
+        'reload',
+        'reload',
+      ]);
+    });
+
+    it('should reject with the HTTP status when the network refetch fails', async () => {
+      const url = faker.internet.url();
+      driver.given
+        .url(url)
+        .given.verificationFailure(new Error(faker.lorem.sentence()))
+        .given.response(body)
+        .given.response('', 503)
+        .when.jsonRequested();
+
+      await expect(driver.get.result()).rejects.toMatchObject({
+        code: 'RESOURCE_UNAVAILABLE',
+        summary: `Atlas could not fetch "${url}" after 1 attempt: ${url} returned HTTP 503.`,
+      });
+    });
+
+    it('should reject with the verification failure when network bytes also fail verification', async () => {
       const failure = new Error(faker.lorem.sentence());
-      driver.given.integrityFailure(failure).when.jsonRequested();
+      driver.given
+        .verificationFailure(new Error(faker.lorem.sentence()))
+        .given.verificationFailure(failure)
+        .given.response(body)
+        .given.response(body)
+        .when.jsonRequested();
 
       await expect(driver.get.result()).rejects.toMatchObject({
         code: 'RESOURCE_UNAVAILABLE',

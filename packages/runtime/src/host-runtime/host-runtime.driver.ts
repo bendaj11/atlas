@@ -35,6 +35,7 @@ export class HostRuntimeDriver {
     .mockImplementation(() => undefined);
   private importFailure: Error | undefined;
   private runtime: AtlasHostRuntime | undefined;
+  private startError: unknown;
 
   constructor() {
     this.consoleError.mockClear();
@@ -72,6 +73,24 @@ export class HostRuntimeDriver {
 
       return this;
     },
+    layoutFailure: (error: Error) => {
+      this.setActiveLayout.mockImplementation(() => {
+        throw error;
+      });
+
+      return this;
+    },
+    slotAnchorRegisteredOnMountOf: (appId: string, slot: string) => {
+      this.entryBehaviors.set(appId, () => {
+        this.anchors.register(
+          'slot',
+          document.body.appendChild(document.createElement('aside')),
+          slot,
+        );
+      });
+
+      return this;
+    },
     slotAnchor: (slot: string) => {
       this.anchors.register(
         'slot',
@@ -84,6 +103,15 @@ export class HostRuntimeDriver {
   };
 
   readonly when = {
+    startAttempted: async () => {
+      try {
+        await this.when.started();
+      } catch (error) {
+        this.startError = error;
+      }
+
+      await flushAsyncWork();
+    },
     started: async () => {
       this.runtime = await startAtlasHostRuntime({
         hostId: this.hostId,
@@ -140,6 +168,7 @@ export class HostRuntimeDriver {
         .filter((event) => !appId || event.manifest.id === appId)
         .map((event) => event.state),
     lastError: () => this.events.at(-1)?.error,
+    startError: () => this.startError,
     importsMock: () => this.imports,
     unmountsMock: () => this.unmounts,
     setActiveLayoutMock: () => this.setActiveLayout,

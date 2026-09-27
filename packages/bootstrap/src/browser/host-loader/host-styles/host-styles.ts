@@ -16,25 +16,36 @@ export interface HostStylesContext extends Pick<
   dependencies: HostStylesDependencies;
 }
 
-export function loadHostStyles(context: HostStylesContext): void {
-  context.manifest.styles?.forEach((stylesheet) =>
-    appendHostStylesheet({ ...context, stylesheet }),
+export function loadHostStyles(context: HostStylesContext): () => void {
+  const stylesheets = context.manifest.styles ?? [];
+
+  for (const stylesheet of stylesheets)
+    context.dependencies.validateArtifactUrl({
+      url: new URL(stylesheet.href),
+      manifest: context.manifest,
+      runtime: context.runtime,
+    });
+
+  const links = stylesheets.map((stylesheet) =>
+    appendHostStylesheet({
+      document: context.dependencies.document,
+      stylesheet,
+    }),
   );
+
+  return () => {
+    for (const link of links) link.remove();
+  };
 }
 
 function appendHostStylesheet({
+  document,
   stylesheet,
-  manifest,
-  runtime,
-  dependencies,
-}: HostStylesContext & { stylesheet: AtlasStylesheet }): void {
-  dependencies.validateArtifactUrl({
-    url: new URL(stylesheet.href),
-    manifest,
-    runtime,
-  });
-
-  const element = dependencies.document.createElement('link');
+}: {
+  document: HostStylesDependencies['document'];
+  stylesheet: AtlasStylesheet;
+}): HTMLLinkElement {
+  const element = document.createElement('link');
   element.rel = 'stylesheet';
   element.href = stylesheet.href;
 
@@ -43,5 +54,7 @@ function appendHostStylesheet({
     element.crossOrigin = 'anonymous';
   }
 
-  dependencies.document.head.append(element);
+  document.head.append(element);
+
+  return element;
 }

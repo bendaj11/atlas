@@ -5,11 +5,10 @@ import {
   type AtlasHostCatalog,
 } from '@atlas/schema';
 import type { applyOverridesDocument as applyOverridesDocumentType } from '../apply-overrides-document/apply-overrides-document.js';
-import type { requestDevelopmentSession } from '../../development-session/index.js';
 import type { fetchJson } from '../../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { OVERRIDES_STORAGE_KEY } from '../overrides.constants.js';
-import type { DevSession, RuntimeOverrides } from '../overrides.types.js';
+import type { RuntimeOverrides } from '../overrides.types.js';
 
 const applyOverridesDocument = jest.fn<typeof applyOverridesDocumentType>();
 jest.unstable_mockModule(
@@ -18,8 +17,6 @@ jest.unstable_mockModule(
 );
 
 export class ApplyOverridesDriver {
-  private readonly requestDevelopmentSession =
-    jest.fn<typeof requestDevelopmentSession>();
   private readonly fetchJson = jest.fn<typeof fetchJson>();
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
@@ -28,15 +25,9 @@ export class ApplyOverridesDriver {
     applyOverridesDocument.mockReset();
     sessionStorage.clear();
     localStorage.clear();
-    this.requestDevelopmentSession.mockResolvedValue(undefined);
   }
 
   readonly given = {
-    bridgeSession: (session: DevSession) => {
-      this.requestDevelopmentSession.mockResolvedValue(session);
-
-      return this;
-    },
     tabDocument: (document: RuntimeOverrides) => {
       sessionStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(document));
 
@@ -70,10 +61,8 @@ export class ApplyOverridesDriver {
       sessionStorage,
       localStorage,
       fetchJson: this.fetchJson as typeof fetchJson,
-      requestDevelopmentSession: this.requestDevelopmentSession,
       loadPublishedArtifact: this.loadPublishedArtifact,
     }),
     applyOverridesDocumentMock: () => applyOverridesDocument,
-    requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
   };
 }

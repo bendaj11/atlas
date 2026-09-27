@@ -1,17 +1,12 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
-import type { validateIntegrity as validateIntegrityType } from './validate-integrity/validate-integrity.js';
-
-const validateIntegrity = jest.fn<typeof validateIntegrityType>();
-jest.unstable_mockModule('./validate-integrity/validate-integrity.js', () => ({
-  validateIntegrity,
-}));
-const { fetchBytes, fetchJson } = await import('./index.js');
+import { fetchBytes, fetchJson } from './index.js';
 
 export class FetchJsonDriver {
   private url = faker.internet.url();
   private retryCount = 0;
-  private integrity: string | undefined;
+  private readonly verify = jest.fn<(bytes: Uint8Array) => Promise<void>>();
+  private verified = false;
   private readonly originalFetch = globalThis.fetch;
   private readonly originalTimeout = AbortSignal.timeout;
   private readonly timeoutSignal = new AbortController().signal;
@@ -19,8 +14,7 @@ export class FetchJsonDriver {
   private result!: Promise<unknown>;
 
   constructor() {
-    validateIntegrity.mockReset();
-    validateIntegrity.mockResolvedValue(undefined);
+    this.verify.mockResolvedValue(undefined);
     AbortSignal.timeout = jest
       .fn<typeof AbortSignal.timeout>()
       .mockReturnValue(this.timeoutSignal);
@@ -38,8 +32,8 @@ export class FetchJsonDriver {
 
       return this;
     },
-    integrity: (integrity: string) => {
-      this.integrity = integrity;
+    verification: () => {
+      this.verified = true;
 
       return this;
     },
@@ -48,8 +42,8 @@ export class FetchJsonDriver {
 
       return this;
     },
-    integrityFailure: (error: Error) => {
-      validateIntegrity.mockRejectedValue(error);
+    verificationFailure: (error: Error) => {
+      this.verify.mockRejectedValueOnce(error);
 
       return this;
     },
@@ -65,7 +59,7 @@ export class FetchJsonDriver {
       this.result = fetchJson({
         url: this.url,
         runtime: { resourcesRetryCount: this.retryCount },
-        ...(this.integrity === undefined ? {} : { integrity: this.integrity }),
+        ...(this.verified ? { verify: this.verify } : {}),
       }).finally(() => this.restore());
     },
     bytesRequested: () => {
@@ -79,7 +73,8 @@ export class FetchJsonDriver {
   readonly get = {
     result: () => this.result,
     fetchMock: () => this.fetchMock,
-    validateIntegrityMock: () => validateIntegrity,
+    verifyMock: () => this.verify,
+    cacheModes: () => this.fetchMock.mock.calls.map(([, init]) => init?.cache),
     timeoutSignal: () => this.timeoutSignal,
   };
 

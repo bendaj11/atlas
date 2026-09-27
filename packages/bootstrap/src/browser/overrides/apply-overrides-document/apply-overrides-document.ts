@@ -1,27 +1,52 @@
-import type { AtlasHostCatalog, AtlasManifest } from '@atlas/schema';
+import type {
+  AtlasHostCatalog,
+  AtlasManifest,
+  AtlasStaticRegistry,
+} from '@atlas/schema';
 import { OverrideInvalidError } from '../../../shared/errors/index.js';
 import type {
-  OverridesContext,
   RuntimeAppOverride,
   RuntimeOverrides,
 } from '../overrides.types.js';
-import { resolveOverrideManifest } from '../resolve-override-manifest/resolve-override-manifest.js';
+import {
+  resolveOverrideManifest,
+  type FetchStaticRegistry,
+  type ResolveOverrideManifestContext,
+} from '../resolve-override-manifest/resolve-override-manifest.js';
 
 export async function applyOverridesDocument({
   runtime,
   dependencies,
   catalog,
   overrides,
-}: OverridesContext & {
+}: ResolveOverrideManifestContext & {
   catalog: AtlasHostCatalog;
   overrides: RuntimeOverrides;
 }): Promise<AtlasHostCatalog> {
-  const context = { runtime, dependencies };
+  const context = {
+    runtime,
+    dependencies: {
+      loadPublishedArtifact: dependencies.loadPublishedArtifact,
+      fetchJson: shareRegistryRequests(dependencies.fetchJson),
+    },
+  };
   const selectedHost =
     overrides.host?.manifest || overrides.hostOverride || catalog.host;
-  const host =
-    (await resolveOverrideManifest({ ...context, manifest: selectedHost })) ||
-    catalog.host;
+  const hostResolving = resolveOverrideManifest({
+    ...context,
+    manifest: selectedHost,
+  });
+  const appsResolving = Promise.allSettled(
+    (overrides.apps || overrides.overrides || []).map(async (override) =>
+      resolveOverrideManifest({
+        ...context,
+        manifest: extractAppManifestFromOverride(override),
+      }),
+    ),
+  );
+  const resolvedHost = await hostResolving;
+  const appResolutions = await appsResolving;
+  const host = resolvedHost || catalog.host;
 
   const appsById = new Map(
     catalog.apps.map((manifest) => [manifest.id, manifest]),
@@ -33,11 +58,10 @@ export async function applyOverridesDocument({
     catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies || []),
   );
 
-  for (const override of overrides.apps || overrides.overrides || []) {
-    const manifest = await resolveOverrideManifest({
-      ...context,
-      manifest: extractAppManifestFromOverride(override),
-    });
+  for (const resolution of appResolutions) {
+    if (resolution.status === 'rejected') throw resolution.reason;
+
+    const manifest = resolution.value;
 
     if (!manifest) continue;
 
@@ -86,4 +110,17 @@ function extractAppManifestFromOverride(
   }
 
   return manifest;
+}
+
+function shareRegistryRequests(
+  fetchJson: FetchStaticRegistry,
+): FetchStaticRegistry {
+  const requests = new Map<string, Promise<AtlasStaticRegistry>>();
+
+  return (options) => {
+    const pending = requests.get(options.url) ?? fetchJson(options);
+    requests.set(options.url, pending);
+
+    return pending;
+  };
 }

@@ -3,12 +3,10 @@ import {
   parseDismissedDevelopmentOffers,
   type AtlasHostCatalog,
 } from '@atlas/schema';
-import { requestDevelopmentSession } from '../../development-session/index.js';
 import { fetchJson } from '../../fetch-json/index.js';
 import { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { applyOverridesDocument } from '../apply-overrides-document/apply-overrides-document.js';
 import {
-  discoverDevelopmentSession,
   readDismissedDevelopmentOffers,
   readStoredOverridesDocument,
 } from '../development-session-source/development-session-source.js';
@@ -25,8 +23,6 @@ export async function applyOverrides({
   dependencies = createBrowserOverridesDependencies(),
 }: ApplyOverridesOptions): Promise<AtlasHostCatalog> {
   const context = { runtime, dependencies };
-  const session =
-    developmentSession ?? (await discoverDevelopmentSession(context));
   const storedText = readStoredOverridesDocument(dependencies);
   const parsed = storedText
     ? (JSON.parse(storedText) as RuntimeOverrides)
@@ -37,15 +33,15 @@ export async function applyOverrides({
     overrides: stored?.apps || stored?.overrides || [],
     ...(hostOverride ? { hostOverride } : {}),
   };
-  const overrides = session
+  const overrides = developmentSession
     ? mergeDevelopmentOffers({
         selection,
         offers: {
-          overrides: session.overrides || [],
-          ...(session.hostOverride
-            ? { hostOverride: session.hostOverride }
+          overrides: developmentSession.overrides || [],
+          ...(developmentSession.hostOverride
+            ? { hostOverride: developmentSession.hostOverride }
             : {}),
-          offerIds: session.offerIds || {},
+          offerIds: developmentSession.offerIds || {},
         },
         dismissedOfferIds: parseDismissedDevelopmentOffers(
           readDismissedDevelopmentOffers({
@@ -67,7 +63,6 @@ function createBrowserOverridesDependencies(): OverridesDependencies {
     sessionStorage,
     localStorage,
     fetchJson,
-    requestDevelopmentSession,
     loadPublishedArtifact,
   };
 }

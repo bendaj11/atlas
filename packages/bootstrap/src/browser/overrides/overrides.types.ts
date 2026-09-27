@@ -5,7 +5,6 @@ import type {
   AtlasHostRuntimeConfig,
   AtlasManifest,
 } from '@atlas/schema';
-import type { requestDevelopmentSession } from '../development-session/index.js';
 import type { fetchJson } from '../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../published-artifact/index.js';
 
@@ -38,7 +37,6 @@ export interface OverridesDependencies {
   readonly sessionStorage: Pick<Storage, 'getItem'>;
   readonly localStorage: Pick<Storage, 'getItem'>;
   readonly fetchJson: typeof fetchJson;
-  readonly requestDevelopmentSession: typeof requestDevelopmentSession;
   readonly loadPublishedArtifact: typeof loadPublishedArtifact;
 }
 

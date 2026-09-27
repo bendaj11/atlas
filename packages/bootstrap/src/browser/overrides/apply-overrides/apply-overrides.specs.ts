@@ -17,11 +17,11 @@ describe('applyOverrides', () => {
     driver = new ApplyOverridesDriver();
   });
 
-  describe('when the runtime selects a host with a catalog and names no development session URL', () => {
+  describe('when the runtime selects a host with a catalog', () => {
     const runtime = aHostRuntimeConfig({ developmentSessionUrl: undefined });
     const catalog = aHostCatalog({ hostId: runtime.hostId });
 
-    it('should return the catalog unchanged when no session is discovered and nothing is stored', async () => {
+    it('should return the catalog unchanged when no session is supplied and nothing is stored', async () => {
       await expect(
         applyOverrides({
           runtime,
@@ -31,35 +31,26 @@ describe('applyOverrides', () => {
       ).resolves.toBe(catalog);
     });
 
-    it('should not discover a session when one is supplied', async () => {
-      await applyOverrides({
-        runtime,
-        catalog,
-        developmentSession: { hostId: runtime.hostId, overrides: [] },
-        dependencies: driver.get.dependencies(),
-      });
-
-      expect(driver.get.requestDevelopmentSessionMock()).not.toHaveBeenCalled();
-    });
-
-    it('should apply the offered overrides when the discovered session offers them', async () => {
+    it('should apply the offered overrides when the supplied session offers them', async () => {
       const manifest = anAppManifest({ channel: 'local' });
       const offered = { appId: manifest.id, manifest };
 
-      driver.given.bridgeSession({
-        hostId: runtime.hostId,
-        overrides: [offered],
-        offerIds: { [manifest.id]: faker.date.past().toISOString() },
-      });
-
       await applyOverrides({
         runtime,
         catalog,
+        developmentSession: {
+          hostId: runtime.hostId,
+          overrides: [offered],
+          offerIds: { [manifest.id]: faker.date.past().toISOString() },
+        },
         dependencies: driver.get.dependencies(),
       });
 
       expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
-        expect.objectContaining({ catalog, overrides: { overrides: [offered] } }),
+        expect.objectContaining({
+          catalog,
+          overrides: { overrides: [offered] },
+        }),
       );
     });
 
@@ -67,18 +58,19 @@ describe('applyOverrides', () => {
       const manifest = anAppManifest({ channel: 'local' });
       const offerId = faker.date.past().toISOString();
 
-      driver.given
-        .bridgeSession({
-          hostId: runtime.hostId,
-          overrides: [{ appId: manifest.id, manifest }],
-          offerIds: { [manifest.id]: offerId },
-        })
-        .given.originDismissedOffers(runtime.hostId, { [manifest.id]: offerId });
+      driver.given.originDismissedOffers(runtime.hostId, {
+        [manifest.id]: offerId,
+      });
 
       await expect(
         applyOverrides({
           runtime,
           catalog,
+          developmentSession: {
+            hostId: runtime.hostId,
+            overrides: [{ appId: manifest.id, manifest }],
+            offerIds: { [manifest.id]: offerId },
+          },
           dependencies: driver.get.dependencies(),
         }),
       ).resolves.toBe(catalog);
@@ -87,16 +79,15 @@ describe('applyOverrides', () => {
     it('should apply the offered host override when the session offers a host', async () => {
       const hostOverride = aHostManifest({ id: runtime.hostId });
 
-      driver.given.bridgeSession({
-        hostId: runtime.hostId,
-        overrides: [],
-        hostOverride,
-        offerIds: { [hostOverride.id]: faker.date.past().toISOString() },
-      });
-
       await applyOverrides({
         runtime,
         catalog,
+        developmentSession: {
+          hostId: runtime.hostId,
+          overrides: [],
+          hostOverride,
+          offerIds: { [hostOverride.id]: faker.date.past().toISOString() },
+        },
         dependencies: driver.get.dependencies(),
       });
 
@@ -114,17 +105,19 @@ describe('applyOverrides', () => {
       const stored = { appId: storedManifest.id, manifest: storedManifest };
       const offered = { appId: offeredManifest.id, manifest: offeredManifest };
 
-      driver.given
-        .bridgeSession({
-          hostId: runtime.hostId,
-          overrides: [offered],
-          offerIds: { [offeredManifest.id]: faker.date.past().toISOString() },
-        })
-        .given.originDocument({ hostId: runtime.hostId, overrides: [stored] });
+      driver.given.originDocument({
+        hostId: runtime.hostId,
+        overrides: [stored],
+      });
 
       await applyOverrides({
         runtime,
         catalog,
+        developmentSession: {
+          hostId: runtime.hostId,
+          overrides: [offered],
+          offerIds: { [offeredManifest.id]: faker.date.past().toISOString() },
+        },
         dependencies: driver.get.dependencies(),
       });
 

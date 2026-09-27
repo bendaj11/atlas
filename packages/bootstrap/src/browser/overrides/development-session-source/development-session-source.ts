@@ -1,45 +1,11 @@
 import { dismissedDevelopmentOffersKey } from '@atlas/schema';
 import { OVERRIDES_STORAGE_KEY } from '../overrides.constants.js';
-import type { FetchOptions } from '../../fetch-json/index.js';
-import type {
-  DevSession,
-  OverridesContext,
-  OverridesDependencies,
-} from '../overrides.types.js';
-
-export type FetchDevelopmentSession = (
-  options: FetchOptions,
-) => Promise<DevSession>;
+import type { OverridesDependencies } from '../overrides.types.js';
 
 export type DevelopmentSessionSourceDependencies = Pick<
   OverridesDependencies,
-  'sessionStorage' | 'localStorage' | 'requestDevelopmentSession'
-> & { fetchJson: FetchDevelopmentSession };
-
-export interface DevelopmentSessionSourceContext extends Pick<
-  OverridesContext,
-  'runtime'
-> {
-  dependencies: DevelopmentSessionSourceDependencies;
-}
-
-export async function discoverDevelopmentSession({
-  runtime,
-  dependencies,
-}: DevelopmentSessionSourceContext): Promise<DevSession | undefined> {
-  if (runtime.developmentSessionUrl) {
-    return dependencies.fetchJson({
-      url: runtime.developmentSessionUrl,
-      runtime,
-    });
-  }
-
-  const session = await dependencies.requestDevelopmentSession({
-    hostId: runtime.hostId,
-  });
-
-  return session as DevSession | undefined;
-}
+  'sessionStorage' | 'localStorage'
+>;
 
 export function readStoredOverridesDocument(
   dependencies: DevelopmentSessionSourceDependencies,

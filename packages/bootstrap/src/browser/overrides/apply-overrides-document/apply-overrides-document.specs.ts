@@ -87,6 +87,60 @@ describe('applyOverridesDocument', () => {
       expect(driver.get.result()?.apps).toEqual([manifest]);
     });
 
+    it('should request a shared registry once when several overrides resolve through it', async () => {
+      const registryUrl = faker.internet.url();
+      driver.given.manifestsResolvedThroughRegistry(registryUrl);
+
+      await driver.when.applied({
+        hostOverride: aHostManifest(),
+        overrides: [
+          {
+            appId: catalogApp.id,
+            manifest: anAppManifest({ id: catalogApp.id }),
+          },
+        ],
+      });
+
+      expect(driver.get.fetchJsonMock()).toHaveBeenCalledTimes(1);
+    });
+
+    it('should start resolving every override before any resolution completes', async () => {
+      driver.given.pendingResolutions();
+
+      await driver.when.applyRequested({
+        hostOverride: aHostManifest(),
+        overrides: [
+          {
+            appId: catalogApp.id,
+            manifest: anAppManifest({ id: catalogApp.id }),
+          },
+          { manifest: anAppManifest({ channel: 'local' }) },
+        ],
+      });
+
+      expect(driver.get.resolveOverrideManifestMock()).toHaveBeenCalledTimes(3);
+    });
+
+    it('should report the first invalid override in document order when a later override also fails', async () => {
+      const outsider = anAppManifest({ channel: 'production' });
+      driver.given.resolutionFailureFor(
+        catalogApp.id,
+        new Error(faker.lorem.sentence()),
+      );
+
+      await driver.when.applied({
+        overrides: [
+          { appId: outsider.id, manifest: outsider },
+          {
+            appId: catalogApp.id,
+            manifest: anAppManifest({ id: catalogApp.id }),
+          },
+        ],
+      });
+
+      expect(driver.get.error()).toMatchObject({ code: 'OVERRIDE_INVALID' });
+    });
+
     it('should skip an override when its manifest cannot be resolved', async () => {
       driver.given.unresolvableManifests();
       await driver.when.applied({

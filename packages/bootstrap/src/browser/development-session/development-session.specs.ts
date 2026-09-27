@@ -113,15 +113,16 @@ describe('requestDevelopmentSession', () => {
       expect(driver.get.result()).toBeUndefined();
     });
 
-    it('should ignore a reply carrying an error when the timeout fires', async () => {
+    it('should resolve undefined without waiting for the timeout when the bridge replies with an error', async () => {
       driver.given.bridgeReply({
         type: ATLAS_DEV_SESSION_RESPONSE,
         requestId,
         hostId,
         error: faker.lorem.sentence(),
+        document: {},
       });
       driver.when.requested(hostId);
-      await driver.when.timedOut();
+      await driver.when.settled();
 
       expect(driver.get.result()).toBeUndefined();
     });

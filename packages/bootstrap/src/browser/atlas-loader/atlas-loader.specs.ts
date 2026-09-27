@@ -35,6 +35,16 @@ describe('startAtlasLoader', () => {
         });
       });
 
+      it('should preconnect to the artifact registry of the resolved runtime when started', () => {
+        expect(
+          driver.get.preconnectArtifactRegistryMock(),
+        ).toHaveBeenCalledWith({
+          document,
+          runtime,
+          pageUrl: 'https://host.example/',
+        });
+      });
+
       it('should load the startup catalog for the resolved runtime when started', () => {
         expect(driver.get.loadStartupCatalogMock()).toHaveBeenCalledWith(
           expect.objectContaining({ runtime }),
@@ -108,6 +118,26 @@ describe('startAtlasLoader', () => {
       expect(driver.get.publishRuntimeSnapshotMock()).toHaveBeenCalledWith(
         expect.objectContaining({ catalog }),
       );
+    });
+
+    it('should load the startup catalog while the module shim is still installing', async () => {
+      await driver.given.pendingModuleShim().when.startRequested();
+
+      expect(driver.get.loadStartupCatalogMock()).toHaveBeenCalled();
+    });
+
+    it('should reject with the module shim failure without waiting for the startup catalog', async () => {
+      const failure = new Error('shim unavailable');
+      driver.given.moduleShimFailure(failure).given.pendingStartupCatalog();
+      await driver.when.started();
+
+      expect(driver.get.error()).toBe(failure);
+    });
+
+    it('should not load the host module before the module shim is installed', async () => {
+      await driver.given.pendingModuleShim().when.startRequested();
+
+      expect(driver.get.loadHostModuleMock()).not.toHaveBeenCalled();
     });
 
     it('should mount through the default export when the module exposes mount there', async () => {
