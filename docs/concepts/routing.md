@@ -65,6 +65,22 @@ Because `/` with the default `prefix` match matches every URL, a route at `/` re
 
 If two Apps declare the same path for the same Host, Atlas keeps the first one it loads, ignores the other, and logs an error in the browser console. Treat that error as an ownership conflict to resolve between the two teams.
 
+## Unmatched URLs
+
+When no route matches the URL, the route outlet shows the Host's not-found page. The URL does not change. Set the page with `notFound` in `defineReactHost` or `notFoundComponent` in `defineAngularHost`. Without one, Atlas shows a default "Page not found" page with a link to `/`.
+
+To send `/` to a default App and show the not-found page for every other unknown URL, declare the redirect with `match: 'full'`:
+
+```ts
+{ hostId, path: '/', match: 'full', redirectTo: '/orders' }
+```
+
+An App route at `/` with the default `prefix` match matches every URL, so the not-found page never shows.
+
+An unmatched URL activates the `default` layout. A Host whose `default` layout has no `AtlasRouteOutlet` shows no not-found page.
+
+The server still returns `200` with `index.html` for the URL. The not-found page is client-side.
+
 ## Navigate inside an App
 
 For navigation inside an App, use your framework router with paths relative to the App. The router state stays native, and Atlas maps it to the Host URL.

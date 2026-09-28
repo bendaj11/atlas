@@ -137,6 +137,8 @@ The same rule applies to any conditional rendering. An Angular `@if` block or a 
 
 The route outlet shows one App at a time: the App whose route best matches the current URL. See [Routing](routing.md) for the matching rules. Render one route outlet in every layout that should show routed Apps. If the active layout has no route outlet, Atlas has nowhere to mount the routed App.
 
+`AtlasRouteOutlet` and `<atlas-route-outlet>` render an inner element that the matched App mounts into. When the URL matches no route, Atlas renders the Host's [not-found page](routing.md#unmatched-urls) next to that inner element, inside the same `atlas-route-outlet`. CSS targeting `atlas-route-outlet` styles both the mounted App and the not-found page.
+
 ## Slots
 
 A slot is a named area of the Host layout, such as `header` or `sidebar`. Apps declare the slots they fill for each Host:

@@ -262,6 +262,7 @@ Every class extends `AtlasError` from `@atlas/schema`, most of them through `Atl
 | `AtlasHostProvider`                                                                                                                      | Component | Create the Host SDK, provide it, and start Atlas after the tree commits. Props: `hostId`, `options`, `children`.    |
 | `startHost(options)`                                                                                                                     | Function  | Start a React Host imperatively. Returns an `AtlasHostRuntime`.                                                     |
 | `AtlasDefaultHostLayout`                                                                                                                 | Component | Default layout: status, header slot, navigation, and route outlet inside the `default` layout.                      |
+| `AtlasDefaultNotFound`                                                                                                                   | Component | Default not-found page. Renders when `defineReactHost` sets no `notFound`.                                          |
 | `useAtlasNavigationItems()`                                                                                                              | Hook      | Current route navigation items for a custom menu.                                                                   |
 | `HostOptions`, `HostSdkOptions`, `ReactHostDefinition`, `AtlasHostProviderProps`, `ReactDomClient`, `LegacyReactDom`, `ReactDomRenderer` | Type      | Option types.                                                                                                       |
 
@@ -286,6 +287,8 @@ Host anchors mark where Atlas renders. Render them inside the layout passed to `
 | `startHost(options, services?)`                                                                                        | Function | Start Atlas for an already bootstrapped Angular App. Pass `hostDataInjector` to keep Signal host data live.       |
 | `AtlasNavigationItemsService`                                                                                          | Service  | `items`: a `Signal` of the current route navigation items.                                                        |
 | `AtlasAngularHostAnchors`                                                                                              | Service  | Anchor registry the anchor components register with.                                                              |
+| `AtlasDefaultNotFound`                                                                                                 | Component | Default not-found page. Renders when `defineAngularHost` sets no `notFoundComponent`.                            |
+| `ATLAS_NOT_FOUND_COMPONENT`                                                                                            | Token    | Injection token holding the not-found component. `defineAngularHost` provides it from `notFoundComponent`.       |
 | `HostOptions`, `HostSdkOptions`, `AngularHostDefinition`, `AngularHostBootstrapOptions`, `CreateAngularHostSdkOptions` | Type     | Option types.                                                                                                     |
 
 ### Angular host anchors

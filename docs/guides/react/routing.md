@@ -238,6 +238,26 @@ export function OpenCustomersButton() {
 
 Replace the UUID with the destination App's ID from its `atlas.config.ts`. Atlas looks up the destination App's current path in this Host, adds the `state` values as query parameters (`undefined` values are skipped, `null` becomes an empty value), and navigates. If the destination App has no route in this Host, `navigateTo()` throws an error with the code `ATLAS_APP_ROUTE_NOT_FOUND`. See the [SDK reference](../../reference/sdk.md) for the full signature.
 
+## Not-found page
+
+When the URL matches no route, `AtlasRouteOutlet` renders the Host's not-found page instead of an App. Set it with `notFound` on `defineReactHost`:
+
+```tsx
+import { defineReactHost } from '@atlas/runtime/react';
+import { HostLayout } from './HostLayout';
+import { NotFoundPage } from './NotFoundPage';
+
+export default defineReactHost({
+  config: { id: '0a17281f-287b-4d89-a8ca-0ab0e577c506', name: 'Portal' },
+  layout: HostLayout,
+  notFound: NotFoundPage,
+  reactDom,
+  useSdkOptions,
+});
+```
+
+`NotFoundPage` renders inside the Host router, so `Link` and other React Router components work the same as anywhere else in the Host. Without `notFound`, Atlas renders `AtlasDefaultNotFound`, a page with a link back to `/`. See [Unmatched URLs](../../concepts/routing.md#unmatched-urls) for the matching rules.
+
 ## Common mistakes
 
 - Writing `route` instead of `path` in a route entry.

@@ -204,6 +204,25 @@ export class OpenCustomersComponent {
 
 Replace the UUID with the destination App's ID from its `atlas.config.ts`. Atlas looks up the destination App's current path in this Host, adds the `state` values as query parameters (`undefined` values are skipped, `null` becomes an empty value), and navigates. If the destination App has no route in this Host, `navigateTo()` throws an error with the code `ATLAS_APP_ROUTE_NOT_FOUND`. See the [SDK reference](../../reference/sdk.md) for the full signature.
 
+## Not-found page
+
+When the URL matches no route, `<atlas-route-outlet>` renders the Host's not-found page instead of an App. Set it with `notFoundComponent` on `defineAngularHost`:
+
+```ts
+import { defineAngularHost } from '@atlas/runtime/angular';
+import { AppComponent } from './app.component';
+import { NotFoundComponent } from './not-found.component';
+
+export default defineAngularHost({
+  config: { id: '0a17281f-287b-4d89-a8ca-0ab0e577c506', name: 'Portal' },
+  component: AppComponent,
+  notFoundComponent: NotFoundComponent,
+  sdkOptions,
+});
+```
+
+`NotFoundComponent` renders inside the Host router, so `routerLink` works the same as anywhere else in the Host. Without `notFoundComponent`, Atlas renders `AtlasDefaultNotFound`, a component with a link back to `/`. See [Unmatched URLs](../../concepts/routing.md#unmatched-urls) for the matching rules.
+
 ## Common mistakes
 
 - Writing `route` instead of `path` in a route entry.
