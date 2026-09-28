@@ -39,6 +39,7 @@ export type ReactDomRenderer = ReactDomClient | LegacyReactDom;
 export interface ReactHostDefinition<THostSdk extends object = {}> {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   layout: ComponentType;
+  notFound?: ComponentType;
   reactDom: ReactDomRenderer;
   providers?: ComponentType<{ children?: ReactNode }>;
   useSdkOptions: () => HostSdkOptions<THostSdk>;
@@ -59,6 +60,7 @@ export interface RenderReactHostOptions {
 export interface AtlasHostProviderProps<THostSdk extends object = {}> {
   children: ReactNode;
   hostId: string;
+  notFound?: ComponentType;
   options: HostOptions<THostSdk>;
 }
 

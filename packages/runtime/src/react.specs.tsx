@@ -75,7 +75,7 @@ describe('AtlasHostProvider', () => {
         expect(driver.get.layoutContentPresent()).toBe(true);
       });
 
-      it.each(['navigation', 'route-outlet'] as const)(
+      it.each(['navigation'] as const)(
         'should register the %s anchor when activated',
         (kind) => {
           expect(driver.get.anchorTag(kind)).toBe(
@@ -87,6 +87,54 @@ describe('AtlasHostProvider', () => {
       it('should register the slot anchor by slot id when activated', () => {
         expect(driver.get.slotTag()).toBe('ATLAS-SLOT');
       });
+
+      it('should register the mount element inside atlas-route-outlet as the route-outlet anchor when activated', () => {
+        expect(driver.get.routeOutletParentTag()).toBe('ATLAS-ROUTE-OUTLET');
+      });
+
+      it('should render no not-found page when no route-not-found flag is set', () => {
+        expect(driver.get.defaultNotFoundPresent()).toBe(false);
+      });
+    });
+  });
+
+  describe('when a host with a not-found component activates its layout', () => {
+    beforeEach(async () => {
+      await driver.given.notFound(true).when.hostRendered();
+
+      await driver.when.layoutActivated();
+    });
+
+    it('should render the host not-found component when the route is not found', async () => {
+      await driver.when.routeNotFoundSet(true);
+
+      expect(driver.get.hostNotFoundPresent()).toBe(true);
+    });
+
+    it('should remove the host not-found component when the route is found again', async () => {
+      await driver.when.routeNotFoundSet(true);
+      await driver.when.routeNotFoundSet(false);
+
+      expect(driver.get.hostNotFoundPresent()).toBe(false);
+    });
+  });
+
+  describe('when a host without a not-found component activates its layout and the route is not found', () => {
+    beforeEach(async () => {
+      await driver.given.notFound(false).when.hostRendered();
+
+      await driver.when.layoutActivated();
+      await driver.when.routeNotFoundSet(true);
+    });
+
+    it('should render the default not-found page when the route is not found', () => {
+      expect(driver.get.defaultNotFoundPresent()).toBe(true);
+    });
+
+    it('should navigate the router to the root path when the default not-found link is clicked', async () => {
+      await driver.when.defaultNotFoundLinkClicked();
+
+      expect(driver.get.routerNavigateMock()).toHaveBeenCalledWith('/', {});
     });
   });
 
@@ -215,6 +263,17 @@ describe('defineReactHost', () => {
       .when.reactHostMounted();
 
     expect(driver.get.startedOptions().catalog).toBe(catalog);
+  });
+
+  it('should render the definition not-found component when the mounted host route is not found', async () => {
+    await driver.given
+      .notFound(true)
+      .given.legacyReactDom(false)
+      .when.reactHostMounted();
+
+    await driver.when.routeNotFoundSet(true);
+
+    expect(driver.get.hostNotFoundPresent()).toBe(true);
   });
 
   describe('when mounted through legacy react dom', () => {

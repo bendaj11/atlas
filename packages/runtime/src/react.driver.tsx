@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker';
 import { act, render, type RenderResult } from '@testing-library/react';
 import { createElement, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useAtlasSdk } from '@atlas/sdk/react';
+import { useAtlasSdk, type RouterNavigate } from '@atlas/sdk/react';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostRuntimeConfig } from '@atlas/testkit';
 import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
@@ -58,7 +58,15 @@ function SdkConsumer() {
 }
 
 function DefinedHostLayout() {
-  return createElement('main', { 'data-testid': 'defined-layout' });
+  return createElement(
+    'main',
+    { 'data-testid': 'defined-layout' },
+    createElement(AtlasRouteOutlet),
+  );
+}
+
+function HostNotFound() {
+  return createElement('p', { 'data-testid': 'host-not-found' });
 }
 
 function HostProviders(props: { children?: ReactNode }) {
@@ -92,6 +100,8 @@ export class ReactAdapterDriver {
   private catalog: AtlasHostCatalog | undefined;
   private legacyReactDom = faker.datatype.boolean();
   private hostProviders = faker.datatype.boolean();
+  private notFound = faker.datatype.boolean();
+  private readonly routerNavigate = jest.fn<RouterNavigate>();
   private readonly legacyRender =
     jest.fn<(element: ReactElement, container: Element) => void>();
   private readonly unmountComponentAtNode =
@@ -150,6 +160,11 @@ export class ReactAdapterDriver {
 
       return this;
     },
+    notFound: (notFound: boolean) => {
+      this.notFound = notFound;
+
+      return this;
+    },
   };
 
   readonly when = {
@@ -168,6 +183,16 @@ export class ReactAdapterDriver {
         this.anchors().setActiveLayout(
           this.useDefaultLayout ? 'default' : LAYOUT_ID,
         );
+      }),
+    routeNotFoundSet: (routeNotFound: boolean) =>
+      act(async () => {
+        this.anchors().setRouteNotFound(routeNotFound);
+      }),
+    defaultNotFoundLinkClicked: () =>
+      act(async () => {
+        document
+          .querySelector<HTMLAnchorElement>('[data-atlas-not-found] a')!
+          .click();
       }),
     navigationItemsPublished: async (labels: string[]) => {
       await act(async () => {
@@ -191,6 +216,7 @@ export class ReactAdapterDriver {
         },
         layout: DefinedHostLayout,
         ...(this.hostProviders ? { providers: HostProviders } : {}),
+        ...(this.notFound ? { notFound: HostNotFound } : {}),
         reactDom: this.legacyReactDom
           ? {
               render: this.legacyRender,
@@ -234,6 +260,13 @@ export class ReactAdapterDriver {
     itemsText: () => this.rendered!.getByTestId('items').textContent,
     anchorTag: (kind: 'status' | 'navigation' | 'route-outlet') =>
       this.anchors().get(kind)?.tagName,
+    routeOutletParentTag: () =>
+      this.anchors().get('route-outlet')?.parentElement?.tagName,
+    hostNotFoundPresent: () =>
+      document.querySelector('[data-testid="host-not-found"]') !== null,
+    defaultNotFoundPresent: () =>
+      document.querySelector('[data-atlas-not-found]') !== null,
+    routerNavigateMock: () => this.routerNavigate,
     slotTag: () => this.anchors().get('slot', SLOT_ID)?.tagName,
     layoutContentPresent: () =>
       this.rendered!.queryByTestId('layout-content') !== null,
@@ -287,10 +320,11 @@ export class ReactAdapterDriver {
         hostData: { region: this.region },
         router: {
           state: { location: { pathname: this.routerPathname } },
-          navigate: () => undefined,
+          navigate: this.routerNavigate,
           subscribe: () => () => undefined,
         },
       },
+      ...(this.notFound ? { notFound: HostNotFound } : {}),
       children,
     });
   }

@@ -6,17 +6,27 @@ import {
   useEffect,
   useState,
   useSyncExternalStore,
+  type ComponentType,
+  type MouseEvent,
   type ReactElement,
 } from 'react';
 import { flushSync } from 'react-dom';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { updateAtlasHostData, type AtlasHostData } from '@atlas/sdk';
+import {
+  getAtlasNavigation,
+  updateAtlasHostData,
+  type AtlasHostData,
+} from '@atlas/sdk';
 import { initFederation, loadRemoteModule } from '@atlas/sdk/federation';
 import type {
   AtlasAppMountResult,
   AtlasHostClientEntry,
 } from '@atlas/sdk/lifecycle';
-import { AtlasSdkProvider, createHostNavigation } from '@atlas/sdk/react';
+import {
+  AtlasSdkContext,
+  AtlasSdkProvider,
+  createHostNavigation,
+} from '@atlas/sdk/react';
 import { AtlasHostProviderMissingError } from './adapters/adapter.errors.js';
 import { startDomHost } from './dom-host/dom-host.js';
 import { createDomHostSdk } from './dom-host/dom-host-sdk.js';
@@ -53,6 +63,8 @@ export type {
 const AtlasHostAnchorsContext = createContext<
   AtlasHostAnchorRegistry | undefined
 >(undefined);
+
+const AtlasNotFoundContext = createContext<ComponentType>(AtlasDefaultNotFound);
 
 export function AtlasDefaultHostLayout(): ReactElement {
   return createElement(
@@ -103,6 +115,7 @@ function AtlasReactHostApplication<THostSdk extends object>(
 
   return createElement(AtlasHostProvider<THostSdk>, {
     hostId: config.id,
+    ...(definition.notFound ? { notFound: definition.notFound } : {}),
     options: {
       ...sdkOptions,
       router,
@@ -187,9 +200,12 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
 
   return createElement(AtlasHostAnchorsContext.Provider, {
     value: anchors,
-    children: createElement(AtlasSdkProvider, {
-      sdk,
-      children: props.children,
+    children: createElement(AtlasNotFoundContext.Provider, {
+      value: props.notFound ?? AtlasDefaultNotFound,
+      children: createElement(AtlasSdkProvider, {
+        sdk,
+        children: props.children,
+      }),
     }),
   });
 }
@@ -229,7 +245,47 @@ export function AtlasNavigation(props: AtlasNavigationProps): ReactElement {
 }
 
 export function AtlasRouteOutlet(): ReactElement {
-  return useRegisteredHostAnchor('route-outlet');
+  const anchors = useAtlasHostAnchors();
+  const NotFound = useContext(AtlasNotFoundContext);
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const routeNotFound = useSyncExternalStore(
+    (listener) => anchors.subscribeRouteNotFound(listener),
+    () => anchors.isRouteNotFound(),
+    () => false,
+  );
+
+  useEffect(
+    () => (element ? anchors.register('route-outlet', element) : undefined),
+    [anchors, element],
+  );
+
+  return createElement(
+    'atlas-route-outlet',
+    null,
+    createElement('div', { ref: setElement, style: { display: 'contents' } }),
+    routeNotFound ? createElement(NotFound) : null,
+  );
+}
+
+export function AtlasDefaultNotFound(): ReactElement {
+  const sdk = useAtlasHostSdk();
+
+  return createElement(
+    'section',
+    { 'data-atlas-not-found': '' },
+    createElement('h1', null, 'Page not found'),
+    createElement(
+      'a',
+      {
+        href: '/',
+        onClick: (event: MouseEvent) => {
+          event.preventDefault();
+          getAtlasNavigation(sdk).navigate('/');
+        },
+      },
+      'Go to the home page',
+    ),
+  );
 }
 
 /** Renders host layout content only while Atlas activates its layout id. */
@@ -274,6 +330,14 @@ function useAtlasHostAnchors(): AtlasHostAnchorRegistry {
   if (!anchors) throw new AtlasHostProviderMissingError();
 
   return anchors;
+}
+
+function useAtlasHostSdk(): object {
+  const sdk = useContext(AtlasSdkContext);
+
+  if (!sdk) throw new AtlasHostProviderMissingError();
+
+  return sdk;
 }
 
 function getAnchorTagName(kind: AtlasHostAnchorKind): string {
