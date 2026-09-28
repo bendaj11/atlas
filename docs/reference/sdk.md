@@ -64,10 +64,10 @@ export type ShopEvents = {
 - Custom fields come from the `hostData` property of `THostSdk`. `AtlasHostDataOf<THostSdk>` extracts them.
 - Each update produces a new immutable snapshot. React consumers re-render; the Angular `hostData` signal emits.
 
-| API                                     | Package           | Description                                                                          |
-| --------------------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| `updateAtlasHostData(sdk, updates)`     | `@atlas/sdk/host` | Host only. Merge `updates` into `hostData` and notify every mounted App.             |
-| `subscribeAtlasHostData(sdk, listener)` | `@atlas/sdk/host` | Call `listener` after each update. Returns an unsubscribe function. Adapters use it. |
+| API                                     | Package           | Description                                                                                                                                                                  |
+| --------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `updateAtlasHostData(sdk, updates)`     | `@atlas/sdk/host` | Host only. Merge `updates` into `hostData` and notify every mounted App. `sdk` can be a facade. Throws `ATLAS_HOST_DATA_NOT_WRITABLE` when `sdk` has no writable `hostData`. |
+| `subscribeAtlasHostData(sdk, listener)` | `@atlas/sdk/host` | Call `listener` after each update. Returns an unsubscribe function. Adapters use it.                                                                                         |
 
 In an Angular Host, each top-level `hostData` field may be a value or a `Signal`. In a React Host, return new `hostData` values from `useSdkOptions`. See [Share host data with Apps](../guides/host-data.md) for both.
 

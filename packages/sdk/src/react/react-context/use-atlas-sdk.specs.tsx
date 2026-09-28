@@ -35,5 +35,13 @@ describe('useAtlasSdk', () => {
 
       expect(driver.get.hostUser()).toBe(renamed);
     });
+
+    it('should re-render with the new host data when a host component updates host data through its sdk facade', () => {
+      const renamed = faker.person.firstName();
+
+      act(() => driver.when.hostDataUpdatedThroughSdkFacade(renamed));
+
+      expect(driver.get.hostUser()).toBe(renamed);
+    });
   });
 });

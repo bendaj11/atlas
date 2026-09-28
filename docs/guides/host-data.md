@@ -198,9 +198,19 @@ Prefer the reactive options above. If you start a Host yourself with `startHost`
 runtime.updateHostData({ locale: 'fr' });
 ```
 
-`updateAtlasHostData(sdk, updates)` from `@atlas/sdk/host` does the same for an SDK object you created with `createAtlasSdk`.
+`updateAtlasHostData(sdk, updates)` from `@atlas/sdk/host` does the same for an SDK object. Pass the SDK you created with `createAtlasSdk`, or the object returned by `useAtlasSdk()` or `injectAtlasSdk()`. The update reaches the shared SDK, so every App and every facade reads the new values:
 
-> **Warning:** Do not pass the object returned by `useAtlasSdk()` or `injectAtlasSdk()` to `updateAtlasHostData`. Those are framework facades over the SDK, and the update does not reach the underlying SDK that Apps read.
+```ts
+import { useAtlasSdk } from '@atlas/sdk/react';
+import { updateAtlasHostData } from '@atlas/sdk/host';
+import type { CustomerHostSdk } from '@shop/host-contract';
+
+const atlas = useAtlasSdk<CustomerHostSdk>();
+
+updateAtlasHostData(atlas, { locale: 'fr' });
+```
+
+A manual update lasts until a reactive Host input next changes host data: the React Host then writes every `hostData` field from its options again, and the Angular Host writes the field whose signal changed, overwriting your value.
 
 ## Test components that read host data
 

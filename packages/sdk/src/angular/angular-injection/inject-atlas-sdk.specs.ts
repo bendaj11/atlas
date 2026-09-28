@@ -27,6 +27,31 @@ describe('injectAtlasSdk', () => {
       expect(driver.get.atlas().hostData().userName).toBe(userName);
     });
 
+    it('should update the host sdk host data when a host component updates host data through the injected sdk', () => {
+      const userName = faker.person.firstName();
+
+      driver.when.hostDataUpdatedThroughInjectedSdk(userName);
+
+      expect(driver.get.sdk().hostData.userName).toBe(userName);
+    });
+
+    it('should expose the new host data on the injected signal when a host component updates host data through the injected sdk', () => {
+      const userName = faker.person.firstName();
+
+      driver.when.hostDataUpdatedThroughInjectedSdk(userName);
+
+      expect(driver.get.atlas().hostData().userName).toBe(userName);
+    });
+
+    it('should expose the new host data on another injected sdk when a host component updates host data through the first', () => {
+      const userName = faker.person.firstName();
+
+      driver.when.injectedAgain();
+      driver.when.hostDataUpdatedThroughInjectedSdk(userName);
+
+      expect(driver.get.otherAtlas().hostData().userName).toBe(userName);
+    });
+
     it('should stop following host updates when the injector is destroyed', () => {
       const before = driver.get.atlas().hostData().userName;
 

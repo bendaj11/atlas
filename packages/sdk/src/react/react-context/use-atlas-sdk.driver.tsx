@@ -6,7 +6,7 @@ import type { AtlasSdk as AtlasSdkValue } from '../../core/sdk-types/index.js';
 import { updateAtlasHostData } from '../../core/host-data/host-data.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { AtlasSdkProvider } from './atlas-sdk-provider.js';
-import { useAtlasSdk } from './use-atlas-sdk.js';
+import { useAtlasSdk, type AtlasSdk } from './use-atlas-sdk.js';
 
 interface HostSdk {
   readonly hostData: { readonly userName: string };
@@ -14,8 +14,15 @@ interface HostSdk {
 
 const HOST_USER_LABEL = 'Host user';
 
-function SdkConsumer() {
+type ReceiveSdk = (atlas: AtlasSdk<HostSdk>) => void;
+
+interface SdkConsumerProps {
+  readonly onSdk: ReceiveSdk;
+}
+
+function SdkConsumer({ onSdk }: SdkConsumerProps) {
   const atlas = useAtlasSdk<HostSdk>();
+  onSdk(atlas);
 
   return createElement(
     'output',
@@ -30,6 +37,10 @@ export class UseAtlasSdkDriver {
     navigation: aMemoryNavigation(),
     hostData: { userName: faker.person.firstName() },
   });
+  private atlas!: AtlasSdk<HostSdk>;
+  private readonly receiveSdk: ReceiveSdk = (atlas) => {
+    this.atlas = atlas;
+  };
 
   readonly given = {
     userName: (userName: string) => {
@@ -44,15 +55,18 @@ export class UseAtlasSdkDriver {
       render(
         createElement(AtlasSdkProvider, {
           sdk: this.sdk,
-          children: createElement(SdkConsumer),
+          children: createElement(SdkConsumer, { onSdk: this.receiveSdk }),
         }),
       );
     },
     renderedWithoutProvider: () => {
-      render(createElement(SdkConsumer));
+      render(createElement(SdkConsumer, { onSdk: this.receiveSdk }));
     },
     hostUserRenamed: (userName: string) => {
       updateAtlasHostData(this.sdk, { userName });
+    },
+    hostDataUpdatedThroughSdkFacade: (userName: string) => {
+      updateAtlasHostData(this.atlas, { userName });
     },
   };
 
