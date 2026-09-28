@@ -191,7 +191,7 @@ npx atlas g widget order-status --app-id 2bea9c13-4899-4f93-9211-cd8c55e9c529
 
 The generator creates `src/exported-widgets/order-status/` with `atlas.config.ts` (the Widget's UUID and name), `index.ts` (the default-exported standalone component, whose signal inputs receive the consumer's `inputs`), and `widget.config.ts` (the Widget's Angular providers). See [Widget files](project-structure.md#widget-files).
 
-At build time, Atlas generates an entry for each Widget that calls `createExportedWidget(Widget, widgetConfig)` from `@atlas/sdk/angular`. For every mount, `createExportedWidget()` creates a separate Angular application with `provideAtlasApp()` plus your `widgetConfig` providers, renders the component into the Widget container, and forwards input changes with `setInput()`. If you delete `widget.config.ts`, the Widget starts with no extra providers.
+At build time, Atlas generates an entry for each Widget that calls `createExportedWidget(Widget, widgetConfig)` from `@atlas/sdk/angular`. For every mount, `createExportedWidget()` creates a separate Angular application with `provideAtlasApp()` plus your `widgetConfig` providers, renders the component into the Widget container, and forwards input changes with `setInput()`. If you delete `widget.config.ts`, the Widget starts with no extra providers. The entry follows the App's change detection, read from the App entry `src/entry.ts`: if it imports `zone.js`, or does not exist, the Widget entry imports `zone.js`; otherwise it skips `zone.js` and adds `provideZonelessChangeDetection()` before your `widgetConfig` providers.
 
 Add providers the Widget needs, such as `provideHttpClient()`, to `widgetConfig`:
 

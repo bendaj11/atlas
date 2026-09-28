@@ -36,7 +36,7 @@ export function createAngularWidgetEntries(
       projectRoot,
       name,
       extension: 'ts',
-      contents: buildAngularWidgetEntrySource(projectRoot, name),
+      contents: buildAngularWidgetEntrySource({ projectRoot, name }),
     }),
   }));
 }
