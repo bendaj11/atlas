@@ -75,7 +75,10 @@ describe('AtlasHostUiPortals', () => {
 describe('createReactHostUiRenderers', () => {
   it('should return no renderers when no components are given', () => {
     expect(
-      createReactHostUiRenderers({ store: createHostUiStore(), components: {} }),
+      createReactHostUiRenderers({
+        store: createHostUiStore(),
+        components: {},
+      }),
     ).toStrictEqual({});
   });
 });

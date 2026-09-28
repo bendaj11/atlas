@@ -430,8 +430,7 @@ export class ReactAdapterDriver {
     routerPathname: () => this.routerPathname,
     status: () => this.status,
     retryMock: () => this.retry,
-    statusLinkHref: () =>
-      this.status.querySelector('a')?.getAttribute('href'),
+    statusLinkHref: () => this.status.querySelector('a')?.getAttribute('href'),
     headerText: () =>
       this.rendered!.container.querySelector('header strong')?.textContent ??
       null,
@@ -479,7 +478,9 @@ export class ReactAdapterDriver {
         },
       },
       ...(this.notFound ? { notFound: HostNotFound } : {}),
-      ...(this.hostComponents ? { loading: HostLoading, error: HostError } : {}),
+      ...(this.hostComponents
+        ? { loading: HostLoading, error: HostError }
+        : {}),
       onReady: this.onReady,
       children,
     });

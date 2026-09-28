@@ -1,7 +1,7 @@
 # Host UI components
 
 Date: 2026-09-28
-Status: Approved
+Status: Implemented
 
 ## Problem
 
@@ -35,13 +35,13 @@ A Host also customizes loading and error UI through DOM callbacks (`renderLoadin
 
 ### The five UIs
 
-| UI | Shown | Removed | Receives | Default |
-| --- | --- | --- | --- | --- |
-| App loading | An App placement enters `loading`. | The placement enters `mounting`, `mounted`, `error`, or `unmounted`. | Nothing | "Loading <App name>" loader, compact in slots |
-| App error | An App placement enters `error`. | Retry starts, or the placement unmounts. | `error`, `retry` | "Unable to load <App name>." with a Retry button |
-| Widget loading | A Widget mount starts, unless the consumer passed its own `loadingComponent`. | The Widget mounts, fails, or unmounts. | Nothing | "Loading widget" loader |
-| Widget error | A Widget mount fails. | Retry starts, or the Widget unmounts. | `error`, `retry` | "Unable to load widget. <message>" with a Retry button |
-| Host error | Host startup fails. | The retried startup reports ready. | `error`, `retry` | "Unable to start application." with a Retry button |
+| UI             | Shown                                                                         | Removed                                                              | Receives         | Default                                                |
+| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------- | ------------------------------------------------------ |
+| App loading    | An App placement enters `loading`.                                            | The placement enters `mounting`, `mounted`, `error`, or `unmounted`. | Nothing          | "Loading <App name>" loader, compact in slots          |
+| App error      | An App placement enters `error`.                                              | Retry starts, or the placement unmounts.                             | `error`, `retry` | "Unable to load <App name>." with a Retry button       |
+| Widget loading | A Widget mount starts, unless the consumer passed its own `loadingComponent`. | The Widget mounts, fails, or unmounts.                               | Nothing          | "Loading widget" loader                                |
+| Widget error   | A Widget mount fails.                                                         | Retry starts, or the Widget unmounts.                                | `error`, `retry` | "Unable to load widget. <message>" with a Retry button |
+| Host error     | Host startup fails.                                                           | The retried startup reports ready.                                   | `error`, `retry` | "Unable to start application." with a Retry button     |
 
 - `error` is the error Atlas already reports: `AtlasHostStartError`, the App's `AtlasAppMountError` or `AtlasAppFailedError`, or the Widget's `AtlasWidgetMountError` or `AtlasWidgetFailedError`. The App and Widget error messages name the App or Widget, so the components receive no extra context.
 - `retry` works once. Later calls do nothing.
@@ -91,8 +91,9 @@ export interface AtlasHostComponents {
   hostError?: ComponentType<AtlasErrorProps>;
 }
 
-export interface ReactHostDefinition<THostSdk extends object = {}>
-  extends AtlasHostComponents {
+export interface ReactHostDefinition<
+  THostSdk extends object = {},
+> extends AtlasHostComponents {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   layout: ComponentType;
   reactDom: ReactDomRenderer;
@@ -100,8 +101,9 @@ export interface ReactHostDefinition<THostSdk extends object = {}>
   useSdkOptions: () => HostSdkOptions<THostSdk>;
 }
 
-export interface AtlasHostProviderProps<THostSdk extends object = {}>
-  extends AtlasHostComponents {
+export interface AtlasHostProviderProps<
+  THostSdk extends object = {},
+> extends AtlasHostComponents {
   children: ReactNode;
   hostId: string;
   options: HostOptions<THostSdk>;
@@ -136,16 +138,18 @@ export interface AngularHostComponents {
   hostErrorComponent?: Type<unknown>;
 }
 
-export interface AngularHostDefinition<THostSdk extends object = {}>
-  extends AngularHostComponents {
+export interface AngularHostDefinition<
+  THostSdk extends object = {},
+> extends AngularHostComponents {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   component: Type<unknown>;
   appConfig?: ApplicationConfig;
   sdkOptions: CreateAngularHostSdkOptions<THostSdk>;
 }
 
-export interface AngularHostBootstrapOptions<THostSdk extends object = {}>
-  extends Omit<AngularHostComponents, 'notFoundComponent'> {
+export interface AngularHostBootstrapOptions<
+  THostSdk extends object = {},
+> extends Omit<AngularHostComponents, 'notFoundComponent'> {
   component: Type<unknown>;
   appConfig: ApplicationConfig;
   request?: AtlasHostMountRequest;

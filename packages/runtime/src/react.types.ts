@@ -56,8 +56,9 @@ export interface AtlasHostComponents {
   hostError?: ComponentType<AtlasErrorProps>;
 }
 
-export interface ReactHostDefinition<THostSdk extends object = {}>
-  extends AtlasHostComponents {
+export interface ReactHostDefinition<
+  THostSdk extends object = {},
+> extends AtlasHostComponents {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   layout: ComponentType;
   reactDom: ReactDomRenderer;
@@ -87,8 +88,9 @@ export interface ReactHostStartServices {
   ui?: DomHostUiRenderers;
 }
 
-export interface AtlasHostProviderProps<THostSdk extends object = {}>
-  extends AtlasHostComponents {
+export interface AtlasHostProviderProps<
+  THostSdk extends object = {},
+> extends AtlasHostComponents {
   children: ReactNode;
   hostId: string;
   options: HostOptions<THostSdk>;
