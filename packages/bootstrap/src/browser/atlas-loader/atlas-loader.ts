@@ -7,7 +7,11 @@ import {
 } from '@atlas/schema';
 import { requestDevelopmentSession } from '../development-session/index.js';
 import { fetchBytes, fetchJson } from '../fetch-json/index.js';
-import { loadHostModule } from '../host-loader/index.js';
+import {
+  loadHostModule,
+  prefetchHostRemoteEntry,
+  type PrefetchedHostRemoteEntry,
+} from '../host-loader/index.js';
 import type { HostEntry } from '../host-module.js';
 import { installModuleShim } from '../module-shim/index.js';
 import { applyOverrides } from '../overrides/index.js';
@@ -22,7 +26,7 @@ import { loadStartupCatalog } from './startup-catalog/startup-catalog.js';
 export async function startAtlasLoader(
   dependencies: AtlasLoaderDependencies = createBrowserAtlasLoaderDependencies(),
 ): Promise<void> {
-  const [, { runtime, catalog }] = await Promise.all([
+  const [, { runtime, catalog, hostRemoteEntry }] = await Promise.all([
     dependencies.installModuleShim(),
     resolveHostCatalog(dependencies),
   ]);
@@ -38,6 +42,7 @@ export async function startAtlasLoader(
   const module = await dependencies.loadHostModule({
     manifest: catalog.host,
     runtime,
+    ...(hostRemoteEntry ? { prefetchedRemoteEntry: hostRemoteEntry } : {}),
   });
   const entry: HostEntry = module.default?.mount ? module.default : module;
 
@@ -56,7 +61,11 @@ export async function startAtlasLoader(
 
 async function resolveHostCatalog(
   dependencies: AtlasLoaderDependencies,
-): Promise<{ runtime: AtlasHostRuntimeConfig; catalog: AtlasHostCatalog }> {
+): Promise<{
+  runtime: AtlasHostRuntimeConfig;
+  catalog: AtlasHostCatalog;
+  hostRemoteEntry?: PrefetchedHostRemoteEntry;
+}> {
   const pageUrl = dependencies.location?.href ?? globalThis.location?.href;
   const runtime = resolveAtlasHostRuntimeConfig(
     await dependencies.fetchJson({ url: ATLAS_RUNTIME_CONFIG_PATH }),
@@ -70,7 +79,17 @@ async function resolveHostCatalog(
       pageUrl,
     });
 
-  const startup = await loadStartupCatalog({ runtime, dependencies });
+  let hostRemoteEntry: PrefetchedHostRemoteEntry | undefined;
+  const startup = await loadStartupCatalog({
+    runtime,
+    dependencies,
+    onHostManifest: (manifest) => {
+      hostRemoteEntry = dependencies.prefetchHostRemoteEntry({
+        manifest,
+        runtime,
+      });
+    },
+  });
 
   const catalog = await dependencies.applyOverrides({
     runtime,
@@ -88,7 +107,11 @@ async function resolveHostCatalog(
     catalog: startup.catalog,
   });
 
-  return { runtime, catalog };
+  return {
+    runtime,
+    catalog,
+    ...(hostRemoteEntry ? { hostRemoteEntry } : {}),
+  };
 }
 
 function createBrowserAtlasLoaderDependencies(): AtlasLoaderDependencies {
@@ -99,6 +122,7 @@ function createBrowserAtlasLoaderDependencies(): AtlasLoaderDependencies {
     fetchJson,
     installModuleShim,
     loadHostModule,
+    prefetchHostRemoteEntry,
     loadPublishedArtifact,
     requestDevelopmentSession,
     applyOverrides,

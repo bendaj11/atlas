@@ -174,4 +174,181 @@ describe('loadHostModule', () => {
       summary: `Selected host remote entry "${manifest.remoteEntryUrl}" does not expose "${manifest.exposes.entry}".`,
     });
   });
+
+  describe('when a prefetched remote entry of the same remote entry url and integrity is given', () => {
+    const runtime = aHostRuntimeConfig();
+    const manifest = aHostManifest();
+    const module = { mount: async () => undefined };
+
+    beforeEach(async () => {
+      driver.given
+        .runtime(runtime)
+        .given.manifest(manifest)
+        .given.prefetchedRemoteEntry({
+          manifest,
+          metadata: Promise.resolve({
+            exposes: [
+              {
+                key: manifest.exposes.entry,
+                outFileName: `./${faker.system.commonFileName('js')}`,
+              },
+            ],
+          }),
+        })
+        .given.importedModule(module);
+      await driver.when.loaded();
+    });
+
+    it('should not fetch the remote entry when loaded', () => {
+      expect(driver.get.fetchJsonMock()).not.toHaveBeenCalled();
+    });
+
+    it('should return the host module imported from the prefetched remote entry when loaded', () => {
+      expect(driver.get.module()).toBe(module);
+    });
+  });
+
+  it('should fetch the remote entry when the prefetched remote entry has another remote entry url', async () => {
+    const runtime = aHostRuntimeConfig();
+    const manifest = aHostManifest();
+    const metadata = {
+      exposes: [
+        {
+          key: manifest.exposes.entry,
+          outFileName: `./${faker.system.commonFileName('js')}`,
+        },
+      ],
+    };
+
+    driver.given
+      .runtime(runtime)
+      .given.manifest(manifest)
+      .given.prefetchedRemoteEntry({
+        manifest: aHostManifest(),
+        metadata: Promise.resolve(metadata),
+      })
+      .given.remoteMetadata(metadata)
+      .given.importedModule({ mount: async () => undefined });
+    await driver.when.loaded();
+
+    expect(driver.get.fetchJsonMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fetch the remote entry when the prefetched remote entry has another integrity', async () => {
+    const runtime = aHostRuntimeConfig();
+    const manifest = aHostManifest({
+      integrity: `sha256-${faker.string.alphanumeric(43)}=`,
+    });
+    const metadata = {
+      exposes: [
+        {
+          key: manifest.exposes.entry,
+          outFileName: `./${faker.system.commonFileName('js')}`,
+        },
+      ],
+    };
+
+    driver.given
+      .runtime(runtime)
+      .given.manifest(manifest)
+      .given.prefetchedRemoteEntry({
+        manifest: {
+          ...manifest,
+          integrity: `sha256-${faker.string.alphanumeric(43)}=`,
+        },
+        metadata: Promise.resolve(metadata),
+      })
+      .given.remoteMetadata(metadata)
+      .given.importedModule({ mount: async () => undefined });
+    await driver.when.loaded();
+
+    expect(driver.get.fetchJsonMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fetch the remote entry again when the prefetched remote entry failed', async () => {
+    const runtime = aHostRuntimeConfig();
+    const manifest = aHostManifest();
+    const failed = Promise.reject(new Error(faker.lorem.sentence()));
+    failed.catch(() => undefined);
+
+    driver.given
+      .runtime(runtime)
+      .given.manifest(manifest)
+      .given.prefetchedRemoteEntry({ manifest, metadata: failed })
+      .given.remoteMetadata({
+        exposes: [
+          {
+            key: manifest.exposes.entry,
+            outFileName: `./${faker.system.commonFileName('js')}`,
+          },
+        ],
+      })
+      .given.importedModule({ mount: async () => undefined });
+    await driver.when.loaded();
+
+    expect(driver.get.fetchJsonMock()).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('prefetchHostRemoteEntry', () => {
+  let driver: HostLoaderDriver;
+
+  beforeEach(() => {
+    driver = new HostLoaderDriver();
+  });
+
+  describe('when the host manifest is valid', () => {
+    const runtime = aHostRuntimeConfig();
+    const manifest = aHostManifest({
+      integrity: `sha256-${faker.string.alphanumeric(43)}=`,
+    });
+    const metadata = {
+      exposes: [
+        {
+          key: manifest.exposes.entry,
+          outFileName: `./${faker.system.commonFileName('js')}`,
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      driver.given
+        .runtime(runtime)
+        .given.manifest(manifest)
+        .given.remoteMetadata(metadata);
+      driver.when.prefetched();
+    });
+
+    it('should fetch the remote entry with a verification step when prefetched', () => {
+      expect(driver.get.fetchJsonMock()).toHaveBeenCalledWith({
+        url: manifest.remoteEntryUrl,
+        runtime,
+        verify: expect.any(Function),
+      });
+    });
+
+    it('should resolve the prefetched remote entry to the fetched metadata when prefetched', async () => {
+      await expect(driver.get.prefetchedRemoteEntry()?.metadata).resolves.toBe(
+        metadata,
+      );
+    });
+  });
+
+  describe('when the host manifest is rejected', () => {
+    beforeEach(() => {
+      driver.given
+        .runtime(aHostRuntimeConfig())
+        .given.manifest(aHostManifest())
+        .given.hostManifestRejection(new Error(faker.lorem.sentence()));
+      driver.when.prefetched();
+    });
+
+    it('should not fetch the remote entry when prefetched', () => {
+      expect(driver.get.fetchJsonMock()).not.toHaveBeenCalled();
+    });
+
+    it('should return no prefetched remote entry when prefetched', () => {
+      expect(driver.get.prefetchedRemoteEntry()).toBeUndefined();
+    });
+  });
 });

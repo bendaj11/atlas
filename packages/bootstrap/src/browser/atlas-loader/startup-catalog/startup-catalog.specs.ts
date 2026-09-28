@@ -23,6 +23,14 @@ describe('loadStartupCatalog', () => {
       );
     });
 
+    it('should pass onHostManifest to the deployment catalog when loaded', () => {
+      expect(driver.get.loadDeploymentCatalogMock()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onHostManifest: driver.get.onHostManifestMock(),
+        }),
+      );
+    });
+
     it('should return the deployment catalog without a session when loaded', () => {
       expect(driver.get.result()).toEqual({ catalog });
     });

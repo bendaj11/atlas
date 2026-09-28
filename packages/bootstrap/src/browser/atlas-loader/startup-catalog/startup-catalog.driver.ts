@@ -1,4 +1,8 @@
-import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+} from '@atlas/schema';
 import type { DevSession } from '../../overrides/index.js';
 import { jest } from '@jest/globals';
 import type { FetchOptions, fetchBytes } from '../../fetch-json/index.js';
@@ -23,6 +27,8 @@ export class StartupCatalogDriver {
   private readonly requestDevelopmentSession = jest
     .fn<typeof requestDevelopmentSession>()
     .mockResolvedValue(undefined);
+  private readonly onHostManifest =
+    jest.fn<(manifest: AtlasHostManifest) => void>();
   private result: StartupCatalog | undefined;
   private error: unknown;
 
@@ -89,6 +95,7 @@ export class StartupCatalogDriver {
             loadPublishedArtifact: this.loadPublishedArtifact,
             requestDevelopmentSession: this.requestDevelopmentSession,
           },
+          onHostManifest: this.onHostManifest,
         });
       } catch (error) {
         this.error = error;
@@ -102,5 +109,6 @@ export class StartupCatalogDriver {
     fetchJsonMock: () => this.fetchJson,
     loadDeploymentCatalogMock: () => loadDeploymentCatalog,
     requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
+    onHostManifestMock: () => this.onHostManifest,
   };
 }

@@ -2,6 +2,7 @@ import type {
   AtlasDeploymentManifestReference,
   AtlasHostCatalog,
   AtlasHostDeploymentManifest,
+  AtlasHostManifest,
   AtlasManifest,
 } from '@atlas/schema';
 import {
@@ -31,18 +32,29 @@ export interface DeploymentCatalogContext extends Pick<
   'runtime'
 > {
   dependencies: DeploymentCatalogDependencies;
+  onHostManifest?: (manifest: AtlasHostManifest) => void;
 }
 
 export async function loadDeploymentCatalog({
   runtime,
   dependencies,
+  onHostManifest,
 }: DeploymentCatalogContext): Promise<AtlasHostCatalog> {
   const deployment = await fetchDeploymentManifest({ runtime, dependencies });
 
   const manifests = await mapWithConcurrency({
     values: collectDeploymentManifestReferences(deployment),
-    operation: (reference) =>
-      dependencies.loadPublishedArtifact({ reference, runtime }),
+    operation: async (reference) => {
+      const manifest = await dependencies.loadPublishedArtifact({
+        reference,
+        runtime,
+      });
+
+      if (reference === deployment.host && manifest.kind === 'host')
+        onHostManifest?.(manifest);
+
+      return manifest;
+    },
     concurrency: ARTIFACT_LOAD_CONCURRENCY,
   });
 
