@@ -68,7 +68,7 @@ describe('createWidgetLoader', () => {
 
         expect(driver.get.lastRequest().context).toMatchObject({
           manifest,
-          hostId: 'host',
+          hostId: driver.get.hostId(),
         });
       });
 

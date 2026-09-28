@@ -5,6 +5,8 @@
   ],
   "moduleNameMapper": {
     "^@atlas/testkit$": "<rootDir>/packages/testkit/src/index.ts",
+    "^@atlas/testkit/angular$": "<rootDir>/packages/testkit/src/angular.ts",
+    "^@atlas/testkit/react$": "<rootDir>/packages/testkit/src/react.ts",
     "^@atlas/testkit/internal$": "<rootDir>/packages/testkit/src/internal.ts",
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^(\\.{1,2}/.*)\\.cjs$": [

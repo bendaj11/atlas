@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import type { AtlasManifest } from '@atlas/schema';
-import { createTestHostSdk } from '@atlas/testkit';
+import { createTestHostSdk } from '@atlas/testkit/internal';
 import type { AtlasMountedApp } from '../host-runtime/host-runtime.types.js';
 import type { FetchBytes } from '../loader/fetch-bytes.js';
 import { encodeTextAsBytes } from '../shared/bytes.testkit.js';

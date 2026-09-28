@@ -1,7 +1,10 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
-import { aHostManifest } from './manifests.js';
-import { aRegistryUrl, aSha256Digest } from './publication.js';
+import { aHostManifest } from '../manifests/artifact-manifests/artifact-manifests.js';
+import {
+  aRegistryUrl,
+  aSha256Digest,
+} from '../publication/identifiers/identifiers.js';
 
 export function aHostRuntimeConfig(
   overrides: Partial<AtlasHostRuntimeConfig> = {},

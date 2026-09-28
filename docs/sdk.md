@@ -257,14 +257,14 @@ type ProductEvents = {
 };
 
 const atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
-const unsubscribe = atlas.events.subscribe('orders.updated', ({ orderId }) =>
-  refresh(orderId),
-);
-atlas.events.publish('orders.updated', { orderId: '42' });
-atlas.events.publish('cart.cleared');
+const onOrderUpdated = ({ orderId }: { orderId: string }) => refresh(orderId);
+atlas.events.addEventListener('orders.updated', onOrderUpdated);
+atlas.events.emit('orders.updated', { orderId: '42' });
+atlas.events.emit('cart.cleared');
+atlas.events.removeEventListener('orders.updated', onOrderUpdated);
 ```
 
-`subscribe` returns an unsubscribe function and `once` automatically removes its listener after the first event. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.
+`removeEventListener` removes a listener registered with `addEventListener`. `once` automatically removes its listener after the first event and returns a function that removes it earlier. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.
 
 ## Loading and failure UI
 
@@ -385,4 +385,5 @@ React hosts use `AtlasHostProvider` with React Router and the framework-agnostic
 
 ## Testing
 
-`@atlas/testkit` provides fake manifests, fake host SDKs, and memory navigation.
+`@atlas/testkit` provides `mockAtlasEnvironment()` for app tests, fake
+manifests, and memory navigation. See [Consumer testing](consumer-testing.md#app-domain).

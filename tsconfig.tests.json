@@ -8,6 +8,8 @@
     "noEmit": true,
     "paths": {
       "@atlas/testkit": ["./packages/testkit/src/index.ts"],
+      "@atlas/testkit/angular": ["./packages/testkit/src/angular.ts"],
+      "@atlas/testkit/react": ["./packages/testkit/src/react.ts"],
       "@atlas/testkit/internal": ["./packages/testkit/src/internal.ts"]
     },
     "noUnusedLocals": true,

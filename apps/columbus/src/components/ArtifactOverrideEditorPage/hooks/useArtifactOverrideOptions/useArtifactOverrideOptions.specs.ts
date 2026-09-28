@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest, aVersionOf } from '@atlas/testkit';
+import { anAppManifest, anAppVersionOf } from '@atlas/testkit';
 import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
 import { aColumbusState } from '../../../../testkit/columbus-state.testkit';
 import { aHostData } from '../../../../testkit/host-data.testkit';
@@ -131,11 +131,11 @@ describe('useArtifactOverrideOptions', () => {
       const artifact = anArtifactTableRow({
         deployedArtifactVersion: deployed,
       });
-      const older = aVersionOf(deployed, { channel: 'production' });
+      const older = anAppVersionOf(deployed, { channel: 'production' });
       const columbusState = aColumbusState({
         hostData: aHostData({
           versions: {
-            [deployed.id]: [older, aVersionOf(deployed, { channel: 'pr' })],
+            [deployed.id]: [older, anAppVersionOf(deployed, { channel: 'pr' })],
           },
         }),
       });
@@ -173,7 +173,7 @@ describe('useArtifactOverrideOptions', () => {
       const artifact = anArtifactTableRow({
         deployedArtifactVersion: deployed,
       });
-      const preview = aVersionOf(deployed, {
+      const preview = anAppVersionOf(deployed, {
         channel: 'pr',
         prNumber: faker.number.int({ min: 1, max: 999 }),
       });
@@ -181,7 +181,7 @@ describe('useArtifactOverrideOptions', () => {
         hostData: aHostData({
           versions: {
             [deployed.id]: [
-              aVersionOf(deployed, { channel: 'production' }),
+              anAppVersionOf(deployed, { channel: 'production' }),
               preview,
             ],
           },

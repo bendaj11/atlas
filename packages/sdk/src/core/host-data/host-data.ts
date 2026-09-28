@@ -1,3 +1,4 @@
+import type { AtlasEventMap } from '../event-bus/index.js';
 import type {
   AtlasHostDataOf,
   AtlasHostDataValue,
@@ -13,8 +14,11 @@ interface HostDataListenerRegistry {
 const HOST_DATA_LISTENERS = Symbol.for('@atlas/sdk/host-data-listeners');
 
 /** Replaces selected host-data fields and notifies every mounted app. Host-only API. */
-export function updateAtlasHostData<THostSdk extends object>(
-  sdk: AtlasSdk<THostSdk>,
+export function updateAtlasHostData<
+  THostSdk extends object,
+  TEvents extends object = AtlasEventMap,
+>(
+  sdk: AtlasSdk<THostSdk, TEvents>,
   updates: Partial<AtlasHostDataOf<THostSdk>>,
 ): void {
   const updatedSdk = sdk as unknown as {

@@ -1,21 +1,25 @@
-import { createAtlasSdk, type AtlasSdk } from '@atlas/sdk/host';
-import { createMemoryNavigation } from './navigation.js';
-
-export function createTestHostSdk(hostId = 'host'): AtlasSdk {
-  return createAtlasSdk({
-    hostId,
-    navigation: createMemoryNavigation(),
-  });
-}
-
-export { createMemoryNavigation } from './navigation.js';
+export { mockAtlasEnvironment } from './atlas-environment/atlas-environment.js';
+export type {
+  MockAtlasAppOverrides,
+  MockAtlasEnvironment,
+  MockAtlasEnvironmentOverrides,
+  MockAtlasHostData,
+  MockAtlasSdkOverrides,
+  NavigateToApp,
+} from './atlas-environment/atlas-environment.types.js';
+export { createMemoryNavigation } from './memory-navigation/memory-navigation.js';
 export {
-  anAppManifest,
   aHostManifest,
-  aVersionOf,
-  anExportedWidgetManifest,
+  anAppManifest,
+  anAppVersionOf,
+} from './manifests/artifact-manifests/artifact-manifests.js';
+export { anExportedWidgetManifest } from './manifests/exported-widgets/exported-widgets.js';
+export {
   aRoutePlacement,
   aSlotPlacement,
-  aStylesheet,
-} from './manifests.js';
-export { aHostCatalog, aHostRuntimeConfig } from './host.js';
+} from './manifests/placements/placements.js';
+export { aStylesheet } from './manifests/stylesheets/stylesheets.js';
+export {
+  aHostCatalog,
+  aHostRuntimeConfig,
+} from './host-runtime/host-runtime.js';

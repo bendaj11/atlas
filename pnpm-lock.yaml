@@ -650,6 +650,31 @@ importers:
       '@faker-js/faker':
         specifier: ^10.5.0
         version: 10.5.0
+    devDependencies:
+      '@angular/common':
+        specifier: ^20.3.0
+        version: 20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@angular/compiler':
+        specifier: ^20.3.0
+        version: 20.3.26
+      '@angular/core':
+        specifier: ^20.3.0
+        version: 20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/react':
+        specifier: ^19.2.0
+        version: 19.2.17
+      jest-environment-jsdom:
+        specifier: 29.7.0
+        version: 29.7.0
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.8(react@19.2.8)
 
 packages:
 

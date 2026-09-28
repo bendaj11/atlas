@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import type { AtlasManifest } from '@atlas/schema';
 import type { AtlasAppMountRequest } from '@atlas/sdk/lifecycle';
-import { createTestHostSdk } from '@atlas/testkit';
+import { createTestHostSdk } from '@atlas/testkit/internal';
 import type { AtlasMountedApp } from '../host-runtime/host-runtime.types.js';
 import type { AtlasRemoteTrustPolicy } from '../loader/trust/trust-policy.types.js';
 import type { StylesheetOutcome } from '../stylesheets/stylesheets.driver.js';

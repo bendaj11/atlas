@@ -21,7 +21,7 @@ Atlas uses focused packages so the app-facing SDK does not also contain host and
 | `@atlas/sdk/angular`    | Angular host, app, and widget integration                                            |
 | `@atlas/sdk/react`      | React host, app, and widget integration                                              |
 | `@atlas/generators`     | Generator implementation used by the CLI                                             |
-| `@atlas/testkit`        | Fake SDK, navigation, and manifest fixtures                                          |
+| `@atlas/testkit`        | Mock Atlas environment, navigation, and manifest fixtures                            |
 
 Most product code needs only its framework adapter and types inferred by generated code. Runtime and federation APIs are infrastructure APIs used by generated hosts and tooling.
 
@@ -202,13 +202,15 @@ Angular hosts.
 
 ## Testkit
 
-Import from `@atlas/testkit`:
+| API                             | Import                   | Purpose                                                          |
+| ------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| `mockAtlasEnvironment()`        | `@atlas/testkit`         | Mock SDK and app context; override only what the test depends on |
+| `provideMockAtlasEnvironment()` | `@atlas/testkit/angular` | Provide a mock environment to Angular tests                      |
+| `MockAtlasEnvironmentProvider`  | `@atlas/testkit/react`   | Provide a mock environment to React tests                        |
+| `anAppManifest()`               | `@atlas/testkit`         | Create a valid manifest with focused overrides                   |
+| `createMemoryNavigation()`      | `@atlas/testkit`         | Test navigation without a browser                                |
 
-| API                        | Purpose                                        |
-| -------------------------- | ---------------------------------------------- |
-| `anAppManifest()`          | Create a valid manifest with focused overrides |
-| `createTestHostSdk()`      | Create an in-memory SDK for app tests          |
-| `createMemoryNavigation()` | Test navigation without a browser              |
+See [Consumer testing](consumer-testing.md#app-domain).
 
 The testkit follows public contracts and is suitable for unit tests. Use a real
 generated host and static registry deployment for integration and E2E tests.

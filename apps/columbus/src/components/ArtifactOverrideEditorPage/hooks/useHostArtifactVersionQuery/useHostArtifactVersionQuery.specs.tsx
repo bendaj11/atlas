@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest, aVersionOf } from '@atlas/testkit';
+import { anAppManifest, anAppVersionOf } from '@atlas/testkit';
 import type { OverrideType } from '../../../../types/artifact';
 import { anArtifactOverrideOptions } from '../../../../testkit/artifact.testkit';
 import { aColumbusState } from '../../../../testkit/columbus-state.testkit';
@@ -96,7 +96,7 @@ describe('useHostArtifactVersionQuery', () => {
         type: 'pr',
         value: `pr:${version.prNumber}:${version.buildId}`,
       })
-      .given.loadedArtifactVersion(aVersionOf(version))
+      .given.loadedArtifactVersion(anAppVersionOf(version))
       .when.rendered();
 
     expect(driver.get.loadArtifactVersionFromHostTab()).toHaveBeenCalledWith({
@@ -123,7 +123,7 @@ describe('useHostArtifactVersionQuery', () => {
 
     it('should call loadArtifactVersionFromHostTab with the columbus state tab and the selected version when rendered', async () => {
       await driver.given
-        .loadedArtifactVersion(aVersionOf(version))
+        .loadedArtifactVersion(anAppVersionOf(version))
         .when.rendered();
 
       expect(driver.get.loadArtifactVersionFromHostTab()).toHaveBeenCalledWith({
@@ -133,7 +133,7 @@ describe('useHostArtifactVersionQuery', () => {
     });
 
     it('should return the loaded artifact version as data when the load succeeds', async () => {
-      const loaded = aVersionOf(version);
+      const loaded = anAppVersionOf(version);
 
       await driver.given.loadedArtifactVersion(loaded).when.rendered();
 

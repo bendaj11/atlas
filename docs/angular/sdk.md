@@ -230,8 +230,8 @@ type ProductEvents = {
 };
 
 private readonly atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
-this.atlas.events.publish("orders.updated", { orderId: "42" });
-this.atlas.events.publish("cart.cleared");
+this.atlas.events.emit("orders.updated", { orderId: "42" });
+this.atlas.events.emit("cart.cleared");
 ```
 
 Event contracts should live in shared TypeScript source so publishers and
@@ -252,6 +252,20 @@ If an app never opts in, Atlas treats mount completion as ready.
 
 ## Testing
 
-Use `@atlas/testkit` to create fake SDKs and memory navigation in app tests.
+Provide an environment from `mockAtlasEnvironment()` with
+`provideMockAtlasEnvironment()`. Override only the SDK parts the test depends
+on:
+
+```ts
+import { mockAtlasEnvironment } from '@atlas/testkit';
+import { provideMockAtlasEnvironment } from '@atlas/testkit/angular';
+
+const atlas = mockAtlasEnvironment<CustomerHostSdk>({ sdk: { showToast } });
+await render(OrdersToolbarComponent, {
+  providers: [provideMockAtlasEnvironment(atlas)],
+});
+```
+
+See [Consumer testing](../consumer-testing.md#angular).
 Keep integration tests for the host providers that connect real auth, HTTP,
 toast, modal, and monitoring services.

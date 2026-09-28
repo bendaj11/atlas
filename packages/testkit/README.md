@@ -12,6 +12,8 @@ pnpm add --save-dev @atlas/testkit
 yarn add --dev @atlas/testkit
 ```
 
-Use `createTestHostSdk` for app unit tests and `anAppManifest` for host
-mount tests. These replace host/runtime boundary, not framework component test
+Use `mockAtlasEnvironment` for app unit tests, with
+`provideMockAtlasEnvironment` from `@atlas/testkit/angular` or
+`MockAtlasEnvironmentProvider` from `@atlas/testkit/react`. Use `anAppManifest`
+for host mount tests. These replace host/runtime boundary, not framework component test
 tools. See [Consumer testing](https://github.com/bendaj11/atlas/blob/main/docs/consumer-testing.md).

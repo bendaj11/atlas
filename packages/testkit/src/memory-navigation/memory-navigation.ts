@@ -1,6 +1,11 @@
-import type { AtlasLocation, AtlasNavigateOptions, AtlasNavigation, AtlasNavigationListener } from "@atlas/sdk/navigation";
+import type {
+  AtlasLocation,
+  AtlasNavigateOptions,
+  AtlasNavigation,
+  AtlasNavigationListener,
+} from '@atlas/sdk/navigation';
 
-export function createMemoryNavigation(initialPath = "/"): AtlasNavigation {
+export function createMemoryNavigation(initialPath = '/'): AtlasNavigation {
   let location: AtlasLocation = splitPath(initialPath);
   const listeners = new Set<AtlasNavigationListener>();
 
@@ -32,15 +37,15 @@ export function createMemoryNavigation(initialPath = "/"): AtlasNavigation {
     },
     getCurrentLocation() {
       return location;
-    }
+    },
   };
 }
 
 function splitPath(value: string): AtlasLocation {
-  const url = new URL(value, "http://atlas.local");
+  const url = new URL(value, 'http://atlas.local');
   return {
     pathname: url.pathname,
     search: url.search,
-    hash: url.hash
+    hash: url.hash,
   };
 }

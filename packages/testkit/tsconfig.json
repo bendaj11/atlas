@@ -20,5 +20,11 @@
     "skipLibCheck": true
   },
   "references": [{ "path": "../schema" }],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/**/*.specs.ts",
+    "src/**/*.specs.tsx",
+    "src/**/*.driver.ts",
+    "src/**/*.driver.tsx"
+  ]
 }

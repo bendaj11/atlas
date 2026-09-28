@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasManifest } from '@atlas/schema';
 import type {
@@ -10,7 +11,7 @@ import type {
   AtlasMountedWidget,
   AtlasWidgetLoader,
 } from '@atlas/sdk/lifecycle';
-import { createTestHostSdk } from '@atlas/testkit';
+import { createTestHostSdk } from '@atlas/testkit/internal';
 import { createWidgetLoader } from './widget-loader.js';
 import type {
   AtlasWidgetImporter,
@@ -24,7 +25,8 @@ import type {
 type WidgetProps = Record<string, unknown>;
 
 export class WidgetLoaderDriver {
-  private readonly sdk = createTestHostSdk();
+  private readonly hostId = faker.string.uuid();
+  private readonly sdk = createTestHostSdk(this.hostId);
   private manifests: AtlasManifest[] = [];
   private resolveWidget: AtlasWidgetResolver | undefined;
   private readonly requests: AtlasExportedWidgetMountRequest[] = [];
@@ -175,6 +177,7 @@ export class WidgetLoaderDriver {
   };
 
   readonly get = {
+    hostId: () => this.hostId,
     listed: (ownerAppId?: string) => this.loader!.list(ownerAppId),
     handleName: (widgetId: string) => this.loader!.getWidget(widgetId).name,
     mountedWidget: () => this.mounted!.widget,

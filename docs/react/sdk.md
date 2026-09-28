@@ -166,8 +166,8 @@ type ProductEvents = {
 };
 
 const atlas = useAtlasSdk<CustomerHostSdk, ProductEvents>();
-atlas.events.publish('orders.updated', { orderId: '42' });
-atlas.events.publish('cart.cleared');
+atlas.events.emit('orders.updated', { orderId: '42' });
+atlas.events.emit('cart.cleared');
 ```
 
 Event contracts should live in shared TypeScript source so publishers and
@@ -196,6 +196,23 @@ If an app never opts in, Atlas treats mount completion as ready.
 
 ## Testing
 
-Use `@atlas/testkit` to create fake SDKs and memory navigation in app tests.
+Render app components inside `MockAtlasEnvironmentProvider` with an environment
+from `mockAtlasEnvironment()`. Override only the SDK parts the test depends on:
+
+```tsx
+import { mockAtlasEnvironment } from '@atlas/testkit';
+import { MockAtlasEnvironmentProvider } from '@atlas/testkit/react';
+
+const atlas = mockAtlasEnvironment<CustomerHostSdk>({ sdk: { showToast } });
+render(<OrdersToolbar />, {
+  wrapper: ({ children }) => (
+    <MockAtlasEnvironmentProvider environment={atlas}>
+      {children}
+    </MockAtlasEnvironmentProvider>
+  ),
+});
+```
+
+See [Consumer testing](../consumer-testing.md#react).
 Keep integration tests for the host providers that connect real auth, HTTP,
 toast, modal, and monitoring services.
