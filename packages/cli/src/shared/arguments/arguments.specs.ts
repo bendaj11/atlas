@@ -41,6 +41,17 @@ describe('CliArguments', () => {
       expect(driver.get.arguments().flag('dry-run')).toBe('true');
     });
 
+    it('should return true when the flag is followed by another flag', () => {
+      driver.given.values([
+        'publish',
+        '--dry-run',
+        '--version',
+        faker.system.semver(),
+      ]);
+
+      expect(driver.get.arguments().flag('dry-run')).toBe('true');
+    });
+
     it('should return undefined when the flag is absent', () => {
       driver.given.values(['publish']);
 
@@ -58,6 +69,9 @@ describe('CliArguments', () => {
     it.each([
       [[], true],
       [['--routing'], true],
+      [['--routing', '--framework', 'react'], true],
+      [['--routing', 'true'], true],
+      [['--routing', 'false'], false],
       [['--routing=true'], true],
       [['--routing=false'], false],
     ])('should return %p routing when values are %p', (values, expected) => {
@@ -121,31 +135,6 @@ describe('CliArguments', () => {
 
       expect(() => driver.get.arguments().framework()).toThrow(
         'Unsupported framework "vue". Use angular or react.',
-      );
-    });
-  });
-
-  describe('channel', () => {
-    it.each(['production', 'pr', 'local'])(
-      'should return %s when --channel is %s',
-      (channel) => {
-        driver.given.values(['build', `--channel=${channel}`]);
-
-        expect(driver.get.arguments().channel('production')).toBe(channel);
-      },
-    );
-
-    it('should use the fallback when --channel is absent', () => {
-      driver.given.values(['build']);
-
-      expect(driver.get.arguments().channel('local')).toBe('local');
-    });
-
-    it('should throw when --channel is unsupported', () => {
-      driver.given.values(['build', '--channel=beta']);
-
-      expect(() => driver.get.arguments().channel('production')).toThrow(
-        'Unsupported channel "beta".',
       );
     });
   });

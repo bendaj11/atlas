@@ -80,7 +80,7 @@ export class AtlasBuildService {
 
   async buildManifest(
     name: string,
-    forcedChannel?: AtlasVersionChannel,
+    channel: AtlasVersionChannel,
     options: BuildManifestOptions = {},
   ): Promise<AtlasManifest> {
     const project = await this.workspace.findProject(name);
@@ -90,7 +90,6 @@ export class AtlasBuildService {
 
     const config = assertAppConfig(await this.loadConfig(project.root));
     const release = deriveReleaseIdentity({ args: this.args, project });
-    const channel = forcedChannel ?? release.channel;
     const entryPath = this.entryPath();
     const lookup = {
       workspaceRoot: this.workspace.root,

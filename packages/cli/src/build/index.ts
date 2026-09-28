@@ -1,3 +1,3 @@
-export { resolveRegistryUrl } from './runtime-config/runtime-config.js';
+export { resolveRegistryUrl } from './registry-url/registry-url.js';
 export { AtlasBuildService } from './service/build.service.js';
 export type { AtlasBuildResult, BuildManifestOptions } from './types.js';

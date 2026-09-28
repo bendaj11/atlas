@@ -2,13 +2,11 @@ import { execFileSync } from 'node:child_process';
 import {
   assertReleaseVersion,
   type AtlasPublishedArtifactManifest,
-  type AtlasVersionChannel,
 } from '@atlas/schema';
 import type { CliArguments } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 
 export interface ReleaseIdentity {
-  channel: AtlasVersionChannel;
   version: string;
   gitSha?: string;
   gitBranch?: string;
@@ -71,27 +69,12 @@ export function derivePublicationIdentity(options: {
 export function deriveReleaseIdentity(options: {
   args: CliArguments;
   project: AtlasProject;
-  environment?: NodeJS.ProcessEnv;
 }): ReleaseIdentity {
-  const { args, project, environment = process.env } = options;
-  const prNumber = parseOptionalNumber(
-    args.flag('pr') ?? args.flag('mr') ?? args.flag('pr-number'),
-  );
-  const explicitChannel = args.flag('channel') ?? environment.ATLAS_CHANNEL;
-  const channel = explicitChannel
-    ? args.channel(explicitChannel)
-    : prNumber
-      ? 'pr'
-      : 'production';
-  const packageVersion = args.flag('version') ?? project.version ?? '0.0.0';
-  const version =
-    channel === 'pr' && prNumber
-      ? `${packageVersion.split('+')[0]!.split('-')[0]}-pr.${prNumber}`
-      : packageVersion;
+  const { args, project } = options;
+  const prNumber = parseOptionalNumber(args.flag('pr') ?? args.flag('mr'));
 
   return {
-    channel,
-    version,
+    version: args.flag('version') ?? project.version ?? '0.0.0',
     ...readGitIdentity(args, project.root),
     ...(prNumber ? { prNumber } : {}),
   };

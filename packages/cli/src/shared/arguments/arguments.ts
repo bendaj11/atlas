@@ -1,4 +1,4 @@
-import type { AtlasFramework, AtlasVersionChannel } from '@atlas/schema';
+import type { AtlasFramework } from '@atlas/schema';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 
 export type SupportedFramework = Exclude<AtlasFramework, 'vue'>;
@@ -23,7 +23,11 @@ export class CliArguments {
   flag(name: string): string | undefined {
     const exactIndex = this.values.indexOf(`--${name}`);
 
-    if (exactIndex >= 0) return this.values[exactIndex + 1] ?? 'true';
+    if (exactIndex >= 0) {
+      const next = this.values[exactIndex + 1];
+
+      return next === undefined || next.startsWith('--') ? 'true' : next;
+    }
     const prefix = `--${name}=`;
 
     return this.values
@@ -65,15 +69,6 @@ export class CliArguments {
 
     if (value === 'angular' || value === 'react') return value;
     throw new Error(`Unsupported framework "${value}". Use angular or react.`);
-  }
-
-  channel(fallback: string): AtlasVersionChannel {
-    const value = this.flag('channel') ?? fallback;
-
-    if (value === 'production' || value === 'pr' || value === 'local')
-      return value;
-
-    throw new Error(`Unsupported channel "${value}".`);
   }
 
   port(name: string, fallback: number): number {

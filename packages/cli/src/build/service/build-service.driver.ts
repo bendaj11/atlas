@@ -98,7 +98,7 @@ export class BuildServiceDriver {
       this.result = await this.service().publication(this.projectName);
     },
     manifestBuilt: async (
-      channel?: AtlasVersionChannel,
+      channel: AtlasVersionChannel,
       options: BuildManifestOptions = { skipCompile: true },
     ) => {
       this.manifest = await this.service().buildManifest(

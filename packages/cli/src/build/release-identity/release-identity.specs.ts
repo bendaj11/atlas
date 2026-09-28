@@ -88,39 +88,18 @@ describe('release-identity', () => {
   });
 
   describe('releaseIdentity', () => {
-    it('should default to production with the project version when no flags are given', () => {
+    it('should use the project version when no flags are given', () => {
       const project = aProject();
       driver.given.project(project).given.flags([]);
 
-      expect(driver.get.release()).toStrictEqual({
-        channel: 'production',
-        version: project.version,
-      });
+      expect(driver.get.release()).toStrictEqual({ version: project.version });
     });
 
-    it('should select the pr channel and suffix the version when --pr is given', () => {
+    it('should include the pr number when --pr is given', () => {
       const number = faker.number.int({ min: 1, max: 9999 });
-      driver.given
-        .project(aProject({ version: '1.2.3-beta.1+build' }))
-        .given.flags([`--pr=${number}`]);
+      driver.given.flags([`--pr=${number}`]);
 
-      expect(driver.get.release()).toMatchObject({
-        channel: 'pr',
-        version: `1.2.3-pr.${number}`,
-        prNumber: number,
-      });
-    });
-
-    it('should honor an explicit --channel when given', () => {
-      driver.given.flags(['--channel=local']);
-
-      expect(driver.get.release().channel).toBe('local');
-    });
-
-    it('should honor ATLAS_CHANNEL when no --channel is given', () => {
-      driver.given.environment({ ATLAS_CHANNEL: 'pr' }).given.flags([]);
-
-      expect(driver.get.release().channel).toBe('pr');
+      expect(driver.get.release().prNumber).toBe(number);
     });
 
     it('should use --version over the project version when given', () => {

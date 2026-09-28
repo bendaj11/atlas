@@ -81,8 +81,6 @@ npx atlas g app orders --framework react --host-id 0a17281f-287b-4d89-a8ca-0ab0e
 
 > **Expected result:** Atlas creates a single component instead of a home page and a details page.
 
-`--routing` expects a value. Write `--routing true`, `--routing false`, or `--no-routing`; a bare `--routing` followed by another flag fails.
-
 ## Generate in CI or a script
 
 In a non-interactive run, such as CI or with `--no-input`, Atlas never prompts. It uses `react` as the framework, creates inner routes, uses `css` for Angular styles, and takes the suggested port. Pass every value explicitly:
