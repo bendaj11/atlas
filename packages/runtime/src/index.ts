@@ -82,11 +82,6 @@ export type {
   AtlasBrowserErrorContext,
   AtlasRuntimeErrorOptions,
 } from './shared/errors.js';
-export { createHostUi } from './dom-host/host-ui.js';
-export type {
-  AtlasHostUi,
-  AtlasHostUiOptions,
-} from './dom-host/host-ui.types.js';
 export { AtlasHostAnchorRegistry } from './dom-host/host-anchors.js';
 export type {
   AtlasHostAnchorKind,
@@ -103,7 +98,6 @@ export type {
   DomHostServices,
   DomRuntimeOptions,
   RenderHostError,
-  RenderHostLoading,
   RenderPlacementError,
   RenderPlacementLoading,
   ReportNavigationItems,

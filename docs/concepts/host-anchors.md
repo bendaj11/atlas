@@ -26,7 +26,7 @@ Both frameworks expose the same anchors. React Hosts import them from `@atlas/ru
 | Anchor       | React                              | Angular                                        | What Atlas renders into it                           |
 | ------------ | ---------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
 | Host layout  | `<AtlasHostLayout layoutId="...">` | `*atlasHostLayout="'...'"` (`AtlasHostLayout`) | Nothing. It shows its children only while active.    |
-| Host status  | `<AtlasHostStatus />`              | `<atlas-host-status />` (`AtlasHostStatus`)    | Host loading UI and Host start errors.               |
+| Host status  | `<AtlasHostStatus />`              | `<atlas-host-status />` (`AtlasHostStatus`)    | Host start errors.                                   |
 | Navigation   | `<AtlasNavigation />`              | `<atlas-navigation />` (`AtlasNavigation`)     | One link per visible App route.                      |
 | Route outlet | `<AtlasRouteOutlet />`             | `<atlas-route-outlet />` (`AtlasRouteOutlet`)  | The App whose route matches the current URL.         |
 | Slot         | `<AtlasSlot slotId="header" />`    | `<atlas-slot slotId="header" />` (`AtlasSlot`) | Every App that declares that `slotId` for this Host. |
@@ -162,9 +162,11 @@ To render navigation with your own components, read the same items yourself. Rea
 
 ## Host status
 
-While Atlas starts, it renders a loading indicator into the host status anchor. If startup fails, it renders an error with a retry action there instead. You can replace both with your own UI through `renderHostLoading` and `renderHostError` in the Host SDK options.
+The bootstrap loader covers startup. The Host layout stays hidden behind the bootstrap placeholder until Atlas is ready to show it, so the status anchor never shows a startup loader.
 
-If the Host has not rendered a status anchor yet, Atlas uses a temporary container at the top of the Host element. It removes that container once a status anchor or route outlet renders.
+If startup fails, Atlas renders an error with a retry action into the status anchor. You can replace it with your own UI through `renderHostError` in the Host SDK options. After a retry, the error stays on screen until the new attempt is ready, and then Atlas removes it or replaces it with the new error.
+
+If the Host has not rendered a status anchor, Atlas shows the error at the top of the Host element instead, and moves it into the status anchor once one renders.
 
 ## Related
 

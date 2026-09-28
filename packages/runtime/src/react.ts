@@ -18,10 +18,7 @@ import {
   type AtlasHostData,
 } from '@atlas/sdk';
 import { initFederation, loadRemoteModule } from '@atlas/sdk/federation';
-import type {
-  AtlasAppMountResult,
-  AtlasHostClientEntry,
-} from '@atlas/sdk/lifecycle';
+import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
 import {
   AtlasSdkContext,
   AtlasSdkProvider,
@@ -47,6 +44,7 @@ import type {
   HostProviderState,
   ReactHostApplicationProps,
   ReactHostDefinition,
+  ReactHostStartServices,
   RenderReactHostOptions,
 } from './react.types.js';
 
@@ -57,7 +55,9 @@ export type {
   LegacyReactDom,
   ReactDomClient,
   ReactDomRenderer,
+  ReactDomRootOptions,
   ReactHostDefinition,
+  ReactHostStartServices,
 } from './react.types.js';
 
 const AtlasHostAnchorsContext = createContext<
@@ -85,37 +85,57 @@ export function AtlasDefaultHostLayout(): ReactElement {
 export function defineReactHost<THostSdk extends object = {}>(
   definition: ReactHostDefinition<THostSdk>,
 ): AtlasHostClientEntry['mount'] {
-  return (request) => {
-    const router = createBrowserRouter([
-      { path: '*', Component: definition.layout },
-    ]);
-    const application = createElement(AtlasReactHostApplication<THostSdk>, {
-      definition,
-      request,
-      router,
-    });
-    const element = definition.providers
-      ? createElement(definition.providers, null, application)
-      : application;
+  return (request) =>
+    new Promise((resolve, reject) => {
+      const root = document.createElement('atlas-host-root');
+      root.hidden = true;
 
-    return renderReactHost({
-      reactDom: definition.reactDom,
-      element,
-      container: request.container,
+      request.container.append(root);
+
+      const router = createBrowserRouter([
+        { path: '*', Component: definition.layout },
+      ]);
+      const application = createElement(AtlasReactHostApplication<THostSdk>, {
+        definition,
+        request,
+        router,
+        onReady: () => {
+          root.hidden = false;
+
+          resolve({
+            unmount: () => {
+              unmount();
+              root.remove();
+            },
+          });
+        },
+      });
+      const element = definition.providers
+        ? createElement(definition.providers, null, application)
+        : application;
+      const unmount = renderReactHost({
+        reactDom: definition.reactDom,
+        element,
+        container: root,
+        onUncaughtError: (error) => {
+          console.error(error);
+          reject(error);
+        },
+      });
     });
-  };
 }
 
 function AtlasReactHostApplication<THostSdk extends object>(
   props: ReactHostApplicationProps<THostSdk>,
 ): ReactElement {
-  const { definition, request, router } = props;
+  const { definition, request, router, onReady } = props;
   const { config, useSdkOptions } = definition;
   const sdkOptions = useSdkOptions();
 
   return createElement(AtlasHostProvider<THostSdk>, {
     hostId: config.id,
     ...(definition.notFound ? { notFound: definition.notFound } : {}),
+    onReady,
     options: {
       ...sdkOptions,
       router,
@@ -133,31 +153,31 @@ function AtlasReactHostApplication<THostSdk extends object>(
   });
 }
 
-function renderReactHost(options: RenderReactHostOptions): AtlasAppMountResult {
-  const { reactDom, element, container } = options;
+function renderReactHost(options: RenderReactHostOptions): () => void {
+  const { reactDom, element, container, onUncaughtError } = options;
 
   if ('createRoot' in reactDom) {
-    const root = reactDom.createRoot(container);
+    const root = reactDom.createRoot(container, { onUncaughtError });
 
     flushSync(() => root.render(element));
 
-    return { unmount: () => root.unmount() };
+    return () => root.unmount();
   }
 
   reactDom.render(element, container);
 
-  return {
-    unmount: () => {
-      reactDom.unmountComponentAtNode(container);
-    },
+  return () => {
+    reactDom.unmountComponentAtNode(container);
   };
 }
 
 /** Boots Atlas discovery, Native Federation, routing, slots, and lifecycle for a React host. */
 export async function startHost<THostSdk extends object = {}>(
   options: HostOptions<THostSdk>,
+  services: ReactHostStartServices = {},
 ): Promise<AtlasHostRuntime<THostSdk>> {
   return startDomHost(options, {
+    ...services,
     createNavigation: () =>
       options.navigation ?? createHostNavigation(options.router),
   });
@@ -167,7 +187,7 @@ export async function startHost<THostSdk extends object = {}>(
 export function AtlasHostProvider<THostSdk extends object = {}>(
   props: AtlasHostProviderProps<THostSdk>,
 ): ReactElement {
-  const [{ options, sdk, anchors }] = useState(() =>
+  const [{ options, sdk, anchors, services }] = useState(() =>
     createHostProviderState(props),
   );
 
@@ -179,7 +199,7 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
       if (!active) return;
 
       try {
-        runtime = await startHost(options);
+        runtime = await startHost(options, services);
 
         if (!active) await runtime.stop();
       } catch {
@@ -192,7 +212,7 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
 
       if (runtime) void runtime.stop();
     };
-  }, [options]);
+  }, [options, services]);
 
   useEffect(() => {
     updateAtlasHostData(sdk, pickCustomHostData(props.options.hostData));
@@ -217,7 +237,7 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
 function createHostProviderState<THostSdk extends object>(
   props: AtlasHostProviderProps<THostSdk>,
 ): HostProviderState<THostSdk> {
-  const { hostId, options: hostOptions } = props;
+  const { hostId, options: hostOptions, onReady } = props;
   const navigation =
     hostOptions.navigation ?? createHostNavigation(hostOptions.router);
   const sdk = createDomHostSdk({ options: hostOptions, hostId, navigation });
@@ -227,6 +247,7 @@ function createHostProviderState<THostSdk extends object>(
     options: { ...hostOptions, navigation, sdk, anchors },
     sdk,
     anchors,
+    services: onReady ? { onReady } : {},
   };
 }
 

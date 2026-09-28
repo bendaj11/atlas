@@ -162,7 +162,7 @@ Each anchor renders a custom element and registers it with Atlas:
 | Anchor                                 | Renders                  | Purpose                                                                                        |
 | -------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
 | `<AtlasHostLayout layoutId="default">` | Its children, or nothing | Shows its children only while a route that uses this layout is active.                         |
-| `<AtlasHostStatus />`                  | `<atlas-status>`         | Holds the Host loading and error UI while Atlas starts.                                        |
+| `<AtlasHostStatus />`                  | `<atlas-status>`         | Holds the Host start error UI.                                                                 |
 | `<AtlasNavigation aria-label="…" />`   | `<atlas-navigation>`     | Renders a basic list of links to routed Apps. Optional; omit it to render your own navigation. |
 | `<AtlasRouteOutlet />`                 | `<atlas-route-outlet>`   | Where the App that matches the current URL mounts.                                             |
 | `<AtlasSlot slotId="header" />`        | `<atlas-slot>`           | Where Apps that declare the `header` slot mount.                                               |
@@ -252,7 +252,6 @@ Atlas shows functional default loading and error states. To use your design syst
 export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
   return {
     // ...your SDK members
-    renderHostLoading: (container) => renderHostSkeleton(container),
     renderHostError: (container, error, retry) =>
       renderHostFailure(container, { error, retry }),
     renderLoading: (container, event) =>
@@ -265,11 +264,11 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
 
 | Option                                     | Covers                                                         |
 | ------------------------------------------ | -------------------------------------------------------------- |
-| `renderHostLoading`, `renderHostError`     | Atlas startup, rendered into `AtlasHostStatus`.                |
+| `renderHostError`                          | Failed Atlas startup, rendered into `AtlasHostStatus`.         |
 | `renderLoading`, `renderError`             | One routed or slotted App, rendered into that App's container. |
 | `renderWidgetLoading`, `renderWidgetError` | One exported Widget.                                           |
 
-Renderers receive DOM containers rather than React elements because Apps may use different frameworks. Use a React portal, a separate root, or an imperative design-system API. `renderHostLoading`, `renderHostError`, and the Widget renderers may return a cleanup function; return one when you create a root or subscription.
+Renderers receive DOM containers rather than React elements because Apps may use different frameworks. Use a React portal, a separate root, or an imperative design-system API. `renderHostError` and the Widget renderers may return a cleanup function; return one when you create a root or subscription.
 
 A failing App shows its error UI in its own container. The rest of the Host keeps working.
 

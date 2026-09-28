@@ -1,9 +1,5 @@
 import { jest } from '@jest/globals';
-import type {
-  RenderHostError,
-  RenderHostLoading,
-  RetryHostStart,
-} from './dom-host.types.js';
+import type { RenderHostError, RetryHostStart } from './dom-host.types.js';
 import { AtlasHostAnchorRegistry } from './host-anchors.js';
 import { createHostUi } from './host-ui.js';
 import type { AtlasHostUi } from './host-ui.types.js';
@@ -16,20 +12,18 @@ export class HostUiDriver {
   private readonly hostContainer = document.body.appendChild(
     document.createElement('div'),
   );
-  private readonly routeOutlet = document.createElement('div');
   private useFallbackContainer = false;
-  private readonly disposeLoading = jest.fn<() => void>();
-  private readonly renderHostLoading = jest
-    .fn<RenderHostLoading>()
-    .mockReturnValue(this.disposeLoading);
-  private readonly renderHostError = jest.fn<RenderHostError>();
+  private readonly disposeError = jest.fn<() => void>();
+  private readonly renderHostError = jest
+    .fn<RenderHostError>()
+    .mockReturnValue(this.disposeError);
   private readonly retry = jest.fn<RetryHostStart>();
-  private useCustomRenderers = false;
-  private ui: AtlasHostUi | undefined;
+  private useCustomRenderer = false;
+  private ui!: AtlasHostUi;
 
   readonly given = {
-    customRenderers: () => {
-      this.useCustomRenderers = true;
+    customRenderer: () => {
+      this.useCustomRenderer = true;
 
       return this;
     },
@@ -38,13 +32,18 @@ export class HostUiDriver {
 
       return this;
     },
+    statusAnchorChild: (child: Node) => {
+      this.container.append(child);
+
+      return this;
+    },
     fallbackContainer: () => {
       this.useFallbackContainer = true;
 
       return this;
     },
-    routeOutlet: () => {
-      this.anchors.register('route-outlet', this.routeOutlet);
+    fallbackContainerChild: (child: Node) => {
+      this.hostContainer.append(child);
 
       return this;
     },
@@ -58,50 +57,28 @@ export class HostUiDriver {
         ...(this.useFallbackContainer
           ? { fallbackContainer: this.hostContainer }
           : {}),
-        ...(this.useCustomRenderers
-          ? {
-              renderHostLoading: this.renderHostLoading,
-              renderHostError: this.renderHostError,
-            }
+        ...(this.useCustomRenderer
+          ? { renderHostError: this.renderHostError }
           : {}),
       });
     },
-    loadingShown: () => this.ui!.showLoading(),
-    errorShown: (error: Error) => this.ui!.showError(error, this.retry),
+    errorShown: (error: Error) => this.ui.showError(error, this.retry),
     statusAnchorRegistered: () => {
       this.anchors.register('status', this.container);
     },
-    routeOutletRegistered: () => {
-      this.anchors.register('route-outlet', this.routeOutlet);
-    },
-    nextRenderElapsed: () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() =>
-          setTimeout(() => setTimeout(resolve, 0), 0),
-        ),
-      ),
-    cleared: () => this.ui!.clear(),
-    clearRequestedUntilHostAnchorRenders: () =>
-      this.ui!.clearWhenHostAnchorRenders(),
-    disposed: () => this.ui!.dispose(),
+    cleared: () => this.ui.clear(),
     retryClicked: () => this.container.querySelector('button')!.click(),
   };
 
   readonly get = {
-    containerText: () => this.container.textContent ?? '',
-    containerState: () => this.container.dataset.atlasState,
-    containerBusy: () => this.container.getAttribute('aria-busy'),
-    statusLabel: () =>
-      this.container.firstElementChild?.getAttribute('aria-label') ?? null,
-    hostContainerStatusLabel: () =>
-      this.hostContainer
-        .querySelector('[data-atlas-loader]')
-        ?.getAttribute('aria-label') ?? null,
-    statusRole: () =>
-      this.container.firstElementChild?.getAttribute('role') ?? null,
-    renderHostLoadingMock: () => this.renderHostLoading,
+    statusAnchor: () => this.container,
+    hostContainer: () => this.hostContainer,
+    anchorStatus: () =>
+      this.container.querySelector<HTMLElement>('[data-atlas-host-status]'),
+    fallbackStatus: () =>
+      this.hostContainer.querySelector<HTMLElement>('[data-atlas-host-status]'),
     renderHostErrorMock: () => this.renderHostError,
-    disposeLoadingMock: () => this.disposeLoading,
+    disposeErrorMock: () => this.disposeError,
     retryMock: () => this.retry,
   };
 }

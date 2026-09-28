@@ -43,7 +43,6 @@ const RUNTIME_ONLY_OPTIONS: Record<RuntimeOnlyOptionName, true> = {
   onNavigationChange: true,
   renderError: true,
   renderHostError: true,
-  renderHostLoading: true,
   renderLoading: true,
   renderWidgetError: true,
   renderWidgetLoading: true,

@@ -126,30 +126,41 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
     ? document.createElement('atlas-host-root')
     : undefined;
 
-  if (root && options.request) options.request.container.append(root);
+  if (root && options.request) {
+    root.hidden = true;
+
+    options.request.container.append(root);
+  }
 
   const sdkReference = new AngularHostSdkReference<THostSdk>();
   const app = await bootstrapApplication(
     options.component,
     appendAtlasSdkProvider(options.appConfig, sdkReference),
   );
-
-  if (root && options.request)
-    removeSiblingsOfRoot({ container: options.request.container, root });
-
-  const runtime = await startHost(
+  let reportReady = () => {};
+  const ready = new Promise<void>((resolve) => {
+    reportReady = resolve;
+  });
+  const starting = startHost(
     {
       ...options.createHostOptions(app.injector),
       hostDataInjector: app.injector,
     },
     {
       onSdkCreated: (sdk) => sdkReference.set(sdk),
+      onReady: reportReady,
     },
   );
 
+  await Promise.race([ready, starting]);
+
+  if (root) root.hidden = false;
+
   return {
     async unmount() {
-      await runtime.stop();
+      const runtime = await starting.catch(() => undefined);
+
+      await runtime?.stop();
 
       app.destroy();
       root?.remove();
@@ -172,6 +183,7 @@ export async function startHost<THostSdk extends object = {}>(
     createNavigation: () =>
       createHostNavigation(options.router, options.location),
     ...(services.onSdkCreated ? { onSdkCreated: services.onSdkCreated } : {}),
+    ...(services.onReady ? { onReady: services.onReady } : {}),
   });
   const stopHostDataSync =
     hostDataInjector && hostData
@@ -190,14 +202,6 @@ export async function startHost<THostSdk extends object = {}>(
       await runtime.stop();
     },
   };
-}
-
-function removeSiblingsOfRoot(input: {
-  container: HTMLElement;
-  root: HTMLElement;
-}): void {
-  for (const node of Array.from(input.container.childNodes))
-    if (node !== input.root) node.remove();
 }
 
 class AngularHostSdkReference<THostSdk extends object> {

@@ -30,6 +30,12 @@ describe('AtlasHostProvider', () => {
       expect(driver.get.startedOptions().sdk?.hostId).toBe(driver.hostId);
     });
 
+    it('should start the dom host with the onReady prop when rendered', () => {
+      expect(driver.get.startedServices().onReady).toBe(
+        driver.get.onReadyMock(),
+      );
+    });
+
     it('should create the host navigation from the router when rendered', async () => {
       expect(await driver.get.startedNavigationPathname()).toBe(
         driver.get.routerPathname(),
@@ -209,12 +215,6 @@ describe('defineReactHost', () => {
       expect(driver.get.startedOptions().runtimeConfig).toBe(runtimeConfig);
     });
 
-    it('should forward renderHostLoading from the custom sdk options when mounted', () => {
-      expect(driver.get.startedOptions().renderHostLoading).toBe(
-        driver.get.renderHostLoadingMock(),
-      );
-    });
-
     it('should forward the request container as host container when mounted', () => {
       expect(driver.get.startedOptions().hostContainer).toBe(
         driver.get.container(),
@@ -225,11 +225,84 @@ describe('defineReactHost', () => {
       expect('catalog' in driver.get.startedOptions()).toBe(false);
     });
 
+    it('should reveal the atlas host root in the request container when mounted', () => {
+      expect(driver.get.hostRoot()?.hidden).toBe(false);
+    });
+
     it('should stop the runtime when unmounted', async () => {
       await driver.when.reactHostUnmounted();
 
       expect(driver.get.stopMock()).toHaveBeenCalledTimes(1);
     });
+
+    it('should remove the atlas host root when unmounted', async () => {
+      await driver.when.reactHostUnmounted();
+
+      expect(driver.get.hostRoot()).toBeNull();
+    });
+  });
+
+  describe('when mounted through the react dom client while the dom host start is pending', () => {
+    beforeEach(async () => {
+      await driver.given
+        .legacyReactDom(false)
+        .given.domHostStart(new Promise(() => undefined))
+        .when.reactHostMountRequested();
+    });
+
+    it('should keep the atlas host root hidden when ready is not reported', () => {
+      expect(driver.get.hostRoot()?.hidden).toBe(true);
+    });
+
+    it('should reveal the atlas host root when ready is reported', async () => {
+      await driver.when.readyReported();
+
+      expect(driver.get.hostRoot()?.hidden).toBe(false);
+    });
+  });
+
+  it('should keep the bootstrap placeholder in the request container when mounted', async () => {
+    const placeholder = document.createElement('p');
+
+    await driver.given
+      .placeholder(placeholder)
+      .given.legacyReactDom(false)
+      .when.reactHostMounted();
+
+    expect(placeholder.parentElement).toBe(driver.get.container());
+  });
+
+  it('should reject mount with the render error when the providers throw while rendering through the react dom client', async () => {
+    const error = new Error(faker.lorem.sentence());
+
+    await driver.given
+      .providersError(error)
+      .given.legacyReactDom(false)
+      .when.reactHostMounted();
+
+    expect(driver.get.error()).toBe(error);
+  });
+
+  it('should log the render error when the providers throw while rendering through the react dom client', async () => {
+    const error = new Error(faker.lorem.sentence());
+
+    await driver.given
+      .providersError(error)
+      .given.legacyReactDom(false)
+      .when.reactHostMounted();
+
+    expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(error);
+  });
+
+  it('should reject mount with the render error when legacy render throws', async () => {
+    const error = new Error(faker.lorem.sentence());
+
+    await driver.given
+      .legacyReactDom(true)
+      .given.legacyRenderError(error)
+      .when.reactHostMounted();
+
+    expect(driver.get.error()).toBe(error);
   });
 
   it('should use the host id as host data name when the config has no name', async () => {
@@ -286,18 +359,20 @@ describe('defineReactHost', () => {
       await driver.given.legacyReactDom(true).when.reactHostMounted();
     });
 
-    it('should call legacy render with the request container when mounted', () => {
+    it('should call legacy render with the atlas host root when mounted', () => {
       expect(driver.get.legacyRenderMock()).toHaveBeenCalledWith(
         expect.anything(),
-        driver.get.container(),
+        driver.get.hostRoot(),
       );
     });
 
-    it('should call unmountComponentAtNode with the request container when unmounted', async () => {
+    it('should call unmountComponentAtNode with the atlas host root when unmounted', async () => {
+      const hostRoot = driver.get.hostRoot();
+
       await driver.when.reactHostUnmounted();
 
       expect(driver.get.unmountComponentAtNodeMock()).toHaveBeenCalledWith(
-        driver.get.container(),
+        hostRoot,
       );
     });
   });

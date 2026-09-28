@@ -21,6 +21,29 @@ export async function startDomHost<THostSdk extends object = {}>(
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
   const runtimeOptions = { ...options, anchors };
 
+  let ready = false;
+  let stopWaitingForHostAnchor = () => {};
+
+  const reportReady = () => {
+    stopWaitingForHostAnchor();
+
+    if (ready) return;
+
+    ready = true;
+    services.onReady?.();
+  };
+  const reportReadyWhenHostAnchorRenders = () => {
+    const reportReadyIfHostAnchorRendered = () => {
+      if (anchors.get('route-outlet') ?? anchors.get('status')) reportReady();
+    };
+
+    stopWaitingForHostAnchor = anchors.subscribe(
+      reportReadyIfHostAnchorRendered,
+    );
+
+    reportReadyIfHostAnchorRendered();
+  };
+
   emitHostStart(options);
 
   const document = options.document ?? globalThis.document;
@@ -30,44 +53,49 @@ export async function startDomHost<THostSdk extends object = {}>(
     ...(options.hostContainer
       ? { fallbackContainer: options.hostContainer }
       : {}),
-    ...(options.renderHostLoading
-      ? { renderHostLoading: options.renderHostLoading }
-      : {}),
     ...(options.renderHostError
       ? { renderHostError: options.renderHostError }
       : {}),
   });
-
-  hostUi.showLoading();
 
   try {
     const runtime = await startDomHostRuntime({
       options: runtimeOptions,
       services,
       document,
-      onInfrastructureReady: hostUi.clearWhenHostAnchorRenders,
-      onPlacementStateChange: hostUi.clear,
+      onInfrastructureReady: reportReadyWhenHostAnchorRenders,
+      onPlacementStateChange: reportReady,
     });
 
-    hostUi.dispose();
     emitHostReady(options.observe, runtime, startedAt);
+    reportReady();
 
     return runtime;
   } catch (error) {
     const failure = new AtlasHostStartError(error);
+    let retried = false;
 
     emitHostError(options, failure, startedAt);
 
     hostUi.showError(failure, () => {
-      hostUi.dispose();
+      if (retried) return;
 
-      void startDomHost(runtimeOptions, services).catch((retryError) =>
+      retried = true;
+
+      void startDomHost(runtimeOptions, {
+        ...services,
+        onReady: () => {
+          hostUi.clear();
+          services.onReady?.();
+        },
+      }).catch((retryError) =>
         logBrowserError(
           'Atlas host retry failed.',
           new AtlasHostRetryError(retryError),
         ),
       );
     });
+    reportReady();
 
     throw failure;
   }

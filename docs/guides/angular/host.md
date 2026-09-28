@@ -147,7 +147,7 @@ export class AppComponent {}
 | Anchor                           | Purpose                                                                       | When you need it                                                                    |
 | -------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `*atlasHostLayout="'default'"`   | Renders its content only while this layout is active.                         | When routes use different layouts. Routes use `default` unless they set `layoutId`. |
-| `<atlas-host-status />`          | Shows Host startup progress and startup errors.                               | When you want the default or a custom startup UI.                                   |
+| `<atlas-host-status />`          | Shows Host startup errors.                                                    | When you want the default or a custom startup error UI.                             |
 | `<atlas-navigation />`           | Renders links to this Host's routes, except routes with `nav.visible: false`. | Optional. Omit it when you render your own navigation.                              |
 | `<atlas-route-outlet />`         | The route outlet where the App for the current URL mounts.                    | When the Host shows routed Apps.                                                    |
 | `<atlas-slot slotId="header" />` | A named slot where Apps that declare this `slotId` mount.                     | For each slot that Apps use.                                                        |
@@ -230,7 +230,6 @@ The default status UI works without configuration. To use your design system, re
 ```ts
 return {
   hostData: { projectId: 'customer-portal' },
-  renderHostLoading: (container) => renderHostSkeleton(container),
   renderHostError: (container, error, retry) =>
     renderHostFailure(container, { error, retry }),
   renderLoading: (container, event) =>
@@ -240,7 +239,7 @@ return {
 };
 ```
 
-- `renderHostLoading` and `renderHostError` cover Host startup. They may return a function that Atlas calls to clean up.
+- `renderHostError` covers a failed Host startup. It may return a function that Atlas calls to clean up.
 - `renderLoading` and `renderError` cover one routed or slotted App. A failure in one App does not replace the rest of the Host.
 
 ## 6. Run the Host locally

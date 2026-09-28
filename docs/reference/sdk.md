@@ -225,17 +225,16 @@ Relative targets resolve inside the App path. Absolute URLs throw `ATLAS_EXTERNA
 
 A Host configures loading and error UI once, in the options it returns from `useSdkOptions` or `sdkOptions`. Apps never choose their own fallback. Every callback is optional; Atlas renders accessible defaults.
 
-| Option                                         | Called with                                | Description                                                                                                        |
-| ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `renderHostLoading(container)`                 | Status anchor element                      | Global UI while Atlas loads the runtime config, the catalog, and Native Federation. May return a cleanup function. |
-| `renderHostError(container, error, retry)`     | Status anchor, error, retry callback       | Global startup error. May return a cleanup function.                                                               |
-| `renderLoading(container, event)`              | Placement element, `AtlasHostMountEvent`   | Shared loader for every App placement, from mount start until the App is ready.                                    |
-| `renderError(container, event, retry)`         | Placement element, event, retry callback   | Shared fallback for a failed App placement.                                                                        |
-| `renderWidgetLoading(container, context)`      | Widget element, `AtlasWidgetRenderContext` | Shared loader for every Widget. May return a cleanup function.                                                     |
-| `renderWidgetError(container, context, retry)` | Widget element, context, retry callback    | Shared fallback for a failed Widget. May return a cleanup function.                                                |
-| `observe(event)`                               | `AtlasRuntimeEvent`                        | Receives runtime events. See [Runtime events](#runtime-events).                                                    |
+| Option                                         | Called with                                | Description                                                                     |
+| ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `renderHostError(container, error, retry)`     | Status anchor, error, retry callback       | Global startup error. May return a cleanup function.                            |
+| `renderLoading(container, event)`              | Placement element, `AtlasHostMountEvent`   | Shared loader for every App placement, from mount start until the App is ready. |
+| `renderError(container, event, retry)`         | Placement element, event, retry callback   | Shared fallback for a failed App placement.                                     |
+| `renderWidgetLoading(container, context)`      | Widget element, `AtlasWidgetRenderContext` | Shared loader for every Widget. May return a cleanup function.                  |
+| `renderWidgetError(container, context, retry)` | Widget element, context, retry callback    | Shared fallback for a failed Widget. May return a cleanup function.             |
+| `observe(event)`                               | `AtlasRuntimeEvent`                        | Receives runtime events. See [Runtime events](#runtime-events).                 |
 
-The global status UI renders in the status anchor: `AtlasHostStatus` in React, `<atlas-host-status>` in Angular. Until a status or route outlet anchor exists, Hosts created with `defineReactHost` or `defineAngularHost` show the status at the top of the Host container. Slot placements get a compact default loader. See [Host anchors](../concepts/host-anchors.md).
+The bootstrap placeholder covers startup, so there is no Host loading UI. The status anchor shows only the Host start error: `AtlasHostStatus` in React, `<atlas-host-status>` in Angular. Without a status anchor, Hosts created with `defineReactHost` or `defineAngularHost` show the error at the top of the Host container. Slot placements get a compact default loader. See [Host anchors](../concepts/host-anchors.md).
 
 ## Runtime events
 

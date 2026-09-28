@@ -16,6 +16,7 @@ import { injectAtlasSdk } from '@atlas/sdk/angular';
 import { createAtlasSdk } from '@atlas/sdk/host';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostRuntimeConfig, createMemoryNavigation } from '@atlas/testkit';
+import { flushAsyncWork } from '@atlas/testkit/internal';
 import { aFederationAdapter } from './loader/native-federation.testkit.js';
 import type {
   AtlasHostRuntime,
@@ -24,10 +25,10 @@ import type {
 import type {
   DomHostOptions,
   DomHostServices,
-  RenderHostLoading,
   ReportSdkCreated,
 } from './dom-host/dom-host.types.js';
 import { publishAtlasNavigationItems } from './dom-host/host-navigation.js';
+import type { MountedAngularHost } from './angular.types.js';
 import { aNavigationItem } from './dom-host/host-navigation.testkit.js';
 
 type StartDomHostForHostSdk = (
@@ -82,11 +83,12 @@ export class AngularAdapterDriver {
     (url: string, options?: object) => Promise<boolean>
   >(async () => true);
   private readonly onSdkCreated = jest.fn<ReportSdkCreated<HostSdk>>();
-  private readonly renderHostLoading = jest.fn<RenderHostLoading>();
+  private readonly onReady = jest.fn<() => void>();
   private routerUrl = '/';
   private app: ApplicationRef | undefined;
   private runtime: AtlasHostRuntime<HostSdk> | undefined;
   private unmount: (() => void | Promise<void>) | undefined;
+  private mounting: Promise<MountedAngularHost> | undefined;
   private hostName: string | undefined = faker.company.name();
   private runtimeConfig = aHostRuntimeConfig({ hostId: this.hostId });
   private catalog: AtlasHostCatalog | undefined;
@@ -120,6 +122,11 @@ export class AngularAdapterDriver {
   readonly given = {
     placeholder: (placeholder: Node) => {
       this.placeholder = placeholder;
+
+      return this;
+    },
+    domHostStart: (start: Promise<AtlasHostRuntime<HostSdk>>) => {
+      startDomHost.mockReturnValueOnce(start);
 
       return this;
     },
@@ -173,7 +180,7 @@ export class AngularAdapterDriver {
           hostData: { region: this.region },
           hostDataInjector: this.app.injector,
         },
-        { onSdkCreated: this.onSdkCreated },
+        { onSdkCreated: this.onSdkCreated, onReady: this.onReady },
       );
 
       this.app.tick();
@@ -186,30 +193,43 @@ export class AngularAdapterDriver {
     },
     runtimeStopped: () => this.runtime!.stop(),
     angularHostBootstrapped: async () => {
+      await this.when.angularHostBootstrapRequested();
+
+      try {
+        this.unmount = (await this.mounting!).unmount;
+      } catch (error) {
+        this.error = error;
+      }
+    },
+    angularHostBootstrapRequested: async () => {
       const container = this.container;
 
       if (this.placeholder) container.append(this.placeholder);
 
       document.body.replaceChildren(container);
 
-      try {
-        const mounted = await bootstrapAngularHost<HostSdk>({
-          component: this.eagerSdkComponent ? EagerSdkHostRoot : HostRoot,
-          appConfig: { providers: [provideZonelessChangeDetection()] },
-          request: {
-            container,
-            runtimeConfig: this.hostOptions().runtimeConfig,
-          },
-          createHostOptions: () => ({
-            ...this.hostOptions(),
-            hostData: { region: this.region() },
-          }),
-        });
-        this.root = container.querySelector<HTMLElement>('atlas-host-root');
-        this.unmount = mounted.unmount;
-      } catch (error) {
-        this.error = error;
-      }
+      this.mounting = bootstrapAngularHost<HostSdk>({
+        component: this.eagerSdkComponent ? EagerSdkHostRoot : HostRoot,
+        appConfig: { providers: [provideZonelessChangeDetection()] },
+        request: {
+          container,
+          runtimeConfig: this.hostOptions().runtimeConfig,
+        },
+        createHostOptions: () => ({
+          ...this.hostOptions(),
+          hostData: { region: this.region() },
+        }),
+      });
+      this.root = container.querySelector<HTMLElement>('atlas-host-root');
+
+      this.mounting.catch(() => undefined);
+
+      await flushAsyncWork();
+    },
+    readyReported: async () => {
+      startDomHost.mock.calls.at(-1)![1].onReady!();
+
+      await flushAsyncWork();
     },
     angularHostMounted: async () => {
       const container = this.container;
@@ -233,10 +253,7 @@ export class AngularAdapterDriver {
         ...(this.notFoundComponent
           ? { notFoundComponent: this.notFoundComponent }
           : {}),
-        sdkOptions: () => ({
-          hostData: { region: this.region },
-          renderHostLoading: this.renderHostLoading,
-        }),
+        sdkOptions: () => ({ hostData: { region: this.region } }),
       });
       const mounted = await mount({
         container,
@@ -268,8 +285,10 @@ export class AngularAdapterDriver {
     stopMock: () => this.stop,
     navigateByUrlMock: () => this.navigateByUrl,
     onSdkCreatedMock: () => this.onSdkCreated,
-    renderHostLoadingMock: () => this.renderHostLoading,
+    onReadyMock: () => this.onReady,
+    startedServices: () => startDomHost.mock.calls.at(-1)![1],
     rootConnected: () => this.root?.isConnected ?? false,
+    rootHidden: () => this.root?.hidden,
     requestContainer: () => this.container,
     error: () => this.error,
     notFoundComponent: () =>

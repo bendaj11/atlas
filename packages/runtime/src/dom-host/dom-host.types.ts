@@ -30,10 +30,6 @@ export type RenderPlacementError = (
   retry: RetryPlacementMount,
 ) => void;
 
-export type RenderHostLoading = (
-  container: HTMLElement,
-) => void | DisposeRenderer;
-
 export type RenderHostError = (
   container: HTMLElement,
   error: Error,
@@ -52,7 +48,6 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   onNavigationChange?: ReportNavigationItems;
   renderLoading?: RenderPlacementLoading;
   renderError?: RenderPlacementError;
-  renderHostLoading?: RenderHostLoading;
   renderHostError?: RenderHostError;
   /** Receives provider-neutral runtime diagnostics. Observer errors are ignored. */
   observe?: AtlasRuntimeObserver;
@@ -96,6 +91,7 @@ export interface DomHostServices<THostSdk extends object = {}> {
   createNavigation: CreateHostNavigation;
   beforeNavigation?: PrepareNavigation;
   onSdkCreated?: ReportSdkCreated<THostSdk>;
+  onReady?: () => void;
 }
 
 export interface DomHostRuntimeInput<THostSdk extends object> {

@@ -66,6 +66,7 @@ export type ReportAngularSdkCreated<THostSdk extends object> = (
 
 export interface AngularHostStartServices<THostSdk extends object> {
   onSdkCreated?: ReportAngularSdkCreated<THostSdk>;
+  onReady?: () => void;
 }
 
 export interface MountedAngularHost {

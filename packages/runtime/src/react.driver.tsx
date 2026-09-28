@@ -2,15 +2,16 @@ import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import { act, render, type RenderResult } from '@testing-library/react';
 import { createElement, type ReactElement, type ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
 import { useAtlasSdk, type RouterNavigate } from '@atlas/sdk/react';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { AtlasAppMountResult } from '@atlas/sdk/lifecycle';
 import { aHostRuntimeConfig } from '@atlas/testkit';
 import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
 import type {
   DomHostOptions,
   DomHostServices,
-  RenderHostLoading,
 } from './dom-host/dom-host.types.js';
 import { publishAtlasNavigationItems } from './dom-host/host-navigation.js';
 import { aNavigationItem } from './dom-host/host-navigation.testkit.js';
@@ -87,6 +88,12 @@ function NavigationItemsConsumer() {
   );
 }
 
+function failingProviders(error: Error) {
+  return function FailingProviders(): ReactElement {
+    throw error;
+  };
+}
+
 export class ReactAdapterDriver {
   readonly hostId = faker.string.uuid();
   private readonly stop = jest.fn<() => Promise<void>>(async () => undefined);
@@ -107,21 +114,43 @@ export class ReactAdapterDriver {
   private readonly unmountComponentAtNode =
     jest.fn<(container: Element) => boolean>();
   private readonly container = document.createElement('div');
-  private readonly renderHostLoading = jest.fn<RenderHostLoading>();
+  private readonly onReady = jest.fn<() => void>();
+  private readonly consoleError = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => undefined);
+  private placeholder: Node | undefined;
+  private providersError: Error | undefined;
+  private legacyRoot: Root | undefined;
+  private mounting: Promise<void | AtlasAppMountResult> | undefined;
   private unmount: (() => void | Promise<void>) | undefined;
+  private error: unknown;
 
   constructor() {
     startDomHost.mockReset();
 
-    startDomHost.mockImplementation(async () => ({
-      hostId: this.hostId,
-      manifests: [],
-      retry: async () => undefined,
-      updateHostData: () => undefined,
-      stop: this.stop,
-    }));
+    startDomHost.mockImplementation(async (_options, services) => {
+      services.onReady?.();
 
-    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      return {
+        hostId: this.hostId,
+        manifests: [],
+        retry: async () => undefined,
+        updateHostData: () => undefined,
+        stop: this.stop,
+      };
+    });
+    this.legacyRender.mockImplementation((element, container) => {
+      this.legacyRoot = createRoot(container);
+
+      flushSync(() => this.legacyRoot!.render(element));
+    });
+    this.unmountComponentAtNode.mockImplementation(() => {
+      this.legacyRoot!.unmount();
+
+      return true;
+    });
+
+    this.consoleError.mockClear();
   }
 
   readonly given = {
@@ -162,6 +191,28 @@ export class ReactAdapterDriver {
     },
     notFound: (notFound: boolean) => {
       this.notFound = notFound;
+
+      return this;
+    },
+    placeholder: (placeholder: Node) => {
+      this.placeholder = placeholder;
+
+      return this;
+    },
+    providersError: (error: Error) => {
+      this.providersError = error;
+
+      return this;
+    },
+    legacyRenderError: (error: Error) => {
+      this.legacyRender.mockImplementationOnce(() => {
+        throw error;
+      });
+
+      return this;
+    },
+    domHostStart: (start: Promise<AtlasHostRuntime<HostSdk>>) => {
+      startDomHost.mockReturnValueOnce(start);
 
       return this;
     },
@@ -207,6 +258,17 @@ export class ReactAdapterDriver {
         this.rendered!.unmount();
       }),
     reactHostMounted: async () => {
+      await this.when.reactHostMountRequested();
+
+      try {
+        this.unmount = (await this.mounting!)?.unmount;
+      } catch (error) {
+        this.error = error;
+      }
+    },
+    reactHostMountRequested: async () => {
+      if (this.placeholder) this.container.append(this.placeholder);
+
       document.body.replaceChildren(this.container);
 
       const mount = defineReactHost<HostSdk>({
@@ -215,7 +277,11 @@ export class ReactAdapterDriver {
           ...(this.hostName ? { name: this.hostName } : {}),
         },
         layout: DefinedHostLayout,
-        ...(this.hostProviders ? { providers: HostProviders } : {}),
+        ...(this.providersError
+          ? { providers: failingProviders(this.providersError) }
+          : this.hostProviders
+            ? { providers: HostProviders }
+            : {}),
         ...(this.notFound ? { notFound: HostNotFound } : {}),
         reactDom: this.legacyReactDom
           ? {
@@ -223,22 +289,25 @@ export class ReactAdapterDriver {
               unmountComponentAtNode: this.unmountComponentAtNode,
             }
           : { createRoot },
-        useSdkOptions: () => ({
-          hostData: { region: this.region },
-          renderHostLoading: this.renderHostLoading,
-        }),
+        useSdkOptions: () => ({ hostData: { region: this.region } }),
       });
 
-      await act(async () => {
-        const mounted = await mount({
+      this.mounting = Promise.resolve(
+        mount({
           container: this.container,
           runtimeConfig: this.runtimeConfig,
           ...(this.catalog ? { catalog: this.catalog } : {}),
-        });
+        }),
+      );
 
-        this.unmount = mounted?.unmount;
-      });
+      this.mounting.catch(() => undefined);
+
+      await act(async () => undefined);
     },
+    readyReported: () =>
+      act(async () => {
+        startDomHost.mock.calls.at(-1)![1].onReady!();
+      }),
     reactHostUnmounted: () =>
       act(async () => {
         await this.unmount!();
@@ -279,7 +348,12 @@ export class ReactAdapterDriver {
         '[data-testid="host-providers"] [data-testid="defined-layout"]',
       ) !== null,
     legacyRenderMock: () => this.legacyRender,
-    renderHostLoadingMock: () => this.renderHostLoading,
+    onReadyMock: () => this.onReady,
+    startedServices: () => startDomHost.mock.calls.at(-1)![1],
+    hostRoot: () =>
+      this.container.querySelector<HTMLElement>('atlas-host-root'),
+    error: () => this.error,
+    consoleErrorMock: () => this.consoleError,
     unmountComponentAtNodeMock: () => this.unmountComponentAtNode,
     startedNavigationPathname: async () =>
       (
@@ -325,6 +399,7 @@ export class ReactAdapterDriver {
         },
       },
       ...(this.notFound ? { notFound: HostNotFound } : {}),
+      onReady: this.onReady,
       children,
     });
   }

@@ -30,6 +30,12 @@ describe('startHost', () => {
       expect(driver.get.onSdkCreatedMock()).toHaveBeenCalledWith(driver.sdk);
     });
 
+    it('should forward onReady to the dom host when started', () => {
+      expect(driver.get.startedServices().onReady).toBe(
+        driver.get.onReadyMock(),
+      );
+    });
+
     it('should update the runtime host data when a host data signal changes', async () => {
       const region = faker.location.countryCode();
 
@@ -94,6 +100,10 @@ describe('bootstrapAngularHost', () => {
       expect(driver.get.rootConnected()).toBe(true);
     });
 
+    it('should reveal the host root when bootstrapped', () => {
+      expect(driver.get.rootHidden()).toBe(false);
+    });
+
     it('should start the dom host once when bootstrapped', () => {
       expect(driver.get.startDomHostMock()).toHaveBeenCalledTimes(1);
     });
@@ -119,13 +129,40 @@ describe('bootstrapAngularHost', () => {
     driver = new AngularAdapterDriver();
   });
 
-  it('should remove the bootstrap placeholder from the request container when bootstrapped', async () => {
+  it('should keep the bootstrap placeholder in the request container when bootstrapped', async () => {
     const placeholder = document.createElement('p');
     driver.given.placeholder(placeholder);
 
     await driver.when.angularHostBootstrapped();
 
-    expect(placeholder.isConnected).toBe(false);
+    expect(placeholder.parentElement).toBe(driver.get.requestContainer());
+  });
+
+  it('should reject with the start error when the dom host start rejects before ready', async () => {
+    const error = new Error(faker.lorem.sentence());
+    driver.given.domHostStart(Promise.reject(error));
+
+    await driver.when.angularHostBootstrapped();
+
+    expect(driver.get.error()).toBe(error);
+  });
+
+  describe('when bootstrapped while the dom host start is pending', () => {
+    beforeEach(async () => {
+      await driver.given
+        .domHostStart(new Promise(() => undefined))
+        .when.angularHostBootstrapRequested();
+    });
+
+    it('should keep the host root hidden when ready is not reported', () => {
+      expect(driver.get.rootHidden()).toBe(true);
+    });
+
+    it('should reveal the host root when ready is reported', async () => {
+      await driver.when.readyReported();
+
+      expect(driver.get.rootHidden()).toBe(false);
+    });
   });
 
   it('should reject with ATLAS_SDK_NOT_READY when the root component injects the sdk during bootstrap', async () => {
@@ -165,12 +202,6 @@ describe('defineAngularHost', () => {
 
     it('should forward the request runtime config when mounted', () => {
       expect(driver.get.startedOptions().runtimeConfig).toBe(runtimeConfig);
-    });
-
-    it('should forward renderHostLoading from the custom sdk options when mounted', () => {
-      expect(driver.get.startedOptions().renderHostLoading).toBe(
-        driver.get.renderHostLoadingMock(),
-      );
     });
 
     it('should forward the request container as host container when mounted', () => {

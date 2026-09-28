@@ -24,7 +24,6 @@ describe('createDomHostSdk', () => {
     'onNavigationChange',
     'renderError',
     'renderHostError',
-    'renderHostLoading',
     'renderLoading',
     'renderWidgetError',
     'renderWidgetLoading',

@@ -25,8 +25,12 @@ export interface ReactDomRoot {
   unmount(): void;
 }
 
+export interface ReactDomRootOptions {
+  onUncaughtError?: (error: unknown) => void;
+}
+
 export interface ReactDomClient {
-  createRoot(container: Element): ReactDomRoot;
+  createRoot(container: Element, options?: ReactDomRootOptions): ReactDomRoot;
 }
 
 export interface LegacyReactDom {
@@ -49,12 +53,18 @@ export interface ReactHostApplicationProps<THostSdk extends object> {
   definition: ReactHostDefinition<THostSdk>;
   request: AtlasHostMountRequest;
   router: ReturnType<typeof createBrowserRouter>;
+  onReady: () => void;
 }
 
 export interface RenderReactHostOptions {
   reactDom: ReactDomRenderer;
   element: ReactElement;
   container: Element;
+  onUncaughtError: (error: unknown) => void;
+}
+
+export interface ReactHostStartServices {
+  onReady?: () => void;
 }
 
 export interface AtlasHostProviderProps<THostSdk extends object = {}> {
@@ -62,12 +72,14 @@ export interface AtlasHostProviderProps<THostSdk extends object = {}> {
   hostId: string;
   notFound?: ComponentType;
   options: HostOptions<THostSdk>;
+  onReady?: () => void;
 }
 
 export interface HostProviderState<THostSdk extends object> {
   options: HostOptions<THostSdk>;
   sdk: DomHostSdk<THostSdk>;
   anchors: AtlasHostAnchorRegistry;
+  services: ReactHostStartServices;
 }
 
 export interface AtlasHostLayoutProps {

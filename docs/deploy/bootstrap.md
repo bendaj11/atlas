@@ -75,7 +75,7 @@ The file is public. Never put secrets, tokens, or private storage URLs in it.
 5. The loader applies any overrides, validates the resulting host catalog, adds the Host stylesheets, verifies the Host remote entry against its integrity value when the manifest declares one, and imports the Host.
 6. The Host runtime mounts slot Apps and the current route App in parallel.
 
-The bootstrap placeholder inside `atlas-host-root` stays until the Host renders. After that, each App and Widget shows its own loading state until it has mounted.
+The bootstrap placeholder inside `atlas-host-root` stays until Atlas is ready to show the Host layout, not only until the Host renders. After that, each App and Widget shows its own loading state until it has mounted.
 
 The loader always revalidates `atlas.runtime.json` and the host deployment manifest. It lets the browser HTTP cache serve content it can verify itself: published artifact manifests (checked against their digest) and Host remote entries that carry an integrity value. If cached bytes fail verification, the loader fetches them again from the network before it reports an error.
 
