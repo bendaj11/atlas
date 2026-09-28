@@ -59,7 +59,9 @@ If an App asks the Host to wait until it is ready, it must call the callback it 
 - Angular: the callback from `injectAppLoaded()`.
 - Framework-independent code: the callback from `context.loading.waitUntilReady()`.
 
-If the App never calls it, Atlas reports `Atlas app "<id>" did not mark itself ready within <n>ms.` after the resource timeout and shows the error UI. The timeout is 15 seconds. `resourcesTimeoutMs` in `atlas.config.ts` changes it only on the `npx atlas dev` Host page; production always uses the default.
+Atlas never times out readiness. Readiness belongs to the App: the loading indicator stays until the App calls the callback, however long its setup takes. `resourcesTimeoutMs` covers only fetching, importing, and mounting the App.
+
+If setup can fail, report the failure instead of leaving the loader up: call the callback from `useAppFailed()` (React) or `injectAppFailed()` (Angular), or `context.fail(error)`. Atlas then shows the error UI with **Retry**. See [Failures](reference/sdk.md#failures).
 
 ## Host APIs are missing from the SDK
 

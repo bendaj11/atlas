@@ -5,6 +5,7 @@ export {
   AtlasSdkContext,
   AtlasStyleTargetContext,
 } from './contexts.js';
+export { useAppFailed } from './use-app-failed.js';
 export { useAppLoaded } from './use-app-loaded.js';
 export { useAtlasSdk } from './use-atlas-sdk.js';
 export type { AtlasSdk } from './use-atlas-sdk.js';

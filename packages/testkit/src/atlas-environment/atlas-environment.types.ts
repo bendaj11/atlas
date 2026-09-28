@@ -58,4 +58,5 @@ export interface MockAtlasEnvironment<
   tabTitle(): string | undefined;
   isLoaderVisible(): boolean;
   isReady(): boolean;
+  failure(): unknown;
 }

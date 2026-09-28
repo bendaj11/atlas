@@ -46,11 +46,11 @@ These fields appear in both Host and App configs (`AtlasBaseConfig`).
 
 ### AtlasHostConfig
 
-| Field                 | Type     | Default | Description                                                                                                                        |
-| --------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `type`                | `'host'` | None    | Marks the project as a Host.                                                                                                       |
-| `resourcesTimeoutMs`  | `number` | 15000   | Development only. Maximum time Atlas waits for runtime resources, App loading, and App readiness on the `npx atlas dev` Host page. |
-| `resourcesRetryCount` | `number` | 3       | Development only. Number of retries after the first failed resource request on the `npx atlas dev` Host page.                      |
+| Field                 | Type     | Default | Description                                                                                                                                      |
+| --------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `type`                | `'host'` | None    | Marks the project as a Host.                                                                                                                     |
+| `resourcesTimeoutMs`  | `number` | 15000   | Development only. Maximum time Atlas waits for runtime resources and App loading on the `npx atlas dev` Host page. App readiness has no timeout. |
+| `resourcesRetryCount` | `number` | 3       | Development only. Number of retries after the first failed resource request on the `npx atlas dev` Host page.                                    |
 
 > **Note:** `resourcesTimeoutMs` and `resourcesRetryCount` are development-only settings. `npx atlas dev` copies them into the runtime config of the local development Host page, and nothing else reads them. Production `atlas.runtime.json` rejects both fields, so a deployed Host always uses the runtime defaults: 3 retries and a 15-second timeout. See [Development-only fields](#development-only-fields).
 
@@ -211,7 +211,7 @@ When `environment` is `development`, these fields are also accepted. In every ot
 
 | Field                   | Type     | Description                                                    |
 | ----------------------- | -------- | -------------------------------------------------------------- |
-| `resourcesTimeoutMs`    | `number` | Integer of at least 1. Request and readiness timeout.          |
+| `resourcesTimeoutMs`    | `number` | Integer of at least 1. Request and App loading timeout.        |
 | `resourcesRetryCount`   | `number` | Integer of at least 0. Retries after the first failed request. |
 | `developmentSessionUrl` | `string` | Absolute loopback HTTP URL of the local development session.   |
 

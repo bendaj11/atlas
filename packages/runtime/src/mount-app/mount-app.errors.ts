@@ -29,12 +29,26 @@ export class AtlasAppMountError extends AtlasBrowserError {
   }
 }
 
+export class AtlasAppFailedError extends AtlasBrowserError {
+  constructor(appId: string, cause: unknown) {
+    super(cause, {
+      summary: `Atlas app "${appId}" reported an unrecoverable failure`,
+      suggestedActions: [
+        'Check the browser console for the error the app reported.',
+        'Fix the app, then retry loading it.',
+      ],
+      code: 'ATLAS_APP_FAILED',
+    });
+    this.name = 'AtlasAppFailedError';
+  }
+}
+
 export class AtlasAppMountTimeoutError extends AtlasRuntimeError {
   constructor(summary: string) {
     super(summary, {
       code: 'ATLAS_APP_MOUNT_TIMEOUT',
       suggestedActions:
-        'Check the app remote for slow or hanging mount and ready handlers, or raise resourcesTimeoutMs in the host runtime configuration.',
+        'Check the app remote for a slow or hanging mount handler, or raise resourcesTimeoutMs in the host runtime configuration.',
     });
     this.name = 'AtlasAppMountTimeoutError';
   }

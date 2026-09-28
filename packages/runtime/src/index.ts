@@ -22,6 +22,7 @@ export type {
   ImportAppRemote,
 } from './mount-app/mount-app.types.js';
 export {
+  AtlasAppFailedError,
   AtlasAppMountError,
   AtlasAppMountTimeoutError,
   AtlasStyleTargetMissingError,
@@ -52,6 +53,7 @@ export type {
 export {
   AtlasWidgetAmbiguousError,
   AtlasWidgetIdInvalidError,
+  AtlasWidgetFailedError,
   AtlasWidgetMountError,
   AtlasWidgetNotFoundError,
   AtlasWidgetRemoteMismatchError,

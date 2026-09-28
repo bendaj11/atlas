@@ -81,6 +81,7 @@ Assert on state for the parts Atlas already runs for real:
 | `atlas.tabTitle()`             | Last title the App set through `route.setTabTitle()`.          |
 | `atlas.isLoaderVisible()`      | Whether the App currently shows the Host loader.               |
 | `atlas.isReady()`              | `false` while the App holds an App-loaded callback.            |
+| `atlas.failure()`              | The error the App last reported with `fail`, or `undefined`.   |
 
 ### Angular
 

@@ -66,9 +66,6 @@ export function createSdkProviders<THostSdk extends object>(
     importWidget: input.importWidget,
     ...(input.resolveWidget ? { resolveWidget: input.resolveWidget } : {}),
     ...(input.trustPolicy ? { trustPolicy: input.trustPolicy } : {}),
-    ...(input.options.runtimeConfig.resourcesTimeoutMs
-      ? { readinessTimeoutMs: input.options.runtimeConfig.resourcesTimeoutMs }
-      : {}),
     ...pickWidgetUiOptionsFrom(input.options),
   };
   const widgetLoader = createWidgetLoader({

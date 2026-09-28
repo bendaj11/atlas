@@ -60,7 +60,6 @@ export interface AtlasWidgetLoaderOptions extends AtlasWidgetUiOptions {
   importWidget?: AtlasWidgetImporter;
   resolveWidget?: AtlasWidgetResolver;
   trustPolicy?: AtlasRemoteTrustPolicy;
-  readinessTimeoutMs?: number;
 }
 
 export interface CreateWidgetLoaderInput {

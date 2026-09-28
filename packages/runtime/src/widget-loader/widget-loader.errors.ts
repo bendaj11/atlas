@@ -67,6 +67,20 @@ export class AtlasWidgetRemoteMismatchError extends AtlasRuntimeError {
   }
 }
 
+export class AtlasWidgetFailedError extends AtlasBrowserError {
+  constructor(widgetId: string, cause: unknown) {
+    super(cause, {
+      summary: `Atlas widget "${widgetId}" reported an unrecoverable failure`,
+      suggestedActions: [
+        'Check the browser console for the error the widget reported.',
+        'Fix the widget owner app, then retry loading the widget.',
+      ],
+      code: 'ATLAS_WIDGET_FAILED',
+    });
+    this.name = 'AtlasWidgetFailedError';
+  }
+}
+
 export class AtlasWidgetMountError extends AtlasBrowserError {
   constructor(widgetId: string, cause: unknown) {
     super(cause, {
@@ -78,19 +92,5 @@ export class AtlasWidgetMountError extends AtlasBrowserError {
       code: 'ATLAS_WIDGET_MOUNT_FAILED',
     });
     this.name = 'AtlasWidgetMountError';
-  }
-}
-
-export class AtlasWidgetReadinessTimeoutError extends AtlasRuntimeError {
-  constructor(input: { widgetId: string; timeoutMs: number }) {
-    super(
-      `Atlas widget "${input.widgetId}" did not mark itself ready within ${input.timeoutMs}ms.`,
-      {
-        code: 'ATLAS_WIDGET_READINESS_TIMEOUT',
-        suggestedActions:
-          'Call the callback returned by waitUntilReady once the widget has rendered, or raise resourcesTimeoutMs in the host runtime configuration.',
-      },
-    );
-    this.name = 'AtlasWidgetReadinessTimeoutError';
   }
 }

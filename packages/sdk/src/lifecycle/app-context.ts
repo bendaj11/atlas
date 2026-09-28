@@ -19,4 +19,6 @@ export interface AtlasAppContext {
   navigation: AtlasScopedNavigation;
   route: AtlasRouteContext;
   readonly loading: AtlasAppLoading;
+  /** Reports an unrecoverable failure; the host unmounts the app and shows its error UI. */
+  fail(error: unknown): void;
 }

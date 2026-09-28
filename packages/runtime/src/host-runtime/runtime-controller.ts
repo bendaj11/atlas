@@ -1,6 +1,7 @@
 import { getAtlasNavigation } from '@atlas/sdk';
 import type { AtlasWidgetLoader } from '@atlas/sdk/lifecycle';
 import {
+  AtlasAppFailedError,
   AtlasAppMountError,
   AtlasAppMountTimeoutError,
 } from '../mount-app/mount-app.errors.js';
@@ -230,7 +231,13 @@ export class AtlasRuntimeController {
     const isCurrent = () => this.isMountCurrent(mount, generation);
 
     mount.pending = this.runMount(mount, isCurrent)
-      .catch((error) => this.handleMountError(mount, error, isCurrent))
+      .catch((error) =>
+        this.handleMountError(
+          mount,
+          new AtlasAppMountError(mount.manifest.id, error),
+          isCurrent,
+        ),
+      )
       .finally(() => {
         if (mount.generation === generation) delete mount.pending;
       });
@@ -271,6 +278,14 @@ export class AtlasRuntimeController {
       onReadyRequested: () =>
         this.requestReadiness(readiness, loading, isCurrent),
       onLoadingChange: loading.set,
+      onFail: (error) => {
+        if (isCurrent())
+          void this.handleMountError(
+            mount,
+            new AtlasAppFailedError(mount.manifest.id, error),
+            isCurrent,
+          );
+      },
       importRemote: this.options.importRemote,
       ...(this.options.trustPolicy
         ? { trustPolicy: this.options.trustPolicy }
@@ -303,11 +318,11 @@ export class AtlasRuntimeController {
     await Promise.resolve();
 
     if (readiness.requested) {
-      await awaitWithTimeout({
-        promise: readiness.ready,
-        timeoutMs: this.timeoutMs,
-        message: `Atlas app "${mount.manifest.id}" did not mark itself ready within ${this.timeoutMs}ms.`,
+      void readiness.ready.then(() => {
+        if (isCurrent()) this.emitMountState(mount, 'mounted');
       });
+
+      return;
     }
 
     if (isCurrent()) this.emitMountState(mount, 'mounted');
@@ -332,7 +347,7 @@ export class AtlasRuntimeController {
 
   private async handleMountError(
     mount: PlacementMountRecord,
-    error: unknown,
+    error: Error,
     isCurrent: IsMountCurrent,
   ): Promise<void> {
     if (!isCurrent()) return;
@@ -343,11 +358,7 @@ export class AtlasRuntimeController {
     await mount.mounted?.unmount();
 
     delete mount.mounted;
-    this.emitMountState(
-      mount,
-      'error',
-      new AtlasAppMountError(mount.manifest.id, error),
-    );
+    this.emitMountState(mount, 'error', error);
   }
 
   private async unmountPlacement(key: string): Promise<void> {

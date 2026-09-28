@@ -60,6 +60,8 @@ export async function mountApp(
   };
   let result: void | AtlasAppMountResult;
   let readinessRequested = false;
+  let mounted = false;
+  let failure: { error: unknown } | undefined;
 
   boundary.setHidden(true);
 
@@ -123,13 +125,25 @@ export async function mountApp(
             };
           },
         },
+        fail: (error) => {
+          if (mounted) options.onFail?.(error);
+          else failure ??= { error };
+        },
       },
     });
+
+    if (failure) {
+      await result?.unmount?.();
+
+      throw failure.error;
+    }
   } catch (error) {
     releaseMountResources();
 
     throw error;
   }
+
+  mounted = true;
 
   if (!readinessRequested) boundary.setHidden(false);
 

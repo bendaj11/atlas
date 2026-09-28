@@ -5,6 +5,7 @@ import {
   APP_ID,
   createEnvironmentInjector,
   EnvironmentInjector,
+  ErrorHandler,
   inject,
   runInInjectionContext,
 } from '@angular/core';
@@ -29,7 +30,21 @@ export class ProvideAtlasAppDriver {
   private readonly styleTarget = document
     .createElement('div')
     .attachShadow({ mode: 'open' });
-  private readonly context = anAppContext();
+  private readonly markReady = jest.fn<() => void>();
+  private readonly waitUntilReady = jest.fn<() => () => void>();
+  private readonly fail = jest.fn<(error: unknown) => void>();
+  private readonly consoleError = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => undefined);
+  private readonly context = anAppContext({
+    loading: {
+      show: () => undefined,
+      hide: () => undefined,
+      waitUntilReady: this.waitUntilReady,
+    },
+    fail: this.fail,
+  });
+  private releaseReadiness: () => void = () => undefined;
   private readonly sdk = createAtlasSdk({
     hostId: faker.string.uuid(),
     navigation: aMemoryNavigation(),
@@ -63,6 +78,16 @@ export class ProvideAtlasAppDriver {
       );
       runInInjectionContext(this.injector, () => inject(ɵSharedStylesHost));
     },
+    readinessRequested: () => {
+      this.waitUntilReady.mockReturnValue(this.markReady);
+      this.releaseReadiness = runInInjectionContext(
+        this.injector,
+        injectAtlasAppContext,
+      ).loading.waitUntilReady();
+    },
+    readinessReleased: () => this.releaseReadiness(),
+    errorHandled: (error: unknown) =>
+      this.injector.get(ErrorHandler).handleError(error),
   };
 
   readonly get = {
@@ -74,6 +99,10 @@ export class ProvideAtlasAppDriver {
     addHostMock: () => this.stylesHost.addHost,
     removeHostMock: () => this.stylesHost.removeHost,
     context: () => this.context,
+    waitUntilReadyMock: () => this.waitUntilReady,
+    markReadyMock: () => this.markReady,
+    failMock: () => this.fail,
+    consoleErrorMock: () => this.consoleError,
     styleTarget: () => this.styleTarget,
   };
 }

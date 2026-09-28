@@ -17,6 +17,8 @@ export type RequestReadiness = () => ReleaseReadiness;
 
 export type ReportLoadingChange = (loading: boolean) => void;
 
+export type ReportFailure = (error: unknown) => void;
+
 export interface AtlasLoaderOptions extends AtlasWidgetUiOptions {
   hostId: string;
   sdk: AtlasSdk;
@@ -34,6 +36,7 @@ export interface AtlasMountAppOptions extends AtlasLoaderOptions {
   onReady?: ReleaseReadiness;
   onReadyRequested?: RequestReadiness;
   onLoadingChange?: ReportLoadingChange;
+  onFail?: ReportFailure;
 }
 
 export interface RouteTitleController {

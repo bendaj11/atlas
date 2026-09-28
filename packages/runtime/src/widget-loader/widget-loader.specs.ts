@@ -166,37 +166,84 @@ describe('createWidgetLoader', () => {
       });
     });
 
-    describe('when the loader is created with a short readiness timeout and the entry never becomes ready', () => {
-      let markReady: () => void = () => undefined;
+    describe('when the host provides an error renderer and the entry reports a failure while mounting', () => {
+      beforeEach(async () => {
+        driver.given
+          .hostErrorRenderer()
+          .given.entryBehavior(({ context }) =>
+            context.fail(new Error(faker.lorem.sentence())),
+          )
+          .when.created();
+
+        await driver.when.mounted(widget.id);
+      });
+
+      it('should call the host error renderer with an ATLAS_WIDGET_MOUNT_FAILED error when the entry reports a failure while mounting', () => {
+        expect(driver.get.renderWidgetErrorMock()).toHaveBeenCalledWith(
+          expect.any(HTMLElement),
+          expect.objectContaining({
+            error: expect.objectContaining({
+              code: 'ATLAS_WIDGET_MOUNT_FAILED',
+            }),
+          }),
+          expect.any(Function),
+        );
+      });
+
+      it('should unmount the entry when the entry reports a failure while mounting', () => {
+        expect(driver.get.entryUnmountMock()).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('when the host provides an error renderer and the entry reports a failure after mounting', () => {
+      let fail: (error: unknown) => void = () => undefined;
 
       beforeEach(async () => {
         driver.given
-          .readinessTimeoutMs(1)
+          .hostErrorRenderer()
           .given.entryBehavior(({ context }) => {
-            markReady = context.loading.waitUntilReady();
+            fail = (error) => context.fail(error);
           })
           .when.created();
 
         await driver.when.mounted(widget.id);
-        await driver.when.timeElapsed(10);
+
+        fail(new Error(faker.lorem.sentence()));
+        await driver.when.timeElapsed(0);
       });
 
-      it('should render the default error status when the readiness timeout elapses', () => {
-        expect(driver.get.alert()).not.toBeNull();
+      it('should call the host error renderer with an ATLAS_WIDGET_FAILED error when the failure is reported', () => {
+        expect(driver.get.renderWidgetErrorMock()).toHaveBeenCalledWith(
+          expect.any(HTMLElement),
+          expect.objectContaining({
+            widgetId: widget.id,
+            error: expect.objectContaining({ code: 'ATLAS_WIDGET_FAILED' }),
+          }),
+          expect.any(Function),
+        );
       });
 
-      it('should remove the default loader when the readiness timeout elapses', () => {
-        expect(driver.get.loader()).toBeNull();
-      });
-
-      it('should unmount the entry when the readiness timeout elapses', () => {
+      it('should unmount the entry when the failure is reported', () => {
         expect(driver.get.entryUnmountMock()).toHaveBeenCalledTimes(1);
       });
 
-      it('should keep the default error status when the widget marks itself ready after the timeout', () => {
-        markReady();
+      it('should unmount the entry once when the failure is reported twice', async () => {
+        fail(new Error(faker.lorem.sentence()));
+        await driver.when.timeElapsed(0);
 
-        expect(driver.get.alert()).not.toBeNull();
+        expect(driver.get.entryUnmountMock()).toHaveBeenCalledTimes(1);
+      });
+
+      it('should mount the entry again when retried after the failure', async () => {
+        await driver.when.retried();
+
+        expect(driver.get.requests()).toHaveLength(2);
+      });
+
+      it('should not unmount the entry again when the failed widget is unmounted', async () => {
+        await driver.when.unmounted();
+
+        expect(driver.get.entryUnmountMock()).toHaveBeenCalledTimes(1);
       });
     });
 

@@ -38,8 +38,8 @@ import {
 import { loadManifestStyles } from '../stylesheets/stylesheets.js';
 import { createWidgetCard, createWidgetRenderContext } from './widget-card.js';
 import {
+  AtlasWidgetFailedError,
   AtlasWidgetMountError,
-  AtlasWidgetReadinessTimeoutError,
   AtlasWidgetRemoteMismatchError,
   AtlasWidgetResolverMissingError,
 } from './widget-loader.errors.js';
@@ -50,8 +50,6 @@ import type {
   MountResolvedWidgetInput,
   WidgetCard,
 } from './widget-loader.types.js';
-
-const DEFAULT_READINESS_TIMEOUT_MS = 15_000;
 
 export function createWidgetLoader(
   input: CreateWidgetLoaderInput,
@@ -268,7 +266,7 @@ async function attemptWidgetMount<TProps extends object>(
 
   let resolved: AtlasResolvedWidget | undefined;
 
-  const showFailure = (error: unknown) => {
+  const showFailure = (error: Error) => {
     if (state.disposed) {
       card.remove();
 
@@ -278,7 +276,7 @@ async function attemptWidgetMount<TProps extends object>(
     state.current = pendingWidget;
 
     card.showError({
-      error: new AtlasWidgetMountError(input.widgetId, error),
+      error,
       retry: () => {
         card.remove();
 
@@ -299,13 +297,14 @@ async function attemptWidgetMount<TProps extends object>(
       card,
       resolved,
       entry,
-      onReadinessTimeout: showFailure,
+      onFail: (error) =>
+        showFailure(new AtlasWidgetFailedError(input.widgetId, error)),
     });
 
     if (state.disposed) await mounted.unmount();
     else state.current = mounted;
   } catch (error) {
-    showFailure(error);
+    showFailure(new AtlasWidgetMountError(input.widgetId, error));
   }
 }
 
@@ -314,10 +313,10 @@ async function mountWidgetEntry<TProps extends object>(input: {
   card: WidgetCard;
   resolved: AtlasResolvedWidget;
   entry: AtlasExportedWidgetEntry;
-  onReadinessTimeout: (error: Error) => void;
+  onFail: (error: unknown) => void;
 }): Promise<AtlasMountedWidget<TProps>> {
-  const { card, resolved, entry, onReadinessTimeout } = input;
-  const { props, sdk, options } = input.input;
+  const { card, resolved, entry, onFail } = input;
+  const { props, sdk } = input.input;
   const document = card.element.ownerDocument ?? globalThis.document;
   const boundary = createMountBoundary({
     parent: card.element,
@@ -343,11 +342,11 @@ async function mountWidgetEntry<TProps extends object>(input: {
     boundary.remove();
     releaseStyles();
   };
-  const timeoutMs = options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS;
   let result: void | AtlasExportedWidgetMountResult;
   let readinessPending = false;
-  let readinessTimer: ReturnType<typeof setTimeout> | undefined;
+  let mounted = false;
   let released = false;
+  let failure: { error: unknown } | undefined;
 
   const showContent = () => {
     if (released) return;
@@ -364,23 +363,23 @@ async function mountWidgetEntry<TProps extends object>(input: {
   const markReady = () => {
     readinessPending = false;
 
-    clearTimeout(readinessTimer);
     showContent();
   };
-  const releaseAfterReadinessTimeout = async () => {
+  const releaseAfterFailure = async (error: unknown) => {
     released = true;
 
     try {
       await result?.unmount?.();
     } finally {
       releaseMountResources();
-      onReadinessTimeout(
-        new AtlasWidgetReadinessTimeoutError({
-          widgetId: resolved.widget.id,
-          timeoutMs,
-        }),
-      );
+      onFail(error);
     }
+  };
+  const fail = (error: unknown) => {
+    if (released) return;
+
+    if (mounted) void releaseAfterFailure(error);
+    else failure ??= { error };
   };
 
   try {
@@ -403,23 +402,25 @@ async function mountWidgetEntry<TProps extends object>(input: {
             return markReady;
           },
         },
+        fail,
       }),
       ...resolved,
     });
+
+    if (failure) {
+      await result?.unmount?.();
+
+      throw failure.error;
+    }
   } catch (error) {
     releaseMountResources();
 
     throw error;
   }
 
-  if (readinessPending) {
-    readinessTimer = setTimeout(
-      () => void releaseAfterReadinessTimeout(),
-      timeoutMs,
-    );
-  } else {
-    showContent();
-  }
+  mounted = true;
+
+  if (!readinessPending) showContent();
 
   return {
     widget: resolved.widget,
@@ -427,8 +428,6 @@ async function mountWidgetEntry<TProps extends object>(input: {
       result?.setInputs?.(inputs);
     },
     async unmount() {
-      clearTimeout(readinessTimer);
-
       if (released) {
         card.remove();
 
@@ -449,8 +448,9 @@ function createExportedWidgetContext(input: {
   manifest: AtlasManifest;
   sdk: AtlasSdk;
   loading: AtlasAppLoading;
+  fail: (error: unknown) => void;
 }): AtlasAppContext {
-  const { manifest, sdk, loading } = input;
+  const { manifest, sdk, loading, fail } = input;
   const hostNavigation = getAtlasNavigation(sdk);
   const navigation = createScopedNavigation(
     findDefaultRoutePathOfManifest(manifest),
@@ -464,6 +464,7 @@ function createExportedWidgetContext(input: {
     navigation,
     route: createRouteContext(navigation.path, hostNavigation),
     loading,
+    fail,
   };
 }
 

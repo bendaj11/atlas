@@ -22,6 +22,7 @@ export function anAppContext(
       hide: () => undefined,
       waitUntilReady: () => () => undefined,
     },
+    fail: () => undefined,
     ...overrides,
   };
 }

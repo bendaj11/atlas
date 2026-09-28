@@ -10,3 +10,10 @@ export function injectAtlasAppContext(): AtlasAppContext {
 export function injectAppLoaded(): () => void {
   return injectAtlasAppContext().loading.waitUntilReady();
 }
+
+/** Returns a callback that reports an unrecoverable app failure to the host. */
+export function injectAppFailed(): (error: unknown) => void {
+  const context = injectAtlasAppContext();
+
+  return (error) => context.fail(error);
+}

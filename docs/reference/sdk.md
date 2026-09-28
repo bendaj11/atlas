@@ -167,14 +167,15 @@ Atlas does not define toast, modal, authentication, session, or HTTP client cont
 
 Each mounted App receives an `AtlasAppContext`. Read it with `injectAtlasAppContext()` in Angular, or from the `context` field of the mount request.
 
-| Field        | Type                    | Description                                               |
-| ------------ | ----------------------- | --------------------------------------------------------- |
-| `manifest`   | `AtlasManifest`         | Runtime manifest of this App version.                     |
-| `hostId`     | `string`                | ID of the Host that mounted the App.                      |
-| `path`       | `string`                | Host path assigned to this placement, such as `/orders`.  |
-| `navigation` | `AtlasScopedNavigation` | Navigation restricted to `path`.                          |
-| `route`      | `AtlasRouteContext`     | Inner path, query, hash, pattern matching, and tab title. |
-| `loading`    | `AtlasAppLoading`       | Controls the Host's loading UI for this placement.        |
+| Field         | Type                       | Description                                                  |
+| ------------- | -------------------------- | ------------------------------------------------------------ |
+| `manifest`    | `AtlasManifest`            | Runtime manifest of this App version.                        |
+| `hostId`      | `string`                   | ID of the Host that mounted the App.                         |
+| `path`        | `string`                   | Host path assigned to this placement, such as `/orders`.     |
+| `navigation`  | `AtlasScopedNavigation`    | Navigation restricted to `path`.                             |
+| `route`       | `AtlasRouteContext`        | Inner path, query, hash, pattern matching, and tab title.    |
+| `loading`     | `AtlasAppLoading`          | Controls the Host's loading UI for this placement.           |
+| `fail(error)` | `(error: unknown) => void` | Reports an unrecoverable failure. See [Failures](#failures). |
 
 `AtlasAppContext` has no `widgets` field. Use `sdk.getWidget` instead.
 
@@ -186,7 +187,18 @@ Each mounted App receives an `AtlasAppContext`. Read it with `injectAtlasAppCont
 | `hide()`           | Remove the loading UI.                                                                           |
 | `waitUntilReady()` | Keep the loading UI until you call the returned function. Call it after the first useful render. |
 
-`useAppLoaded()` (React) and `injectAppLoaded()` (Angular) call `waitUntilReady()` for you and return the callback. A Widget that calls `waitUntilReady()` must call the callback within `resourcesTimeoutMs` (15 seconds by default), or Atlas unmounts it with `ATLAS_WIDGET_READINESS_TIMEOUT`.
+`useAppLoaded()` (React) and `injectAppLoaded()` (Angular) call `waitUntilReady()` for you and return the callback. Atlas does not time out readiness: the loading indicator stays until the App or Widget calls the callback.
+
+### Failures
+
+An App or Widget reports an unrecoverable failure with `context.fail(error)`. Atlas unmounts it and shows the Host's error UI with a **Retry** action. Atlas reports `ATLAS_APP_FAILED` for an App and `ATLAS_WIDGET_FAILED` for a Widget. A call during `mount` reports `ATLAS_APP_MOUNT_FAILED` or `ATLAS_WIDGET_MOUNT_FAILED` instead. Atlas ignores calls after the first one.
+
+`useAppFailed()` (React) and `injectAppFailed()` (Angular) return a callback that calls `fail`. Use it for errors that the framework does not catch, such as a rejected promise in your setup code.
+
+The SDK also reports errors for you:
+
+- **React.** `defineApp`, `createRoutedApp`, and `defineExportedWidget` wrap the tree in an error boundary. A render error fails the App or Widget. As with any React error boundary, errors in event handlers and async code are not caught.
+- **Angular.** `provideAtlasApp` provides an `ErrorHandler`. It logs every error like Angular's default handler. It fails the App or Widget only while readiness is pending, between `injectAppLoaded()` and the callback. After that, errors are logged only, as in any Angular app. A bootstrap failure rejects `mount` and is reported as a mount failure. Your own `ErrorHandler`, provided after `provideAtlasApp`, replaces the Atlas one.
 
 ### AtlasRouteContext
 

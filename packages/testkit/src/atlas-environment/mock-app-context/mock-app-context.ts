@@ -19,6 +19,7 @@ export interface MockAppContext {
   tabTitle(): string | undefined;
   isLoaderVisible(): boolean;
   isReady(): boolean;
+  failure(): unknown;
 }
 
 export function createMockAppContext({
@@ -30,6 +31,7 @@ export function createMockAppContext({
   let tabTitle: string | undefined;
   let isLoaderVisible = false;
   let pendingReadiness = 0;
+  let failure: unknown;
 
   const loading: AtlasAppLoading = {
     show: () => {
@@ -62,6 +64,9 @@ export function createMockAppContext({
       },
     }),
     loading,
+    fail: (error) => {
+      failure = error;
+    },
   };
 
   return {
@@ -69,5 +74,6 @@ export function createMockAppContext({
     tabTitle: () => tabTitle,
     isLoaderVisible: () => isLoaderVisible,
     isReady: () => pendingReadiness === 0,
+    failure: () => failure,
   };
 }

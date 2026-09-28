@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { ProvidersDriver } from './providers.driver.js';
 
 describe('provideAtlasAppContext', () => {
@@ -24,6 +25,14 @@ describe('provideAtlasAppContext', () => {
       driver.when.appLoadedInjected();
 
       expect(driver.get.waitUntilReadyMock()).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call fail with the error when the callback of injectAppFailed is called', () => {
+      const error = new Error(faker.lorem.sentence());
+
+      driver.when.appFailedReported(error);
+
+      expect(driver.get.failMock()).toHaveBeenCalledWith(error);
     });
   });
 });

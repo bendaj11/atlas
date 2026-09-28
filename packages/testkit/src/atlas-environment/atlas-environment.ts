@@ -38,5 +38,6 @@ export function mockAtlasEnvironment<
     tabTitle: () => appContext?.tabTitle(),
     isLoaderVisible: () => appContext?.isLoaderVisible() ?? false,
     isReady: () => appContext?.isReady() ?? true,
+    failure: () => appContext?.failure(),
   };
 }

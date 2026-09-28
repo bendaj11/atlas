@@ -52,7 +52,6 @@ export class WidgetLoaderDriver {
     .mockImplementation(() => undefined);
   private useHostLoadingRenderer = false;
   private useHostErrorRenderer = false;
-  private readinessTimeoutMs: number | undefined;
   private loader: AtlasWidgetLoader | undefined;
   private mounted: AtlasMountedWidget<WidgetProps> | undefined;
   private mountedHandle: AtlasMountedWidgetHandle<WidgetProps> | undefined;
@@ -104,11 +103,6 @@ export class WidgetLoaderDriver {
 
       return this;
     },
-    readinessTimeoutMs: (timeoutMs: number) => {
-      this.readinessTimeoutMs = timeoutMs;
-
-      return this;
-    },
     entryBehavior: (
       behavior: (request: AtlasExportedWidgetMountRequest) => void,
     ) => {
@@ -126,9 +120,6 @@ export class WidgetLoaderDriver {
         options: {
           importWidget: this.importWidget,
           ...(this.resolveWidget ? { resolveWidget: this.resolveWidget } : {}),
-          ...(this.readinessTimeoutMs !== undefined
-            ? { readinessTimeoutMs: this.readinessTimeoutMs }
-            : {}),
           ...(this.useHostLoadingRenderer
             ? { renderWidgetLoading: this.renderWidgetLoading }
             : {}),

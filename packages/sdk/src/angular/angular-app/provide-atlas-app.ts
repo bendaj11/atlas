@@ -1,5 +1,6 @@
 import {
   ENVIRONMENT_INITIALIZER,
+  ErrorHandler,
   inject,
   makeEnvironmentProviders,
   type EnvironmentProviders,
@@ -23,15 +24,44 @@ export interface AtlasAngularAppOptions {
   readonly locationStrategy?: LocationStrategyAdapter;
 }
 
-/** Provides Atlas app context, SDK, runtime styles, and optional router strategy. */
+/** Provides Atlas app context, SDK, runtime styles, error reporting, and optional router strategy. */
 export function provideAtlasApp(
   options: AtlasAngularAppOptions,
 ): EnvironmentProviders {
-  const { context, sdk, styleTarget, locationStrategy } = options;
+  const { sdk, styleTarget, locationStrategy } = options;
+  let pendingReadiness = 0;
+  const context: AtlasAppContext = {
+    ...options.context,
+    loading: {
+      ...options.context.loading,
+      waitUntilReady: () => {
+        const markReady = options.context.loading.waitUntilReady();
+        let released = false;
+
+        pendingReadiness += 1;
+
+        return () => {
+          if (released) return;
+
+          released = true;
+          pendingReadiness -= 1;
+          markReady();
+        };
+      },
+    },
+  };
 
   return makeEnvironmentProviders([
     provideAtlasAngularStyles(styleTarget),
     ...provideAtlasAppContext(context),
+    {
+      provide: ErrorHandler,
+      useFactory: () =>
+        new AtlasErrorHandler({
+          context,
+          isLoading: () => pendingReadiness > 0,
+        }),
+    },
     provideAtlasSdk(sdk),
     ...(locationStrategy
       ? [{ provide: LocationStrategy, useValue: locationStrategy }]
@@ -51,4 +81,22 @@ function provideAtlasAngularStyles(styleTarget: Node & ParentNode): Provider {
         documentHead: styleTarget.ownerDocument?.head,
       }),
   };
+}
+
+/** Logs like Angular's default handler and fails the app when an error occurs before it marks itself ready. */
+class AtlasErrorHandler extends ErrorHandler {
+  constructor(
+    private readonly input: {
+      context: AtlasAppContext;
+      isLoading: () => boolean;
+    },
+  ) {
+    super();
+  }
+
+  override handleError(error: unknown): void {
+    super.handleError(error);
+
+    if (this.input.isLoading()) this.input.context.fail(error);
+  }
 }

@@ -37,6 +37,15 @@ describe('mockAtlasEnvironment', () => {
     expect(environment.sdk.hostData.user).toBe(user);
   });
 
+  it('should report the app failure when the app reports a failure', () => {
+    const error = new Error(faker.lorem.sentence());
+    const environment = mockAtlasEnvironment();
+
+    environment.context?.fail(error);
+
+    expect(environment.failure()).toBe(error);
+  });
+
   it('should report the app readiness when the app waits for readiness', () => {
     const environment = mockAtlasEnvironment();
 
@@ -58,6 +67,10 @@ describe('mockAtlasEnvironment', () => {
 
     it('should report ready when created', () => {
       expect(mockAtlasEnvironment({ app: null }).isReady()).toBe(true);
+    });
+
+    it('should report no failure when created', () => {
+      expect(mockAtlasEnvironment({ app: null }).failure()).toBeUndefined();
     });
 
     it('should report the loader as hidden when created', () => {

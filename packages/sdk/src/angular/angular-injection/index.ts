@@ -1,4 +1,5 @@
 export {
+  injectAppFailed,
   injectAppLoaded,
   injectAtlasAppContext,
 } from './inject-app-context.js';

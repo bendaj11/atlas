@@ -299,7 +299,100 @@ describe('startAtlasHostRuntime', () => {
       });
     });
 
-    describe('when the app opts into readiness and never becomes ready within the timeout', () => {
+    describe('when the app reports a failure while mounting', () => {
+      const message = faker.lorem.sentence();
+
+      beforeEach(async () => {
+        driver.given.entryBehavior('widget', ({ context }) =>
+          context.fail(new Error(message)),
+        );
+
+        await driver.when.started();
+      });
+
+      it('should report loading then error when started', () => {
+        expect(driver.get.states('widget')).toEqual(['loading', 'error']);
+      });
+
+      it('should report ATLAS_APP_MOUNT_FAILED carrying the reported message when started', () => {
+        expect(driver.get.lastError()).toMatchObject({
+          code: 'ATLAS_APP_MOUNT_FAILED',
+          message: expect.stringContaining(message),
+        });
+      });
+
+      it('should unmount the app when started', () => {
+        expect(driver.get.unmountsMock()).toHaveBeenCalledWith('widget');
+      });
+    });
+
+    describe('when the app reports a failure after mounting', () => {
+      const message = faker.lorem.sentence();
+      let fail: (error: unknown) => void = () => undefined;
+
+      beforeEach(async () => {
+        driver.given.entryBehavior('widget', ({ context }) => {
+          fail = (error) => context.fail(error);
+        });
+
+        await driver.when.started();
+
+        fail(new Error(message));
+        await driver.when.waited(0);
+      });
+
+      it('should report loading, mounted, then error when the failure is reported', () => {
+        expect(driver.get.states('widget')).toEqual([
+          'loading',
+          'mounted',
+          'error',
+        ]);
+      });
+
+      it('should report ATLAS_APP_FAILED carrying the reported message when the failure is reported', () => {
+        expect(driver.get.lastError()).toMatchObject({
+          code: 'ATLAS_APP_FAILED',
+          surface: 'browser',
+          message: expect.stringContaining(message),
+        });
+      });
+
+      it('should unmount the app when the failure is reported', () => {
+        expect(driver.get.unmountsMock()).toHaveBeenCalledWith('widget');
+      });
+
+      it('should import the app again when retried after the failure', async () => {
+        await driver.when.retried('widget');
+
+        expect(driver.get.importsMock()).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('when the app reports a failure while its readiness is pending', () => {
+      let fail: (error: unknown) => void = () => undefined;
+
+      beforeEach(async () => {
+        driver.given.entryBehavior('widget', ({ context }) => {
+          context.loading.waitUntilReady();
+          fail = (error) => context.fail(error);
+        });
+
+        await driver.when.started();
+
+        fail(new Error(faker.lorem.sentence()));
+        await driver.when.waited(0);
+      });
+
+      it('should report loading then error when the failure is reported', () => {
+        expect(driver.get.states('widget')).toEqual(['loading', 'error']);
+      });
+
+      it('should unmount the app when the failure is reported', () => {
+        expect(driver.get.unmountsMock()).toHaveBeenCalledWith('widget');
+      });
+    });
+
+    describe('when the app opts into readiness and stays not ready past the resources timeout', () => {
       beforeEach(async () => {
         driver.given
           .resourcesTimeoutMs(5)
@@ -308,21 +401,15 @@ describe('startAtlasHostRuntime', () => {
           });
 
         await driver.when.started();
+        await driver.when.waited(20);
       });
 
-      it('should report loading then error when the readiness timeout elapses', () => {
-        expect(driver.get.states('widget')).toEqual(['loading', 'error']);
+      it('should keep reporting loading when the resources timeout elapses', () => {
+        expect(driver.get.states('widget')).toEqual(['loading']);
       });
 
-      it('should report ATLAS_APP_MOUNT_TIMEOUT naming readiness when the readiness timeout elapses', () => {
-        expect(driver.get.lastError()).toMatchObject({
-          code: 'ATLAS_APP_MOUNT_TIMEOUT',
-          message: expect.stringContaining('did not mark itself ready'),
-        });
-      });
-
-      it('should unmount the app when the readiness timeout elapses', () => {
-        expect(driver.get.unmountsMock()).toHaveBeenCalledWith('widget');
+      it('should keep the app mounted when the resources timeout elapses', () => {
+        expect(driver.get.unmountsMock()).not.toHaveBeenCalled();
       });
     });
 

@@ -33,9 +33,6 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
       options: {
         ...(options.importWidget ? { importWidget: options.importWidget } : {}),
         ...(options.trustPolicy ? { trustPolicy: options.trustPolicy } : {}),
-        ...(options.resourcesTimeoutMs
-          ? { readinessTimeoutMs: options.resourcesTimeoutMs }
-          : {}),
         ...pickWidgetUiOptionsFrom(options),
       },
     });

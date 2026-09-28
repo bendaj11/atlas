@@ -9,6 +9,7 @@ import {
 import type { AtlasAppContext } from '../../lifecycle.js';
 import { anAppContext } from '../../testkit/app-context.testkit.js';
 import {
+  injectAppFailed,
   injectAppLoaded,
   injectAtlasAppContext,
 } from './inject-app-context.js';
@@ -18,12 +19,14 @@ export class ProvidersDriver {
   private readonly waitUntilReady = jest.fn<() => () => void>(
     () => () => undefined,
   );
+  private readonly fail = jest.fn<(error: unknown) => void>();
   private readonly context: AtlasAppContext = anAppContext({
     loading: {
       show: () => undefined,
       hide: () => undefined,
       waitUntilReady: this.waitUntilReady,
     },
+    fail: this.fail,
   });
   private injector!: EnvironmentInjector;
 
@@ -37,6 +40,8 @@ export class ProvidersDriver {
     appLoadedInjected: () => {
       runInInjectionContext(this.injector, injectAppLoaded);
     },
+    appFailedReported: (error: unknown) =>
+      runInInjectionContext(this.injector, injectAppFailed)(error),
   };
 
   readonly get = {
@@ -45,5 +50,6 @@ export class ProvidersDriver {
     injectedAppContext: () =>
       runInInjectionContext(this.injector, injectAtlasAppContext),
     waitUntilReadyMock: () => this.waitUntilReady,
+    failMock: () => this.fail,
   };
 }

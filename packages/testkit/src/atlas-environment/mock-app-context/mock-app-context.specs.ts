@@ -95,6 +95,18 @@ describe('createMockAppContext', () => {
       expect(appContext.isLoaderVisible()).toBe(false);
     });
 
+    it('should report no failure when the app never reports a failure', () => {
+      expect(appContext.failure()).toBeUndefined();
+    });
+
+    it('should record the error when the app reports a failure', () => {
+      const error = new Error(faker.lorem.sentence());
+
+      appContext.context.fail(error);
+
+      expect(appContext.failure()).toBe(error);
+    });
+
     it('should report ready when the app never waits for readiness', () => {
       expect(appContext.isReady()).toBe(true);
     });
