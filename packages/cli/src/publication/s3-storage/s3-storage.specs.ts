@@ -31,17 +31,6 @@ describe('S3PublicationStorage', () => {
     });
   });
 
-  it('should ask the storage for a CRC32 checksum when an immutable object is created', async () => {
-    await driver.when.created('apps/orders/1.4.0/manifest.json', {
-      cacheControl: 'immutable',
-      contentType: 'application/json',
-    });
-
-    expect(driver.get.commands()[0]).toMatchObject({
-      ChecksumAlgorithm: 'CRC32',
-    });
-  });
-
   it('should confirm a create from the returned checksum without reading the object back', async () => {
     await driver.when.created('apps/orders/1.4.0/manifest.json', {
       cacheControl: 'immutable',

@@ -274,7 +274,6 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
           Body: bytes,
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
-          ChecksumAlgorithm: 'CRC32',
           ...condition,
         }),
       );
