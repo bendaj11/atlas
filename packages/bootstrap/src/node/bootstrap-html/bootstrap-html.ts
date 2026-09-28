@@ -1,4 +1,4 @@
-import { ATLAS_LOADER_HTML } from '@atlas/schema';
+import { ATLAS_PAGE_LOADER_HTML } from '@atlas/schema';
 import { VERSIONED_LOADER_SOURCE } from '../bootstrap-assets.js';
 import { BootstrapTemplateInvalidError } from '../../shared/errors/index.js';
 import type { AtlasBootstrapOptions } from '../bootstrap-types.js';
@@ -17,7 +17,7 @@ export function createBootstrapHtml(
   </head>
   <body>
     <div id="atlas-host-root">
-${options.loadingHtml ?? indentMarkup({ html: ATLAS_LOADER_HTML, depth: 3 })}
+${options.loadingHtml ?? indentMarkup({ html: ATLAS_PAGE_LOADER_HTML, depth: 3 })}
     </div>
     <script type="module" src="/atlas.loader.js"></script>
   </body>
