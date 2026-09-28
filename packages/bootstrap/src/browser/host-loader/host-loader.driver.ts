@@ -10,6 +10,7 @@ import type {
 import type { watchHostBuildNotifications as watchHostBuildNotificationsType } from './build-notifications/build-notifications.js';
 import type {
   HostLoaderDocument,
+  PrefetchedHostRemoteEntry,
   RemoteMetadata,
 } from './host-loader.types.js';
 import type { loadHostStyles as loadHostStylesType } from './host-styles/host-styles.js';
@@ -35,7 +36,8 @@ jest.unstable_mockModule(
     installHostSharedDependencies,
   }),
 );
-const { loadHostModule } = await import('./host-loader.js');
+const { loadHostModule, prefetchHostRemoteEntry } =
+  await import('./host-loader.js');
 
 export class HostLoaderDriver {
   private manifest!: AtlasHostManifest;
@@ -49,6 +51,7 @@ export class HostLoaderDriver {
   private readonly removeHostStyles = jest.fn<() => void>();
   private module: HostModule | undefined;
   private error: unknown;
+  private prefetchedRemoteEntry: PrefetchedHostRemoteEntry | undefined;
 
   constructor() {
     watchHostBuildNotifications.mockReset();
@@ -78,6 +81,18 @@ export class HostLoaderDriver {
 
       return this;
     },
+    prefetchedRemoteEntry: (entry: PrefetchedHostRemoteEntry) => {
+      this.prefetchedRemoteEntry = entry;
+
+      return this;
+    },
+    hostManifestRejection: (error: Error) => {
+      this.validateHostManifest.mockImplementation(() => {
+        throw error;
+      });
+
+      return this;
+    },
   };
 
   readonly when = {
@@ -86,24 +101,28 @@ export class HostLoaderDriver {
         this.module = await loadHostModule({
           manifest: this.manifest,
           runtime: this.runtime,
-          dependencies: {
-            document: {} as HostLoaderDocument,
-            fetchJson: this.fetchJson,
-            importModule: this.importModule,
-            validateArtifactUrl: this.validateArtifactUrl,
-            validateHostManifest: this.validateHostManifest,
-            reloadPage: () => undefined,
-          },
+          ...(this.prefetchedRemoteEntry
+            ? { prefetchedRemoteEntry: this.prefetchedRemoteEntry }
+            : {}),
+          dependencies: this.dependencies(),
         });
       } catch (error) {
         this.error = error;
       }
+    },
+    prefetched: () => {
+      this.prefetchedRemoteEntry = prefetchHostRemoteEntry({
+        manifest: this.manifest,
+        runtime: this.runtime,
+        dependencies: this.dependencies(),
+      });
     },
   };
 
   readonly get = {
     module: () => this.module,
     error: () => this.error,
+    prefetchedRemoteEntry: () => this.prefetchedRemoteEntry,
     fetchJsonMock: () => this.fetchJson,
     remoteEntryVerification: () => this.fetchJson.mock.calls[0]?.[0].verify,
     importModuleMock: () => this.importModule,
@@ -114,4 +133,15 @@ export class HostLoaderDriver {
     removeHostStylesMock: () => this.removeHostStyles,
     installHostSharedDependenciesMock: () => installHostSharedDependencies,
   };
+
+  private dependencies() {
+    return {
+      document: {} as HostLoaderDocument,
+      fetchJson: this.fetchJson,
+      importModule: this.importModule,
+      validateArtifactUrl: this.validateArtifactUrl,
+      validateHostManifest: this.validateHostManifest,
+      reloadPage: () => undefined,
+    };
+  }
 }

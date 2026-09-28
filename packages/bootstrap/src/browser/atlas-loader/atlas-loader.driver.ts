@@ -1,9 +1,17 @@
-import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+} from '@atlas/schema';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
 import type { fetchBytes, fetchJson } from '../fetch-json/index.js';
-import type { loadHostModule } from '../host-loader/index.js';
+import type {
+  loadHostModule,
+  PrefetchedHostRemoteEntry,
+  prefetchHostRemoteEntry,
+} from '../host-loader/index.js';
 import type { installModuleShim } from '../module-shim/index.js';
 import type { applyOverrides } from '../overrides/index.js';
 import type { requestDevelopmentSession } from '../development-session/index.js';
@@ -53,6 +61,8 @@ export class AtlasLoaderDriver {
   private readonly loadHostModule = jest.fn<typeof loadHostModule>(
     async () => this.hostModule,
   );
+  private readonly prefetchHostRemoteEntry =
+    jest.fn<typeof prefetchHostRemoteEntry>();
   private error: unknown;
 
   constructor() {
@@ -76,6 +86,23 @@ export class AtlasLoaderDriver {
       startup: Awaited<ReturnType<typeof loadStartupCatalogType>>,
     ) => {
       loadStartupCatalog.mockResolvedValue(startup);
+
+      return this;
+    },
+    startupCatalogReportingHost: (
+      startup: Awaited<ReturnType<typeof loadStartupCatalogType>>,
+      host: AtlasHostManifest,
+    ) => {
+      loadStartupCatalog.mockImplementation(async ({ onHostManifest }) => {
+        onHostManifest?.(host);
+
+        return startup;
+      });
+
+      return this;
+    },
+    prefetchedRemoteEntry: (entry: PrefetchedHostRemoteEntry) => {
+      this.prefetchHostRemoteEntry.mockReturnValue(entry);
 
       return this;
     },
@@ -142,6 +169,7 @@ export class AtlasLoaderDriver {
           fetchJson: this.fetchJson as typeof fetchJson,
           installModuleShim: this.installModuleShim,
           loadHostModule: this.loadHostModule,
+          prefetchHostRemoteEntry: this.prefetchHostRemoteEntry,
           loadPublishedArtifact: this.loadPublishedArtifact,
           requestDevelopmentSession:
             jest.fn<typeof requestDevelopmentSession>(),
@@ -168,6 +196,7 @@ export class AtlasLoaderDriver {
     publishRuntimeSnapshotMock: () => publishRuntimeSnapshot,
     preconnectArtifactRegistryMock: () => preconnectArtifactRegistry,
     loadHostModuleMock: () => this.loadHostModule,
+    prefetchHostRemoteEntryMock: () => this.prefetchHostRemoteEntry,
     mountMock: () => this.mount,
   };
 }

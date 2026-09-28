@@ -35,6 +35,7 @@
       "ts-jest",
       {
         "diagnostics": true,
+        "isolatedModules": true,
         "tsconfig": "<rootDir>/tsconfig.tests.json",
         "useESM": true
       }

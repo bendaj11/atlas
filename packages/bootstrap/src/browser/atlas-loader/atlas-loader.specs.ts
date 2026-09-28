@@ -190,4 +190,36 @@ describe('startAtlasLoader', () => {
       });
     });
   });
+
+  describe('when the startup catalog reports the host manifest while loading', () => {
+    const runtime = aHostRuntimeConfig();
+    const catalog = aHostCatalog({ hostId: runtime.hostId });
+    const hostRemoteEntry = {
+      manifest: catalog.host,
+      metadata: Promise.resolve({}),
+    };
+
+    beforeEach(async () => {
+      driver.given
+        .runtimeConfig(runtime)
+        .given.startupCatalogReportingHost({ catalog }, catalog.host)
+        .given.prefetchedRemoteEntry(hostRemoteEntry);
+      await driver.when.started();
+    });
+
+    it('should prefetch the remote entry of the reported host manifest when started', () => {
+      expect(driver.get.prefetchHostRemoteEntryMock()).toHaveBeenCalledWith({
+        manifest: catalog.host,
+        runtime,
+      });
+    });
+
+    it('should load the host module with the prefetched remote entry when started', () => {
+      expect(driver.get.loadHostModuleMock()).toHaveBeenCalledWith({
+        manifest: catalog.host,
+        runtime,
+        prefetchedRemoteEntry: hostRemoteEntry,
+      });
+    });
+  });
 });

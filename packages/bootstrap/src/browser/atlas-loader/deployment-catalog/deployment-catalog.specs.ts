@@ -63,6 +63,12 @@ describe('loadDeploymentCatalog', () => {
         ]);
       });
 
+      it('should report only the host manifest to onHostManifest when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.onHostManifestMock().mock.calls).toEqual([[host]]);
+      });
+
       it('should assemble the catalog from the loaded manifests when loaded', async () => {
         await driver.when.loaded();
 

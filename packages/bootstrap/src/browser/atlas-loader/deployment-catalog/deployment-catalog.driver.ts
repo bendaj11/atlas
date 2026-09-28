@@ -19,6 +19,8 @@ export class DeploymentCatalogDriver {
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
   private readonly logError = jest.fn<LogError>();
+  private readonly onHostManifest =
+    jest.fn<(manifest: AtlasHostManifest) => void>();
   private catalog: AtlasHostCatalog | undefined;
   private error: unknown;
 
@@ -73,6 +75,7 @@ export class DeploymentCatalogDriver {
     fetchBytesMock: () => this.fetchBytes,
     loadPublishedArtifactMock: () => this.loadPublishedArtifact,
     logErrorMock: () => this.logError,
+    onHostManifestMock: () => this.onHostManifest,
   };
 
   private load(): Promise<AtlasHostCatalog> {
@@ -83,6 +86,7 @@ export class DeploymentCatalogDriver {
         loadPublishedArtifact: this.loadPublishedArtifact,
         logError: this.logError,
       },
+      onHostManifest: this.onHostManifest,
     });
   }
 }

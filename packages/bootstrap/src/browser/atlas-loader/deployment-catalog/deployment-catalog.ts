@@ -32,20 +32,31 @@ export interface DeploymentCatalogContext extends Pick<
   'runtime'
 > {
   dependencies: DeploymentCatalogDependencies;
+  onHostManifest?: (manifest: AtlasHostManifest) => void;
 }
 
 export async function loadDeploymentCatalog({
   runtime,
   dependencies,
+  onHostManifest,
 }: DeploymentCatalogContext): Promise<AtlasHostCatalog> {
   const deployment = await fetchDeploymentManifest({ runtime, dependencies });
 
   const manifests = await mapWithConcurrency({
     values: collectDeploymentManifestReferences(deployment),
-    operation: (reference) =>
-      reference === deployment.host
-        ? dependencies.loadPublishedArtifact({ reference, runtime })
-        : loadAppManifest({ reference, runtime, dependencies }),
+    operation: async (reference) => {
+      if (reference !== deployment.host)
+        return loadAppManifest({ reference, runtime, dependencies });
+
+      const manifest = await dependencies.loadPublishedArtifact({
+        reference,
+        runtime,
+      });
+
+      if (manifest.kind === 'host') onHostManifest?.(manifest);
+
+      return manifest;
+    },
     concurrency: ARTIFACT_LOAD_CONCURRENCY,
   });
 

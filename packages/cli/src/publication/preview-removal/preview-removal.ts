@@ -16,6 +16,7 @@ import {
 } from '../registry-io/registry-io.js';
 import { resolveRegistryArtifact } from '../static-registry/resolution/artifact-resolution.js';
 import { removePreview } from '../static-registry/static-registry.js';
+import { resolveParallelUploads } from '../storage-environment/storage-environment.js';
 import type {
   AtlasPreviewPruneResult,
   AtlasPreviewRemovalResult,
@@ -89,6 +90,8 @@ export async function prunePreviewsOnce({
   committedRemovals: number;
   onRegistryWritten: (removed: number) => void;
 }): Promise<AtlasPreviewPruneResult> {
+  const concurrency = resolveParallelUploads(args);
+
   return withPublicationLease(storage, async (lease) => {
     const state = await readRegistryState(storage);
     const current = requireRegistry(state.registry);
@@ -119,6 +122,7 @@ export async function prunePreviewsOnce({
       lease,
       registry,
       previewStates,
+      concurrency,
     });
 
     return {

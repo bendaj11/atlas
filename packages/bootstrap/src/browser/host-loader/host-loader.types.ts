@@ -34,8 +34,20 @@ export interface HostLoadContext {
   dependencies: HostLoaderDependencies;
 }
 
+export interface PrefetchedHostRemoteEntry {
+  manifest: AtlasHostManifest;
+  metadata: Promise<RemoteMetadata>;
+}
+
+export interface PrefetchHostRemoteEntryOptions {
+  manifest: AtlasHostManifest;
+  runtime: AtlasHostRuntimeConfig;
+  dependencies?: HostLoaderDependencies;
+}
+
 export interface LoadHostModuleOptions {
   manifest: AtlasHostManifest;
   runtime: AtlasHostRuntimeConfig;
+  prefetchedRemoteEntry?: PrefetchedHostRemoteEntry;
   dependencies?: HostLoaderDependencies;
 }

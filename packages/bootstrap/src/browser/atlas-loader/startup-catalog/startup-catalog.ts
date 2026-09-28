@@ -1,4 +1,4 @@
-import type { AtlasHostCatalog } from '@atlas/schema';
+import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
 import { CatalogInvalidError } from '../../../shared/errors/index.js';
 import type { FetchOptions } from '../../fetch-json/index.js';
 import {
@@ -25,6 +25,7 @@ export type StartupCatalogDependencies = Pick<
 
 export interface StartupCatalogContext extends Pick<LoaderContext, 'runtime'> {
   dependencies: StartupCatalogDependencies;
+  onHostManifest?: (manifest: AtlasHostManifest) => void;
 }
 
 export interface StartupCatalog {
@@ -35,10 +36,15 @@ export interface StartupCatalog {
 export async function loadStartupCatalog({
   runtime,
   dependencies,
+  onHostManifest,
 }: StartupCatalogContext): Promise<StartupCatalog> {
   if (!runtime.developmentSessionUrl) {
     const [catalog, bridgeSession] = await Promise.all([
-      loadDeploymentCatalog({ runtime, dependencies }),
+      loadDeploymentCatalog({
+        runtime,
+        dependencies,
+        ...(onHostManifest ? { onHostManifest } : {}),
+      }),
       dependencies.requestDevelopmentSession({ hostId: runtime.hostId }),
     ]);
 
