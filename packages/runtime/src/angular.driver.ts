@@ -62,6 +62,9 @@ class HostRoot {}
 })
 export class HostNotFound {}
 
+@Component({ selector: 'atlas-test-loading', standalone: true, template: '' })
+export class HostLoading {}
+
 @Component({ selector: 'atlas-host-root', standalone: true, template: '' })
 class EagerSdkHostRoot {
   readonly sdk = injectAtlasSdk();
@@ -93,6 +96,7 @@ export class AngularAdapterDriver {
   private runtimeConfig = aHostRuntimeConfig({ hostId: this.hostId });
   private catalog: AtlasHostCatalog | undefined;
   private notFoundComponent: Type<unknown> | undefined;
+  private loadingComponent: Type<unknown> | undefined;
   private root: HTMLElement | null = null;
   private eagerSdkComponent = false;
   private readonly container = document.createElement('div');
@@ -157,6 +161,11 @@ export class AngularAdapterDriver {
     },
     catalog: (catalog: AtlasHostCatalog) => {
       this.catalog = catalog;
+
+      return this;
+    },
+    loadingComponent: (loadingComponent: Type<unknown>) => {
+      this.loadingComponent = loadingComponent;
 
       return this;
     },
@@ -252,6 +261,9 @@ export class AngularAdapterDriver {
         },
         ...(this.notFoundComponent
           ? { notFoundComponent: this.notFoundComponent }
+          : {}),
+        ...(this.loadingComponent
+          ? { loadingComponent: this.loadingComponent }
           : {}),
         sdkOptions: () => ({ hostData: { region: this.region } }),
       });

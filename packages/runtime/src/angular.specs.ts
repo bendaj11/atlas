@@ -2,7 +2,11 @@
 
 import { faker } from '@faker-js/faker';
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
-import { AngularAdapterDriver, HostNotFound } from './angular.driver.js';
+import {
+  AngularAdapterDriver,
+  HostLoading,
+  HostNotFound,
+} from './angular.driver.js';
 
 describe('startHost', () => {
   let driver: AngularAdapterDriver;
@@ -249,6 +253,14 @@ describe('defineAngularHost', () => {
       .when.angularHostMounted();
 
     expect(driver.get.notFoundComponent()).toBe(HostNotFound);
+  });
+
+  it('should pass a loading renderer to the dom host when mounted with a loading component', async () => {
+    await driver.given.loadingComponent(HostLoading).when.angularHostMounted();
+
+    expect(driver.get.startedServices().ui?.renderLoading).toEqual(
+      expect.any(Function),
+    );
   });
 });
 

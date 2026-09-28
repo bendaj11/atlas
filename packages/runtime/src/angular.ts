@@ -26,6 +26,7 @@ import {
   AtlasAngularHostAnchors,
 } from './adapters/angular-anchors.js';
 import { AtlasSdkNotReadyError } from './adapters/adapter.errors.js';
+import { createAngularHostUiRenderers } from './adapters/angular-host-ui.js';
 import { startDomHost } from './dom-host/dom-host.js';
 import type { DomHostOptions } from './dom-host/dom-host.types.js';
 import {
@@ -54,6 +55,10 @@ export {
   AtlasSlot,
 } from './adapters/angular-anchors.js';
 export type {
+  AngularErrorInputs,
+  AngularHostComponents,
+} from './adapters/angular-host-ui.types.js';
+export type {
   AngularHostBootstrapOptions,
   AngularHostDefinition,
   CreateAngularHostSdkOptions,
@@ -75,10 +80,18 @@ const ATLAS_HOST_ROUTES: Routes = [
 export function defineAngularHost<THostSdk extends object = {}>(
   definition: AngularHostDefinition<THostSdk>,
 ): AtlasHostClientEntry['mount'] {
-  const { config, component, appConfig, sdkOptions } = definition;
+  const {
+    config,
+    component,
+    appConfig,
+    sdkOptions,
+    notFoundComponent,
+    ...components
+  } = definition;
 
   return (request) =>
     bootstrapAngularHost<THostSdk>({
+      ...components,
       component,
       request,
       appConfig: {
@@ -86,11 +99,11 @@ export function defineAngularHost<THostSdk extends object = {}>(
         providers: [
           ...(appConfig?.providers ?? []),
           provideRouter(ATLAS_HOST_ROUTES),
-          ...(definition.notFoundComponent
+          ...(notFoundComponent
             ? [
                 {
                   provide: ATLAS_NOT_FOUND_COMPONENT,
-                  useValue: definition.notFoundComponent,
+                  useValue: notFoundComponent,
                 },
               ]
             : []),
@@ -149,6 +162,10 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
     {
       onSdkCreated: (sdk) => sdkReference.set(sdk),
       onReady: reportReady,
+      ui: createAngularHostUiRenderers({
+        components: options,
+        applicationRef: app,
+      }),
     },
   );
 
@@ -184,6 +201,7 @@ export async function startHost<THostSdk extends object = {}>(
       createHostNavigation(options.router, options.location),
     ...(services.onSdkCreated ? { onSdkCreated: services.onSdkCreated } : {}),
     ...(services.onReady ? { onReady: services.onReady } : {}),
+    ...(services.ui ? { ui: services.ui } : {}),
   });
   const stopHostDataSync =
     hostDataInjector && hostData

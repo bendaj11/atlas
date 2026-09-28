@@ -5,8 +5,13 @@ import type { LocationLike, RouterLike } from '@atlas/sdk/angular';
 import type { AtlasHostDataOf } from '@atlas/sdk/host';
 import type { AtlasHostMountRequest } from '@atlas/sdk/lifecycle';
 import type {
+  AngularHostComponents,
+  AngularHostUiComponents,
+} from './adapters/angular-host-ui.types.js';
+import type {
   DomHostCustomizationOptions,
   DomHostOptions,
+  DomHostUiRenderers,
   DomRuntimeOptions,
 } from './dom-host/dom-host.types.js';
 
@@ -41,7 +46,9 @@ export type CreateHostOptions<THostSdk extends object> = (
   injector: Injector,
 ) => HostOptions<THostSdk>;
 
-export interface AngularHostBootstrapOptions<THostSdk extends object = {}> {
+export interface AngularHostBootstrapOptions<
+  THostSdk extends object = {},
+> extends AngularHostUiComponents {
   component: Type<unknown>;
   appConfig: ApplicationConfig;
   request?: AtlasHostMountRequest;
@@ -52,11 +59,12 @@ export type CreateAngularHostSdkOptions<THostSdk extends object> = (
   injector: Injector,
 ) => HostSdkOptions<THostSdk>;
 
-export interface AngularHostDefinition<THostSdk extends object = {}> {
+export interface AngularHostDefinition<
+  THostSdk extends object = {},
+> extends AngularHostComponents {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   component: Type<unknown>;
   appConfig?: ApplicationConfig;
-  notFoundComponent?: Type<unknown>;
   sdkOptions: CreateAngularHostSdkOptions<THostSdk>;
 }
 
@@ -67,6 +75,7 @@ export type ReportAngularSdkCreated<THostSdk extends object> = (
 export interface AngularHostStartServices<THostSdk extends object> {
   onSdkCreated?: ReportAngularSdkCreated<THostSdk>;
   onReady?: () => void;
+  ui?: DomHostUiRenderers;
 }
 
 export interface MountedAngularHost {
