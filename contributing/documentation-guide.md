@@ -157,6 +157,12 @@ The check reads every Markdown file that Git tracks or would track, except `CHAN
 - A page under `docs/` is not linked from any other Markdown file.
 - `docs/guides/react/` and `docs/guides/angular/` contain different file names.
 - A page under `docs/` lacks frontmatter with a `title` and a `description`.
+- A page under `docs/` or the root `README.md` has a frontmatter `title` that differs from its first `# ` heading.
+- Prose in a page under `docs/` or the root `README.md` uses a banned term: "active host manifest", "host client", "host shell", "main application page", "the shell", or "app shell". The match ignores case. "shell" on its own stays allowed for command-line shells.
+- Inline code in a page under `docs/` or the root `README.md` runs a CLI command without `npx`, such as `` `atlas dev` `` instead of `` `npx atlas dev` ``.
+- A code sample under `docs/guides/angular/` assigns `injectAtlasSdk()` to a name other than `sdk`.
+
+The style checks report each problem as `file:line`. Except for the Angular sample check, they ignore fenced code blocks.
 
 CI runs the same check in the `docs` job of the Verify workflow. The implementation lives in `scripts/verify-docs.ts`.
 

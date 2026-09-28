@@ -1,21 +1,27 @@
 ---
 title: Angular routing
-description: Place Angular apps at host URLs, render navigation, use inner Angular Router routes, and navigate between apps.
+description: Place Angular Apps at Host URLs, build layouts and navigation in an Angular Host, and route inside an Angular App.
 ---
 
 # Angular routing
 
-This guide shows you how routing works in Angular hosts and apps: how an app claims a URL, how the host renders it, and how Angular Router works inside a mounted app. Read [Routing](../../concepts/routing.md) first for the framework-neutral rules.
+This guide shows how URLs work in an Angular Host and an Angular App: where Apps mount, how the Host renders navigation and layouts, and how an App routes inside its own path. Read [Routing](../../concepts/routing.md) first for the rules that apply to every framework. You need an Angular Host from [Build an Angular Host](host.md) and an App from [Build an Angular App](app.md).
 
-Atlas routing follows one rule: **the host owns the browser URL**. An app can use Angular Router, but only below the path it is mounted at.
+## How routing works
 
-## Before you start
+The Host owns the browser URL. Each App declares the paths it serves in its `atlas.config.ts`, and Atlas mounts the matching App into the Host's route outlet:
 
-- Have an Angular host from [Build an Angular host](host.md) and an app from [Build an Angular app](app.md).
+1. The App declares a route such as `{ hostId, path: '/orders' }`.
+2. When you publish the App, Atlas copies its routes and slots into the App's [published artifact manifest](../../introduction/glossary.md).
+3. When you deploy a version, that App becomes part of the Host's [host catalog](../../introduction/glossary.md) for the environment.
+4. In the browser, Atlas compares the current pathname with the routes in the catalog and mounts the matching App into `<atlas-route-outlet>`. `/orders` and `/orders/details/42` both match `/orders`. Slot placements mount into their `<atlas-slot>` anchors independently.
+5. Inside the App, Angular Router handles the part of the URL after `/orders`.
 
-## Declare app routes
+The Host never imports Apps or keeps a route table in its source code. See [Architecture](../../introduction/architecture.md) for the full request flow.
 
-An app declares where it appears in its own `atlas.config.ts`. The host source code never lists app routes.
+## Declare App routes and slots
+
+An App declares its placement in `atlas.config.ts`. This App has one route and one slot in the same Host:
 
 ```ts
 import type { AtlasAppConfig } from '@atlas/schema' with {
@@ -44,25 +50,13 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-Each route entry supports these fields:
+Replace `hostId` with your Host ID from the Host's `atlas.config.ts`. The [configuration reference](../../reference/configuration.md#route-fields) lists every route and slot field and the path rules. A slot's `slotId` must match an `<atlas-slot>` in the Host.
 
-| Field        | Required | Description                                                                                                                                                     |
-| ------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hostId`     | Yes      | The host's UUID from its `atlas.config.ts`.                                                                                                                     |
-| `path`       | Yes      | The host URL path, such as `/orders`. No query string or hash.                                                                                                  |
-| `match`      | No       | `'prefix'` (default) also matches `/orders/42`. `'full'` matches only the exact path.                                                                           |
-| `redirectTo` | No       | Replaces the current URL with this path instead of mounting the app.                                                                                            |
-| `layoutId`   | No       | The host layout to activate while this route is active. Defaults to `'default'`.                                                                                |
-| `title`      | No       | A static page title the host can show before the app sets its own.                                                                                              |
-| `nav`        | No       | Navigation settings: `label`, `order` (lower first, default `0`), and `visible` (`false` hides the link). Without `nav`, the link uses `title` or the app name. |
+When several routes match a URL, the route with the longest `path` wins. Each path should belong to one App. If two deployed Apps claim the same path in a Host, Atlas keeps the first one, logs an error, and `npx atlas verify` reports the conflict under **route ownership**. Coordinate path ownership between teams; see [Governance](../../deploy/governance.md).
 
-A slot entry has `hostId` and `slotId`. The app mounts into the host's `<atlas-slot>` with the same `slotId`.
+## Lay out the Host
 
-When several routes match a URL, the route with the longest `path` wins. Each path can have only one owner per host. If two selected apps claim the same path, the runtime keeps the first one and logs an error, and `npx atlas verify` reports the conflict under **route ownership**.
-
-## Render the route outlet
-
-The host renders the app for the current URL into `<atlas-route-outlet>`. The generated host template looks like this:
+An Angular Host places Apps with host anchors from `@atlas/runtime/angular`. Routed Apps mount in `<atlas-route-outlet>`. Slot Apps mount in the `<atlas-slot>` whose `slotId` matches their declaration. The generated Host template looks like this:
 
 ```html
 <ng-container *atlasHostLayout="'default'">
@@ -77,11 +71,11 @@ The host renders the app for the current URL into `<atlas-route-outlet>`. The ge
 <router-outlet hidden />
 ```
 
-The hidden `<router-outlet>` keeps Angular Router in sync with the browser URL. Apps never render into it. See [Build an Angular host](host.md#3-build-the-host-layout) for the full list of host anchors.
+The hidden `<router-outlet>` keeps Angular Router in sync with the browser URL. Apps never render into it. See [Build the Host layout](host.md#3-build-the-host-layout) for the full list of host anchors.
 
-## Use several layouts
+## Use more than one layout
 
-A layout is a block of host markup that is active only for certain routes. Wrap each layout in `*atlasHostLayout` with an ID:
+Some pages need a different frame, such as a full-screen editor without the sidebar. Wrap each frame in `*atlasHostLayout` with its own ID, each with its own `<atlas-route-outlet>`. Atlas shows only the layout that the current route activates:
 
 ```html
 <ng-container *atlasHostLayout="'default'">
@@ -97,7 +91,19 @@ A layout is a block of host markup that is active only for certain routes. Wrap 
 <router-outlet hidden />
 ```
 
-A route that sets `layoutId: 'fullscreen'` activates the second block. All other routes, and URLs that no route matches, use `default`. Inactive layouts are removed from the DOM, so their anchors do not exist while another layout is active.
+An App route opts in with `layoutId`:
+
+```ts
+routes: [
+  {
+    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    path: '/reports/editor',
+    layoutId: 'fullscreen',
+  },
+],
+```
+
+Routes without `layoutId`, and URLs that no route matches, use `default`. Inactive layouts are removed from the DOM, so their anchors do not exist while another layout is active.
 
 ## Render custom navigation
 
@@ -139,23 +145,11 @@ export class AppComponent {
 }
 ```
 
-Each item has `id`, `appId`, `appName`, `path`, `href`, `label`, optional `title`, `order`, `active`, and `navigate()`. Atlas still resolves the catalog, orders the items, hides routes with `visible: false`, and tracks the active route. Your host owns only the markup.
+Each item has `id`, `appId`, `appName`, `path`, `href`, `label`, optional `title`, `order`, `active`, and `navigate()`. Atlas still resolves the catalog, orders the items, hides routes with `visible: false`, and tracks the active route. Your Host owns only the markup.
 
-## How the host picks an app
+## Define inner routes
 
-The host does not import apps or keep a route table in source. Instead:
-
-1. `npx atlas publish orders` reads `orders/atlas.config.ts` and writes its routes and slots into the published artifact manifest.
-2. `npx atlas deploy` selects that version for an environment and updates the host manifest.
-3. At page load, the loader passes the selected catalog to the host's `mount` function.
-4. The runtime keeps the placements for this host's ID and matches the browser URL against each route `path`.
-5. The matching app mounts into `<atlas-route-outlet>`. Slot placements mount into their `<atlas-slot>` anchors independently.
-
-See [Architecture](../../introduction/architecture.md) for the full request flow.
-
-## Use inner Angular routes
-
-Define normal Angular routes in the app. The generated app puts them in `src/app/app.routes.ts`:
+Inside the App, Angular Router handles the part of the URL below the App's path. Generated routed Apps define routes in `src/app/app.routes.ts`:
 
 ```ts
 import type { Routes } from '@angular/router';
@@ -168,7 +162,7 @@ export const routes: Routes = [
 ];
 ```
 
-The generated `src/entry.ts` creates a location strategy from the app context and passes it to `provideAtlasApp()`, which scopes Angular Router to the app's path:
+The generated `src/entry.ts` creates a location strategy from the App context and passes it to `provideAtlasApp()`, which scopes Angular Router to the App's path:
 
 ```ts
 const locationStrategy = createLocationStrategy(context);
@@ -180,11 +174,11 @@ Use Angular Router as usual:
 <a routerLink="details/42">Open order 42</a> <router-outlet />
 ```
 
-Angular sees `details/42`. The browser URL becomes `/orders/details/42` because the app is mounted at `/orders`.
+Angular sees `details/42`. The browser URL becomes `/orders/details/42` because the App is mounted at `/orders`.
 
-## Navigate to another app
+## Navigate to another App
 
-Do not import another app or write raw browser URLs to cross app boundaries. Call `navigateTo()` on the SDK with the destination app's UUID:
+Use Angular Router only for screens inside the same App. To go to another App, call `navigateTo()` on the SDK with the destination App's ID:
 
 ```ts
 import { Component } from '@angular/core';
@@ -194,39 +188,33 @@ import { injectAtlasSdk } from '@atlas/sdk/angular';
   selector: 'orders-open-customers',
   standalone: true,
   template: `<button type="button" (click)="openCustomers()">
-    Customers
+    Open customers
   </button>`,
 })
 export class OpenCustomersComponent {
-  private readonly atlas = injectAtlasSdk();
+  readonly sdk = injectAtlasSdk();
 
   openCustomers(): void {
-    this.atlas.navigateTo('8d6f2b0e-3c7a-4f5e-9a1b-2c4d6e8f0a1b', {
+    this.sdk.navigateTo('7c1e0f55-5d8a-4b7e-9d0e-3f2a1b6c9e41', {
       tab: 'open',
     });
   }
 }
 ```
 
-Atlas resolves the app ID to its route in the current host.
-
-| Parameter | Type                                                                         | Description                                                                                              |
-| --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `appId`   | `string`                                                                     | The UUID of the destination app.                                                                         |
-| `state`   | `Readonly<Record<string, string \| number \| boolean \| null \| undefined>>` | Optional. Serialized as query parameters. `undefined` values are omitted; `null` becomes an empty value. |
-
-`navigateTo()` throws an error with code `ATLAS_APP_ROUTE_NOT_FOUND` when the destination app has no route in the current host.
+Replace the UUID with the destination App's ID from its `atlas.config.ts`. Atlas looks up the destination App's current path in this Host, adds the `state` values as query parameters (`undefined` values are skipped, `null` becomes an empty value), and navigates. If the destination App has no route in this Host, `navigateTo()` throws an error with the code `ATLAS_APP_ROUTE_NOT_FOUND`. See the [SDK reference](../../reference/sdk.md) for the full signature.
 
 ## Common mistakes
 
 - Writing `route` instead of `path` in a route entry.
-- Providing `PathLocationStrategy` inside a mounted app.
-- Removing `<atlas-route-outlet>` or the hidden `<router-outlet>` from the host.
-- Adding app URLs or remote entry URLs to host source code.
-- Making two apps claim the same `path` in one host.
+- Providing `PathLocationStrategy` inside a mounted App.
+- Removing `<atlas-route-outlet>`, the `default` layout, or the hidden `<router-outlet>` from the Host.
+- Hard-coding App URLs or remote URLs in Host code.
+- Claiming a path that another App already owns.
+- Setting `layoutId` on a route when the Host has no `*atlasHostLayout` block with that ID.
 
 ## Next steps
 
-- [Angular SDK](sdk.md)
-- [Host anchors](../../concepts/host-anchors.md)
-- [Angular troubleshooting](troubleshooting.md)
+- [Angular SDK](sdk.md) for host data, events, and Widgets.
+- [Host anchors](../../concepts/host-anchors.md) for how anchors work across frameworks.
+- [Angular troubleshooting](troubleshooting.md) if an App does not appear at its URL.

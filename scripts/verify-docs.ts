@@ -16,6 +16,41 @@ const inlineLinkPattern =
 const referenceLinkPattern = /^\s{0,3}\[[^\]]+\]:\s*<?(\S+?)>?(?:\s|$)/gm;
 const htmlAnchorPattern = /<a\s[^>]*(?:id|name)=["']([^"']+)["']/gi;
 const schemePattern = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const angularGuideDirectory = 'docs/guides/angular/';
+const bannedTerms = [
+  'active host manifest',
+  'host client',
+  'host shell',
+  'main application page',
+  'the shell',
+  'app shell',
+];
+const cliCommands = [
+  'dev',
+  'generate',
+  'g',
+  'publish',
+  'deploy',
+  'verify',
+  'bootstrap',
+  'build',
+  'compile-config',
+  'remove-preview',
+  'prune-previews',
+  'version',
+];
+const inlineCodePattern = /`([^`]+)`/g;
+const bareCliPattern = new RegExp(
+  `^atlas\\s+(?:${cliCommands.join('|')})(?:\\s|$)`,
+);
+const sdkAssignmentPattern =
+  /([A-Za-z_$][\w$]*)\s*(?::[^=]*)?=\s*injectAtlasSdk\b/g;
+
+interface MarkdownLine {
+  readonly number: number;
+  readonly text: string;
+  readonly fenced: boolean;
+}
 
 export interface VerifyDocsOptions {
   readonly root: string;
@@ -73,7 +108,150 @@ export function verifyDocs({ root, files }: VerifyDocsOptions): string[] {
 
   problems.push(...compareFrameworkGuides(files));
 
+  for (const file of files.filter(isStyleCheckedFile)) {
+    const text = readFileSync(join(root, file), 'utf8');
+    const lines = classifyLines(text);
+
+    problems.push(
+      ...findBannedTerms({ file, lines }),
+      ...findBareCliCommands({ file, lines }),
+      ...findTitleMismatch({ file, text, lines }),
+    );
+
+    if (file.startsWith(angularGuideDirectory))
+      problems.push(...findAngularSdkNames({ file, lines }));
+  }
+
   return problems;
+}
+
+function isStyleCheckedFile(file: string): boolean {
+  return file === 'README.md' || file.startsWith('docs/');
+}
+
+function classifyLines(text: string): MarkdownLine[] {
+  let fence: string | undefined;
+
+  return text.split('\n').map((text, index) => {
+    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(text)?.[1];
+    const number = index + 1;
+
+    if (fence === undefined && marker !== undefined) {
+      fence = marker;
+
+      return { number, text, fenced: true };
+    }
+
+    if (fence !== undefined) {
+      const closes =
+        marker !== undefined &&
+        marker[0] === fence[0] &&
+        marker.length >= fence.length &&
+        text.trim() === marker;
+
+      if (closes) fence = undefined;
+
+      return { number, text, fenced: true };
+    }
+
+    return { number, text, fenced: false };
+  });
+}
+
+function findBannedTerms({
+  file,
+  lines,
+}: {
+  file: string;
+  lines: readonly MarkdownLine[];
+}): string[] {
+  return lines
+    .filter((line) => !line.fenced)
+    .flatMap((line) => {
+      const prose = line.text.replace(inlineCodePattern, '');
+
+      return bannedTerms
+        .filter((term) =>
+          new RegExp(`\\b${term.replace(/ /g, '\\s+')}\\b`, 'i').test(prose),
+        )
+        .map((term) => `Banned term: ${file}:${line.number} uses "${term}"`);
+    });
+}
+
+function findBareCliCommands({
+  file,
+  lines,
+}: {
+  file: string;
+  lines: readonly MarkdownLine[];
+}): string[] {
+  return lines
+    .filter((line) => !line.fenced)
+    .flatMap((line) =>
+      [...line.text.matchAll(inlineCodePattern)]
+        .map((match) => (match[1] ?? '').trim())
+        .filter((code) => bareCliPattern.test(code))
+        .map(
+          (code) =>
+            `CLI without npx: ${file}:${line.number} -> \`${code}\` should start with \`npx atlas\``,
+        ),
+    );
+}
+
+function findTitleMismatch({
+  file,
+  text,
+  lines,
+}: {
+  file: string;
+  text: string;
+  lines: readonly MarkdownLine[];
+}): string[] {
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(text)?.[1];
+  const title = frontmatter
+    ?.match(/^title:\s*(.*?)\s*$/m)?.[1]
+    ?.replace(/^(["'])(.*)\1$/, '$2');
+
+  if (!frontmatter || !title) return [];
+
+  const bodyStart = frontmatter.split('\n').length + 2;
+  const heading = lines
+    .filter((line) => !line.fenced && line.number > bodyStart)
+    .map((line) => ({
+      number: line.number,
+      text: /^\s{0,3}#\s+(.*?)\s*#*\s*$/.exec(line.text)?.[1],
+    }))
+    .find((line) => line.text !== undefined);
+
+  if (heading?.text === title) return [];
+
+  const titleLine =
+    lines.find((line) => line.number <= bodyStart && /^title:/.test(line.text))
+      ?.number ?? 1;
+
+  return [
+    `Title mismatch: ${file}:${heading?.number ?? titleLine} frontmatter title "${title}" does not match first heading "${heading?.text ?? ''}"`,
+  ];
+}
+
+function findAngularSdkNames({
+  file,
+  lines,
+}: {
+  file: string;
+  lines: readonly MarkdownLine[];
+}): string[] {
+  return lines
+    .filter((line) => line.fenced)
+    .flatMap((line) =>
+      [...line.text.matchAll(sdkAssignmentPattern)]
+        .map((match) => match[1] ?? '')
+        .filter((name) => name !== 'sdk')
+        .map(
+          (name) =>
+            `Angular SDK name: ${file}:${line.number} assigns injectAtlasSdk to "${name}" instead of "sdk"`,
+        ),
+    );
 }
 
 function stripCode(text: string): string {

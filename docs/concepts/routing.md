@@ -1,30 +1,21 @@
 ---
 title: Routing
-description: Understand who owns the URL in Atlas, how Atlas picks the app for a URL, and how apps navigate inside themselves and to other apps.
+description: Understand who owns the URL in Atlas, how Atlas picks the App for a URL, and how Apps navigate inside themselves and to other Apps.
 ---
 
 # Routing
 
-Routing in Atlas is shared between the [host](hosts.md) and its [apps](apps.md).
-This page explains the rules that apply to every framework. For framework code,
-read the [React routing guide](../guides/react/routing.md) or the
-[Angular routing guide](../guides/angular/routing.md).
+Routing in Atlas is shared between the [Host](hosts.md) and its [Apps](apps.md). This page explains the rules that apply to every framework. For framework code, read [React routing](../guides/react/routing.md) or [Angular routing](../guides/angular/routing.md).
 
-## The host owns the browser URL
+## The Host owns the browser URL
 
-Only the host reads and writes the browser URL. Each app owns the part of the URL
-below the route path that it declares for that host. For example, an orders app
-that declares `/orders` owns `/orders`, `/orders/42`, and `/orders/42/history`.
-Inside that space the app uses its own framework router, and Atlas resolves the
-router's paths relative to the app's route path.
+Only the Host reads and writes the browser URL. Each App owns the part of the URL below the route path that it declares for that Host. For example, an Orders App that declares `/orders` owns `/orders`, `/orders/42`, and `/orders/42/history`. Inside that space the App uses its own framework router, and Atlas resolves the router's paths relative to the App's route path.
 
-A route path can change over time. An app's `id` is its stable identity. Use the
-`id`, never a route path, when one app refers to another.
+A route path can change over time. An App's `id` is its stable identity. Use the `id`, never a route path, when one App refers to another.
 
 ## Apps declare routes
 
-Apps declare the URLs they own in `atlas.config.ts`. Each route names the host it
-belongs to, its `path`, and optional settings:
+Apps declare the URLs they own in `atlas.config.ts`. Each route names the Host it belongs to, its `path`, and optional settings:
 
 ```ts
 import type { AtlasAppConfig } from '@atlas/schema';
@@ -56,43 +47,29 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-| Field        | Meaning                                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `hostId`     | The host this route belongs to.                                                                                    |
-| `path`       | An absolute path pattern: static segments, `:params`, and an optional final `*` wildcard. No query string or hash. |
-| `match`      | `prefix` (the default) also matches every path below `path`. `full` matches only `path` itself.                    |
-| `redirectTo` | Replaces the current URL with another absolute path instead of mounting the app.                                   |
-| `layoutId`   | The [host layout](host-anchors.md#host-layouts) to activate. Defaults to `default`. Redirect routes cannot set it. |
-| `title`      | A static page title the host can show before the app sets its own.                                                 |
-| `nav`        | Navigation link settings: `label`, `order`, and `visible`.                                                         |
+Replace `hostId` with your Host ID from the Host's `atlas.config.ts`.
 
-The host does not declare routes. It renders a
-[route outlet](host-anchors.md#route-outlet), and Atlas mounts the matching app
-there.
+A `path` starts with `/`, uses static segments and `:param` segments, may end with a `*` wildcard segment, and has no `//`, query string, or hash. A redirect route cannot also set `layoutId`. The [Configuration reference](../reference/configuration.md#route-fields) lists every route field and validation rule.
 
-## How Atlas picks the app for a URL
+The Host does not declare routes. It renders a [route outlet](host-anchors.md#route-outlet), and Atlas mounts the matching App there.
 
-When the URL changes, Atlas compares the path with every route that the host's
-apps declare:
+## How Atlas picks the App for a URL
 
-1. A route matches when each of its segments matches the URL: a static segment
-   must be equal, a `:param` matches any single segment, and a final `*` matches
-   the rest of the URL. With `match: 'full'`, the URL must not have extra segments.
-2. When several routes match, Atlas picks the one with the longest `path`.
-3. If the chosen route has `redirectTo`, Atlas navigates there. Otherwise it
-   mounts the route's app in the route outlet and activates the route's layout.
+When the URL changes, Atlas compares the path with every route that the Host's Apps declare:
 
-If two apps declare the same path for the same host, Atlas keeps the first one it
-loads, ignores the other, and logs an error in the browser console. Treat that
-error as an ownership conflict to resolve between the two teams.
+1. A route matches when each of its segments matches the URL: a static segment must be equal, a `:param` matches any single segment, and a final `*` matches the rest of the URL. With the default `match: 'prefix'`, the URL may have more segments than the route; with `match: 'full'`, it must not.
+2. When several routes match, Atlas picks the one whose `path` string is longest.
+3. If the chosen route has `redirectTo`, Atlas navigates there. Otherwise it mounts the route's App in the route outlet and activates the route's layout.
 
-## Navigate inside an app
+Because `/` with the default `prefix` match matches every URL, a route at `/` receives every URL that no longer route claims.
 
-For navigation inside an app, use your framework router with paths relative to
-the app. The router state stays native, and Atlas maps it to the host URL.
+If two Apps declare the same path for the same Host, Atlas keeps the first one it loads, ignores the other, and logs an error in the browser console. Treat that error as an ownership conflict to resolve between the two teams.
 
-Framework-independent code can use the scoped navigation that every mounted app
-receives in its app context:
+## Navigate inside an App
+
+For navigation inside an App, use your framework router with paths relative to the App. The router state stays native, and Atlas maps it to the Host URL.
+
+Framework-independent code can use the scoped navigation that every mounted App receives in its App context:
 
 ```ts
 context.navigation.navigate('details/42');
@@ -100,11 +77,9 @@ context.navigation.replace('settings');
 context.route.setTabTitle('Order 42');
 ```
 
-## Navigate to another app
+## Navigate to another App
 
-To open another app, call `navigateTo` on the SDK with the destination app's
-`id`. Atlas finds the destination's current route path in the host and navigates
-there:
+To open another App, call `navigateTo` on the SDK with the destination App's `id`. Atlas finds the destination's current route path in the Host and navigates there:
 
 ```ts
 sdk.navigateTo('5b0b569f-cae0-48d4-8a41-194fdad05a15', {
@@ -113,23 +88,17 @@ sdk.navigateTo('5b0b569f-cae0-48d4-8a41-194fdad05a15', {
 });
 ```
 
-The optional second argument becomes query parameters on the destination URL. The
-destination reads them with its framework's query API, or with
-`context.route.getCurrent().query` in framework-independent code. Values can be
-strings, numbers, booleans, `null`, or `undefined`. Atlas skips `undefined`
-values and writes `null` as an empty value. Query parameters are visible in the
-URL, browser history, and logs, so never pass secrets this way.
+The optional second argument becomes query parameters on the destination URL. The destination reads them with its framework's query API, or with `context.route.getCurrent().query` in framework-independent code. Values can be strings, numbers, booleans, `null`, or `undefined`. Atlas skips `undefined` values and writes `null` as an empty value. Query parameters are visible in the URL, browser history, and logs, so never pass secrets this way.
 
-If the destination app has no route in the current host, `navigateTo` throws
-`AtlasAppRouteNotFoundError`.
+If the destination App has no route in the current Host, `navigateTo` throws `AtlasAppRouteNotFoundError`.
 
 ## Slots do not route
 
-Apps that render into a [slot](host-anchors.md#slots) never declare paths. They
-mount whenever the active host layout renders their slot, regardless of the URL.
+Apps that render into a [slot](host-anchors.md#slots) never declare paths. They mount whenever the active host layout renders their slot, regardless of the URL.
 
-## Next steps
+## Related
 
-- [Host anchors](host-anchors.md) explains the route outlet, slots, and layouts.
-- The [React routing guide](../guides/react/routing.md) and the
-  [Angular routing guide](../guides/angular/routing.md) show the framework code.
+- [Host anchors](host-anchors.md): the route outlet, slots, and layouts.
+- [React routing](../guides/react/routing.md) and [Angular routing](../guides/angular/routing.md): the framework code.
+- [Configuration reference](../reference/configuration.md#route-fields): every route field.
+- [Migrate an existing single-page app](../guides/migrate-existing-spa.md): use route matching to move features one at a time.

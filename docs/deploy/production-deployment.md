@@ -1,11 +1,11 @@
 ---
 title: Production deployment
-description: Publish, deploy, and roll back an Atlas host and its apps from CI to a production environment.
+description: Publish, deploy, and roll back an Atlas Host and its Apps from CI to a production environment.
 ---
 
 # Production deployment
 
-This guide walks you through the first production deployment of an Atlas host and app, and then through the routine release, rollback, and multi-environment flows that follow. It is for the engineer who owns the CI/CD pipeline.
+This guide walks you through the first production deployment of an Atlas Host and App, and then through the routine release, rollback, and multi-environment flows that follow. It is for the engineer who owns the CI/CD pipeline.
 
 Framework-specific build notes live in the [React production deployment](../guides/react/production-deployment.md) and [Angular production deployment](../guides/angular/production-deployment.md) guides.
 
@@ -16,7 +16,7 @@ Atlas splits a release into four independent operations:
 1. **Build.** Your framework build (Vite, Angular CLI) writes output to the project's `dist` folder.
 2. **Publish.** `npx atlas publish` uploads that output once, as an immutable release, to the [artifact registry](../introduction/glossary.md). Publishing does not change what any user sees.
 3. **Deploy.** `npx atlas deploy` selects a published release for a logical environment such as `staging` or `production`. It writes only small JSON files to the environment registry.
-4. **Serve the bootstrap.** Your platform serves the static [bootstrap](bootstrap.md) files and a same-origin `atlas.runtime.json` at the host's public URL.
+4. **Serve the bootstrap.** Your platform serves the static [bootstrap](bootstrap.md) files and a same-origin `atlas.runtime.json` at the Host's public URL.
 
 Atlas owns the published artifacts and the deployment files. Your CI/CD platform owns container images, web servers, approvals, traffic management, and credentials.
 
@@ -24,11 +24,12 @@ Atlas owns the published artifacts and the deployment files. Your CI/CD platform
 
 You need:
 
-- A host project and at least one app project that build successfully.
+- A Host project and at least one App project that build successfully.
 - An S3-compatible bucket, or an [Artifactory](artifactory.md) repository, that CI can write to.
 - A public HTTPS URL through which browsers can read that storage. This URL is the registry root.
 - A release version for each artifact. Atlas never calculates versions; CI passes them explicitly.
-- A public HTTPS URL for each deployed host environment.
+- A public HTTPS URL for each deployed Host environment.
+- Node.js on the machine that runs the Atlas commands. The `deploy` command needs no framework workspace and no build step; it reads published releases from the registry.
 
 Set the storage settings in CI. The registry URL is public. Storage credentials come from your provider's credential chain or a CI secret.
 
@@ -40,13 +41,13 @@ export ATLAS_STORAGE_KEY_PREFIX=atlas
 export ATLAS_S3_REGION=us-east-1
 ```
 
-The examples below use a host project named `customer-host` and an app project named `orders`.
+The examples below use a Host project named `customer-host` at `apps/customer-host` and an App project named `orders` at `apps/orders`. The project path depends on your [workspace](../introduction/glossary.md#workspace) kind. Atlas commands accept the project name.
 
 ## Deploy for the first time
 
 Run every command from the workspace root in CI.
 
-1. Build the host and the app with your workspace's build command. Atlas publishes existing output and does not rebuild it.
+1. Build the Host and the App with your workspace's build command. Atlas publishes existing output and does not rebuild it.
 
    ```sh
    npm run build --workspace customer-host
@@ -60,7 +61,7 @@ Run every command from the workspace root in CI.
    npx atlas publish orders --version 1.4.0
    ```
 
-   > **Expected result:** The registry contains `hosts/<host-id>/1.0.0/` and `apps/<app-id>/1.4.0/`, and `registry.json` lists both releases. No environment uses them yet.
+   > **Expected result:** The registry contains `hosts/<hostId>/1.0.0/` and `apps/<appId>/1.4.0/`, where `<hostId>` and `<appId>` are the `id` values from each project's `atlas.config.ts`. Each folder holds a published artifact manifest, and `registry.json` lists both releases. No environment uses them yet.
 
 3. Build the static bootstrap once.
 
@@ -68,9 +69,9 @@ Run every command from the workspace root in CI.
    npx atlas bootstrap customer-host
    ```
 
-   > **Expected result:** `customer-host/dist/bootstrap` contains `index.html`, `atlas.loader.js`, and `es-module-shims.js`. These files contain no environment or registry URL, so you can promote them unchanged through every environment.
+   > **Expected result:** `apps/customer-host/dist/bootstrap` contains `index.html`, `atlas.loader.js`, and `es-module-shims.js`. These files contain no environment or registry URL, so you can promote them unchanged through every environment.
 
-4. Serve the bootstrap and add `atlas.runtime.json`. Your platform serves the three bootstrap files at the host's public URL and a same-origin `/atlas.runtime.json`:
+4. Serve the bootstrap and add `atlas.runtime.json`. Your platform serves the three bootstrap files at the Host's public URL and a same-origin `/atlas.runtime.json`:
 
    ```json
    {
@@ -81,25 +82,25 @@ Run every command from the workspace root in CI.
    }
    ```
 
-   Replace the placeholder `hostId` with the `id` from the host's `atlas.config.ts`. [Host bootstrap](bootstrap.md) describes the headers, caching, CSP, and CORS rules the platform must follow, and includes a sample container image.
+   Replace the `hostId` value with your Host ID from `atlas.config.ts`. [Host bootstrap](bootstrap.md) describes the headers, caching, CSP, and CORS rules the platform must follow, and includes a sample container image.
 
-5. Deploy the host release to the `production` environment.
+5. Deploy the Host release to the `production` environment.
 
    ```sh
    npx atlas deploy customer-host --to production --version 1.0.0
    ```
 
-   > **Expected result:** The registry contains `environments/production/deployment.json` and `environments/production/hosts/<host-id>/manifest.json`. The host page now loads.
+   > **Expected result:** The registry contains `environments/production/deployment.json` and the host deployment manifest `environments/production/hosts/<hostId>/manifest.json`. The Host page now loads.
 
-6. Deploy the app release to the same environment.
+6. Deploy the App release to the same environment.
 
    ```sh
    npx atlas deploy orders --to production --version 1.4.0
    ```
 
-   Apps have no public URL of their own. The routes and slots in the app's `atlas.config.ts` decide which deployed hosts show it, and Atlas rewrites the manifest of each affected host.
+   Apps have no public URL of their own. The routes and slots in the App's `atlas.config.ts` decide which deployed Hosts show it, and Atlas rewrites the host deployment manifest of each affected Host.
 
-7. Verify the public host.
+7. Verify the public Host.
 
    ```sh
    npx atlas verify --host-url https://customer.example.com
@@ -109,7 +110,7 @@ Run every command from the workspace root in CI.
 
 ## Release a new version
 
-After the first deployment, a host or app release is three commands. You rebuild the bootstrap only when you change its template.
+After the first deployment, a Host or App release is three commands. You rebuild the bootstrap only when you change its template.
 
 ```sh
 npm run build --workspace orders
@@ -140,7 +141,7 @@ npx atlas deploy orders --to production --version 1.4.0
 
 Selecting by environment name promotes exactly what another environment runs, for example `npx atlas deploy orders --to production --version staging`.
 
-The first argument to `atlas deploy` identifies the artifact. Atlas accepts the project's package name, its stable UUID, or a unique display name. Use the package name in CI: it matches `npx atlas dev` and does not require CI to know the generated UUID.
+The first argument to the `deploy` command identifies the artifact. Atlas accepts the project's package name, its stable UUID, or a unique display name. Use the package name in CI: it matches `npx atlas dev` and does not require CI to know the generated UUID.
 
 ## Run several environments from one bootstrap
 
@@ -151,13 +152,13 @@ npx atlas deploy customer-host --to staging --version 1.0.0
 npx atlas deploy customer-host --to production --version 1.0.0
 ```
 
-The environments may run on unrelated platforms, clusters, or domains. Moving a host to a new domain needs no Atlas deploy: the platform serves the same files and runtime config at the new URL.
+The environments may run on unrelated platforms, clusters, or domains. Moving a Host to a new domain needs no Atlas deploy: the platform serves the same files and runtime config at the new URL.
 
 ## Use separate artifact and environment registries
 
 By default one registry root holds both the published artifacts and the environment state. You can keep environment state in a separate registry, for example so that only the production pipeline can write production state.
 
-`atlas deploy` then reads the release from a source registry over public HTTPS and writes the deployment files to the target storage:
+The `deploy` command then reads the release from a source registry over public HTTPS and writes the deployment files to the target storage:
 
 ```sh
 npx atlas deploy customer-host \
@@ -171,7 +172,7 @@ npx atlas deploy customer-host \
 
 `--source-registry-url` and `--target-registry-url` must be passed together, and neither can be combined with `--registry-url`.
 
-Deploy never copies artifact bytes. The deployment files reference artifacts by paths relative to the artifact registry, so the production host's runtime config must point at both roots:
+Deploy never copies artifact bytes. The deployment files reference artifacts by paths relative to the artifact registry, so the production Host's runtime config must point at both roots:
 
 ```json
 {
@@ -235,9 +236,9 @@ jobs:
 
 The deploy job builds nothing. It reads published releases from the registry, so it needs only the pinned `@atlas/cli` and the storage settings.
 
-## Verify hosts after every deploy
+## Verify Hosts after every deploy
 
-Add an optional `atlas.registry.ts` to the directory where CI runs Atlas commands (or pass its path with `--registry-config`) to verify public hosts automatically after each successful deploy:
+Add an optional `atlas.registry.ts` to the directory where CI runs Atlas commands (or pass its path with `--registry-config`) to verify public Hosts automatically after each successful deploy:
 
 ```ts
 import { defineAtlasRegistryConfig } from '@atlas/cli';
@@ -250,13 +251,13 @@ export default defineAtlasRegistryConfig({
 });
 ```
 
-`hostUrls` lists host pages, not registry URLs. `npx atlas deploy` fails when any listed host reports a verification failure.
+`hostUrls` lists Host pages, not registry URLs. `npx atlas deploy` fails when any listed Host reports a verification failure.
 
 ## Recover from a failed deploy
 
-Deploy writes `environments/<environment>/deployment.json` first, then replaces the manifest of every affected host. Each file is replaced as a whole, so a browser sees either the old composition or the new one, never a partial JSON document.
+Deploy writes `environments/<environment>/deployment.json` first, then replaces the host deployment manifest of every affected Host, one Host at a time. Each file is replaced as a whole, so a browser never reads a partial JSON document. The deploy as a whole is not atomic: while a deploy that affects several Hosts is running, some Hosts can already show the new composition while others still show the old one.
 
-If a host manifest write fails after the environment state is written, the command exits with a non-zero code and names the failed path. Run the exact same command again: it recomputes the same state and manifests and rewrites them.
+If a host deployment manifest write fails after the environment state is written, the command exits with a non-zero code and names the failed path. Run the exact same command again: it recomputes the same state and manifests and rewrites them.
 
 ## What Atlas does not do
 
@@ -264,7 +265,7 @@ Atlas does not build or push container images, create platform services, choose 
 
 ## Next steps
 
-- [Host bootstrap](bootstrap.md): the platform contract for serving the host.
+- [Host bootstrap](bootstrap.md): the platform contract for serving the Host.
 - [Production readiness](production-readiness.md): the checklist to complete before production traffic, including monitoring.
 - [Security](security.md): the trust model and publication controls.
 - [Governance](governance.md): running Atlas across many teams.

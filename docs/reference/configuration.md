@@ -1,11 +1,11 @@
 ---
 title: Configuration reference
-description: Every field of atlas.config.ts for hosts, apps, and exported widgets, package.json atlas.previews, and atlas.runtime.json.
+description: Every field of atlas.config.ts for Hosts, Apps, and exported Widgets, package.json atlas.previews, and atlas.runtime.json.
 ---
 
 # Configuration reference
 
-This page describes every configuration file you write for Atlas: `atlas.config.ts` for hosts, apps, and exported widgets, the `atlas.previews` field in `package.json`, and the runtime config file `atlas.runtime.json` that your platform serves next to a deployed host. The types come from `@atlas/schema`.
+This page describes every configuration file you write for Atlas: `atlas.config.ts` for Hosts, Apps, and exported Widgets, the `atlas.previews` field in `package.json`, and the runtime config file `atlas.runtime.json` that your platform serves next to a deployed Host. It is also the canonical reference for route fields and route rules. The types come from `@atlas/schema`.
 
 ## atlas.config.ts
 
@@ -30,29 +30,29 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-The CLI compiles this file to `.atlas/atlas.config.js` before `dev`, `bootstrap`, and `publish`. See [`compile-config`](cli.md#compile-config).
+The CLI compiles this file to `.atlas/atlas.config.js` before the `dev`, `bootstrap`, and `publish` commands. See [`compile-config`](cli.md#compile-config).
 
-> **Note:** Keep `type` in the file. When `type` is missing, the CLI treats a config as a host only if it sets `resourcesTimeoutMs` or `resourcesRetryCount`; otherwise it treats it as an app. The generators always write `type`.
+> **Note:** Keep `type` in the file. When `type` is missing, the CLI treats a config as a Host only if it sets `resourcesTimeoutMs` or `resourcesRetryCount`; otherwise it treats it as an App. The generators always write `type`.
 
 ### Shared fields
 
-These fields appear in both host and app configs (`AtlasBaseConfig`).
+These fields appear in both Host and App configs (`AtlasBaseConfig`).
 
 | Field       | Type                   | Required | Description                                                                                                                                                 |
 | ----------- | ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`        | `string`               | Yes      | Stable ID of the host or app. Generators create a UUID. It appears in manifests, registry paths, and runtime config, so do not change it after you publish. |
-| `name`      | `string`               | No       | Display name for manifests and host navigation. Defaults to `id`.                                                                                           |
+| `id`        | `string`               | Yes      | Stable ID of the Host or App. Generators create a UUID. It appears in manifests, registry paths, and runtime config, so do not change it after you publish. |
+| `name`      | `string`               | No       | Display name for manifests and Host navigation. Defaults to `id`.                                                                                           |
 | `framework` | `'angular' \| 'react'` | Yes      | UI framework of the project. The type also allows `'vue'`, but Atlas has no Vue adapter or generator.                                                       |
 
 ### AtlasHostConfig
 
-| Field                 | Type     | Default | Description                                                                                        |
-| --------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `type`                | `'host'` | None    | Marks the project as a host.                                                                       |
-| `resourcesTimeoutMs`  | `number` | 15000   | Maximum time Atlas waits for runtime resources, app loading, and app readiness during `atlas dev`. |
-| `resourcesRetryCount` | `number` | 3       | Number of retries after the first failed resource request during `atlas dev`.                      |
+| Field                 | Type     | Default | Description                                                                                                                        |
+| --------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                | `'host'` | None    | Marks the project as a Host.                                                                                                       |
+| `resourcesTimeoutMs`  | `number` | 15000   | Development only. Maximum time Atlas waits for runtime resources, App loading, and App readiness on the `npx atlas dev` Host page. |
+| `resourcesRetryCount` | `number` | 3       | Development only. Number of retries after the first failed resource request on the `npx atlas dev` Host page.                      |
 
-`atlas dev` copies `resourcesTimeoutMs` and `resourcesRetryCount` into the local runtime config. A deployed host always uses the runtime defaults of 15 seconds and 3 retries, because production `atlas.runtime.json` rejects these fields. See [Runtime config](#atlasruntimejson).
+> **Note:** `resourcesTimeoutMs` and `resourcesRetryCount` are development-only settings. `npx atlas dev` copies them into the runtime config of the local development Host page, and nothing else reads them. Production `atlas.runtime.json` rejects both fields, so a deployed Host always uses the runtime defaults: 3 retries and a 15-second timeout. See [Development-only fields](#development-only-fields).
 
 ```ts
 import type { AtlasHostConfig } from '@atlas/schema';
@@ -69,27 +69,27 @@ export default {
 
 | Field                      | Type                           | Default        | Description                                                                                                                                                                                                                               |
 | -------------------------- | ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `type`                     | `'app'`                        | None           | Marks the project as an app.                                                                                                                                                                                                              |
-| `routes`                   | `AtlasRouteMount[]`            | `[]`           | Pages this app adds to hosts. See [Route fields](#route-fields).                                                                                                                                                                          |
-| `slots`                    | `AtlasSlotMount[]`             | `[]`           | Named host areas this app renders into. See [Slot fields](#slot-fields).                                                                                                                                                                  |
-| `domIsolation`             | `'shadow-dom' \| 'shared-dom'` | `'shadow-dom'` | How Atlas separates the app's DOM and styles from the host page. See [Styles and isolation](../concepts/styles-and-isolation.md).                                                                                                         |
-| `requiredHostSdkVersion`   | `string` (semver range)        | `'^0.1.0'`     | Host SDK version range the app expects. See [Host SDK compatibility](compatibility.md#host-sdk-and-app-sdk-compatibility).                                                                                                                |
-| `externalAppsDependencies` | `string[]`                     | None           | IDs of provider apps whose exported widgets this app uses. The loader accepts [Columbus](../guides/columbus.md) overrides for these IDs as widget providers. A deployed host still resolves widgets only from apps in its own deployment. |
+| `type`                     | `'app'`                        | None           | Marks the project as an App.                                                                                                                                                                                                              |
+| `routes`                   | `AtlasRouteMount[]`            | `[]`           | Pages this App adds to Hosts. See [Route fields](#route-fields).                                                                                                                                                                          |
+| `slots`                    | `AtlasSlotMount[]`             | `[]`           | Named Host areas this App renders into. See [Slot fields](#slot-fields).                                                                                                                                                                  |
+| `domIsolation`             | `'shadow-dom' \| 'shared-dom'` | `'shadow-dom'` | How Atlas separates the App's DOM and styles from the Host page. See [Styles and isolation](../concepts/styles-and-isolation.md).                                                                                                         |
+| `requiredHostSdkVersion`   | `string` (semver range)        | `'^0.1.0'`     | Host SDK version range the App expects. Recorded in the manifest but not enforced at runtime. See [Host SDK compatibility](compatibility.md#host-sdk-and-app-sdk-compatibility).                                                          |
+| `externalAppsDependencies` | `string[]`                     | None           | IDs of provider Apps whose exported Widgets this App uses. The loader accepts [Columbus](../guides/columbus.md) overrides for these IDs as Widget providers. A deployed Host still resolves Widgets only from Apps in its own deployment. |
 
-Atlas derives the manifest field `supportedHosts` from the `hostId` of every route and slot. A route or slot with `hostId: '*'` targets every host. An app with no routes and no slots gets `supportedHosts: ['*']`.
+Atlas derives the manifest field `supportedHosts` from the `hostId` of every route and slot. A route or slot with `hostId: '*'` targets every Host. An App with no routes and no slots gets `supportedHosts: ['*']`.
 
 #### Route fields
 
-`AtlasRouteMount` describes one page that the app adds to one host.
+`AtlasRouteMount` describes one page that the App adds to one Host.
 
 | Field        | Type                   | Required | Default     | Description                                                                                         |
 | ------------ | ---------------------- | -------- | ----------- | --------------------------------------------------------------------------------------------------- |
-| `hostId`     | `string`               | Yes      | None        | ID of the host that shows this route, or `'*'` for every host.                                      |
-| `path`       | `string`               | Yes      | None        | URL path, such as `/orders`. No query string or hash.                                               |
+| `hostId`     | `string`               | Yes      | None        | ID of the Host that shows this route, or `'*'` for every Host.                                      |
+| `path`       | `string`               | Yes      | None        | URL path, such as `/orders`. See [Route rules](#route-rules).                                       |
 | `match`      | `'prefix' \| 'full'`   | No       | `'prefix'`  | `prefix` also matches deeper paths such as `/orders/42`; `full` requires an exact match.            |
-| `redirectTo` | `string`               | No       | None        | Replace the current URL with this path instead of mounting the app.                                 |
+| `redirectTo` | `string`               | No       | None        | Replace the current URL with this path instead of mounting the App.                                 |
 | `layoutId`   | `string`               | No       | `'default'` | Host layout to activate while the route is active. See [Host anchors](../concepts/host-anchors.md). |
-| `title`      | `string`               | No       | None        | Static page title the host can show before the app sets its own.                                    |
+| `title`      | `string`               | No       | None        | Static page title the Host can show before the App sets its own.                                    |
 | `nav`        | `AtlasRouteNavigation` | No       | None        | Menu entry for this route.                                                                          |
 
 `nav` has these fields:
@@ -100,14 +100,26 @@ Atlas derives the manifest field `supportedHosts` from the `hostId` of every rou
 | `order`   | `number`  | No       | Sort number. Lower numbers usually appear first.              |
 | `visible` | `boolean` | No       | Set `false` to keep the route working but hide it from menus. |
 
+#### Route rules
+
+Atlas checks every route when it builds the manifest, and rejects the build when a rule fails:
+
+- `path` and `redirectTo` must start with `/`.
+- They must not contain `//`, a query string (`?`), or a hash (`#`).
+- A segment that starts with `:` is a parameter. Its name starts with a letter and contains only letters, digits, `_`, and `-`, such as `:orderId`.
+- `*` is allowed only as the final segment, such as `/orders/*`.
+- A route with `redirectTo` cannot also set `layoutId`.
+- `layoutId` contains only letters, digits, dots, dashes, and underscores.
+- Each `path` can appear only once per `hostId` in one App. A trailing `/` is ignored when Atlas compares paths.
+
 #### Slot fields
 
-`AtlasSlotMount` describes one named host area that the app renders into.
+`AtlasSlotMount` describes one named Host area that the App renders into.
 
 | Field    | Type     | Required | Description                                                                            |
 | -------- | -------- | -------- | -------------------------------------------------------------------------------------- |
-| `slotId` | `string` | Yes      | Slot name. It must match the `slotId` of an `AtlasSlot` or `<atlas-slot>` in the host. |
-| `hostId` | `string` | Yes      | ID of the host that owns the slot, or `'*'` for every host.                            |
+| `slotId` | `string` | Yes      | Slot name. It must match the `slotId` of an `AtlasSlot` or `<atlas-slot>` in the Host. |
+| `hostId` | `string` | Yes      | ID of the Host that owns the slot, or `'*'` for every Host.                            |
 
 ```ts
 slots: [{ hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506', slotId: 'header' }],
@@ -115,11 +127,11 @@ slots: [{ hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506', slotId: 'header' }],
 
 ### AtlasWidgetConfig
 
-Each exported widget has its own `atlas.config.ts` in `src/exported-widgets/<name>/`. `npx atlas g widget` creates it.
+Each exported Widget has its own `atlas.config.ts` in `src/exported-widgets/<name>/`. `npx atlas g widget` creates it.
 
 | Field  | Type     | Required | Description                                                                                       |
 | ------ | -------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `id`   | `string` | Yes      | Globally unique widget ID. The generator creates a UUID once; keep it when you rename the widget. |
+| `id`   | `string` | Yes      | Globally unique Widget ID. The generator creates a UUID once; keep it when you rename the Widget. |
 | `name` | `string` | Yes      | Display name shown in tools and fallback UI.                                                      |
 
 ```ts
@@ -131,11 +143,11 @@ export default {
 } satisfies AtlasWidgetConfig;
 ```
 
-Angular widgets also get a `widget.config.ts` file next to it. It exports `widgetConfig`, an Angular `ApplicationConfig` whose providers Atlas adds when it boots the widget. See [Exported widgets](../guides/exported-widgets.md).
+Angular Widgets also get a `widget.config.ts` file next to it. It exports `widgetConfig`, an Angular `ApplicationConfig` whose providers Atlas adds when it boots the Widget. See [Exported widgets](../guides/exported-widgets.md).
 
 ## package.json atlas.previews
 
-`atlas dev` reads the `atlas.previews` array from the project's `package.json` to decide which host page to open.
+`npx atlas dev` reads the `atlas.previews` array from the project's `package.json` to decide which Host page to open.
 
 ```json
 {
@@ -145,22 +157,22 @@ Angular widgets also get a `widget.config.ts` file next to it. It exports `widge
 }
 ```
 
-| Rule                        | Behavior                                                                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Type                        | An array of absolute `http:` or `https:` URLs. Anything else fails.                                                         |
-| Apps                        | Required. `atlas dev` fails with `package.json atlas.previews is required for atlas dev apps.` when it is missing or empty. |
-| Hosts                       | Optional. Without it, the host runs on its local bootstrap port.                                                            |
-| One entry                   | Atlas uses it.                                                                                                              |
-| Several entries             | Atlas asks you to choose. In non-interactive mode, the command fails.                                                       |
-| Deployed (non-loopback) URL | Atlas reads the host ID from the page and fails if it does not match the project.                                           |
+| Rule                        | Behavior                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Type                        | An array of absolute `http:` or `https:` URLs. Anything else fails.                                                             |
+| Apps                        | Required. `npx atlas dev` fails with `package.json atlas.previews is required for atlas dev apps.` when it is missing or empty. |
+| Hosts                       | Optional. Without it, the Host runs on its local bootstrap port.                                                                |
+| One entry                   | Atlas uses it.                                                                                                                  |
+| Several entries             | Atlas asks you to choose. In non-interactive mode, the command fails.                                                           |
+| Deployed (non-loopback) URL | Atlas reads the Host ID from the page and fails if it does not match the project.                                               |
 
 See [Local development](../guides/local-development.md#configure-previews).
 
 ## atlas.runtime.json
 
-A deployed host loads `/atlas.runtime.json` from its own origin before it loads anything else. The file tells the loader which host and environment it is and where to find the registries. Its type is `AtlasHostRuntimeConfig`.
+A deployed Host loads `/atlas.runtime.json` from its own origin before it loads anything else. The file tells the loader which Host and environment it is and where to find the registries. Its type is `AtlasHostRuntimeConfig`.
 
-Your platform or infrastructure code writes this file. `atlas bootstrap` and `atlas deploy` do not create it. During `atlas dev`, the local bootstrap server serves a generated one.
+Your platform or infrastructure code writes this file. The `bootstrap` and `deploy` commands do not create it. During `npx atlas dev`, the local bootstrap server serves a generated one.
 
 ```json
 {
@@ -175,13 +187,13 @@ Your platform or infrastructure code writes this file. `atlas bootstrap` and `at
 | Field                    | Type     | Required | Description                                                                                        |
 | ------------------------ | -------- | -------- | -------------------------------------------------------------------------------------------------- |
 | `schemaVersion`          | `'v1'`   | Yes      | Always `"v1"`.                                                                                     |
-| `hostId`                 | `string` | Yes      | ID of the host this page runs. Must be a URL-safe path segment.                                    |
+| `hostId`                 | `string` | Yes      | ID of the Host this page runs. Must be a URL-safe path segment.                                    |
 | `environment`            | `string` | Yes      | Environment name, such as `production`. Must be a URL-safe path segment.                           |
 | `artifactRegistryUrl`    | `string` | Yes      | Root of the artifact registry. Artifact paths in manifests resolve against it.                     |
 | `environmentRegistryUrl` | `string` | No       | Root of the registry that holds `environments/<environment>/…`. Defaults to `artifactRegistryUrl`. |
-| `hostVersion`            | `string` | No       | Informational host version. Must be a URL-safe path segment.                                       |
+| `hostVersion`            | `string` | No       | Informational Host version. Must be a URL-safe path segment.                                       |
 
-The loader reads the active host manifest from:
+The loader reads the host deployment manifest from:
 
 ```text
 <environmentRegistryUrl>/environments/<environment>/hosts/<hostId>/manifest.json
@@ -189,7 +201,7 @@ The loader reads the active host manifest from:
 
 ### Registry URL rules
 
-- A registry URL can be absolute or relative. A relative value such as `/atlas` resolves against the URL of `/atlas.runtime.json`.
+- The loader accepts an absolute or a relative registry URL. It resolves a relative value such as `/atlas` against the URL of `/atlas.runtime.json` on the Host origin.
 - After resolution, it must use HTTPS. Plain HTTP is allowed only for loopback hosts (`localhost`, `127.0.0.1`, `[::1]`).
 - It must not contain credentials, a query, or a hash, and must not end with `/`.
 
@@ -207,12 +219,15 @@ When `environment` is `development`, these fields are also accepted. In every ot
 
 The `AtlasHostRuntimeConfig` type still declares `manifestUrl`, `registryUrl`, and `assetOrigins` for compatibility, and marks them deprecated. The validator rejects them as unexpected fields in every environment. Use `artifactRegistryUrl` and `environmentRegistryUrl` instead.
 
-> **Warning:** Any other unknown field also makes the runtime config invalid, and the host page shows a startup error. Validate the file with `assertAtlasHostRuntimeConfig` from `@atlas/schema` in your deployment pipeline.
+> **Warning:** Any other unknown field also makes the runtime config invalid, and the Host page shows a startup error. Validate the file in your deployment pipeline with a function from `@atlas/schema`:
+>
+> - `assertAtlasHostRuntimeConfig(value)` requires absolute registry URLs. It rejects a relative value such as `/atlas`.
+> - `resolveAtlasHostRuntimeConfig(value, hostUrl)` accepts relative registry URLs and resolves them against `hostUrl`, the same way the loader does. Use it when your file uses relative URLs.
 
 ## Related
 
 - [Manifests reference](manifests.md)
 - [Registry reference](registry.md)
 - [CLI reference](cli.md)
-- [Bootstrap](../deploy/bootstrap.md)
-- [Compatibility](compatibility.md)
+- [Host bootstrap](../deploy/bootstrap.md)
+- [Compatibility reference](compatibility.md)

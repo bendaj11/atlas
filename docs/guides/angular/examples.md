@@ -1,44 +1,44 @@
 ---
 title: Angular examples
-description: Find the Angular example host and apps in the repository and learn what each one demonstrates.
+description: Find the Angular Host and Apps in the Atlas repository and learn what each one demonstrates.
 ---
 
 # Angular examples
 
-The repository's `examples/` folder contains working Angular projects that the end-to-end tests run. Use this page to find the example for the pattern you want to study.
+The Atlas repository contains a working Angular Host and two Angular Apps under `examples/`, which the end-to-end tests run. This page tells you what each one shows, so you can study a running setup before building your own.
 
-> **Note:** The examples keep their source compact, so their file layout differs from generated projects. For example, `orders-angular` defines its components and routes directly in `src/entry.ts` instead of under `src/app/`, and the examples still use `federation.config.js`. For the files a new project gets, see [Angular generators](generators.md).
+> **Note:** The examples keep their source compact, so their file layout differs from generated projects. For example, `orders-angular` defines its components and routes directly in `src/entry.ts` instead of under `src/app/`, and the examples still use `federation.config.js`. For the files a new project gets, see [Angular project structure](project-structure.md).
 
-## Example host
+## Host example
 
-`examples/hosts/demo-angular-host` is an Angular host.
+`examples/hosts/demo-angular-host` is an Angular Host.
 
-| File                               | What it shows                                                                                                                              |
+| File                               | What to look at                                                                                                                            |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/bootstrap.ts`                 | `defineAngularHost()` with the host's `atlas.config.ts`.                                                                                   |
+| `src/bootstrap.ts`                 | `defineAngularHost()` with the Host's `atlas.config.ts`.                                                                                   |
 | `src/app.component.ts`             | Host anchors: `*atlasHostLayout`, `<atlas-host-status>`, `<atlas-slot slotId="header">`, `<atlas-navigation>`, and `<atlas-route-outlet>`. |
-| `src/host-widgets/host-widgets.ts` | A host component that renders a React widget and an Angular widget with `WidgetOutlet` and updates their inputs.                           |
+| `src/host-widgets/host-widgets.ts` | A Host component that renders a React Widget and an Angular Widget with `WidgetOutlet` and updates their inputs.                           |
 
-## Example apps
+## App examples
 
-`examples/apps/orders-angular` is a routed Angular app. It shows:
+`examples/apps/orders-angular` is a routed Angular App. It shows:
 
-- two routes for two different hosts in `atlas.config.ts`;
+- two routes for two different Hosts in `atlas.config.ts`;
 - the lifecycle in `src/entry.ts`: `defineApp()`, `createLocationStrategy()`, `provideAtlasApp()`, and cleanup in `unmount`;
 - inner Angular Router routes such as `orders/:id`;
-- an exported widget in `src/exported-widgets/order-status/` with `atlas.config.ts`, `index.ts`, and `widget.config.ts`.
+- an exported Widget in `src/exported-widgets/order-status/` with `atlas.config.ts`, `index.ts`, and `widget.config.ts`.
 
-`examples/apps/dashboard-angular` is a single-page Angular app. It shows:
+`examples/apps/dashboard-angular` is a single-page Angular App. It shows:
 
 - `injectAtlasAppContext()` to read the mount path;
-- rendering a React widget from another app with `getWidget()` and `[atlasWidget]`;
-- `externalAppsDependencies` in `atlas.config.ts` for a widget owner published to another registry.
+- rendering a React Widget from another App with `getWidget()` and `[atlasWidget]`;
+- `externalAppsDependencies` in `atlas.config.ts` for a Widget owner published to another registry.
 
-## Cross-framework use
+## Use Apps and Widgets across frameworks
 
-Angular apps run in React hosts, and React apps run in Angular hosts. Atlas crosses the framework boundary through DOM mount and unmount lifecycles, not through Angular modules or React components. `orders-angular` declares routes for both the Angular and the React example host.
+Angular Apps run in React Hosts, and React Apps run in Angular Hosts. Atlas mounts every App and Widget through a DOM lifecycle, so neither side depends on the other's framework. `orders-angular` declares routes for both the Angular and the React example Host.
 
-The dashboard renders the React `product-count` widget from `examples/apps/catalog-react` without installing React or knowing the widget's URL:
+The dashboard renders the React `product-count` Widget from `examples/apps/catalog-react` without installing React or knowing the Widget's URL:
 
 ```ts
 readonly productCount = this.sdk.getWidget<{ count: number; label: string }>(
@@ -51,21 +51,21 @@ readonly productCount = this.sdk.getWidget<{ count: number; label: string }>(
 <section [atlasWidget]="productCount"></section>
 ```
 
-Atlas resolves the widget's owner app and version from the catalog.
+The Angular App does not install React and does not know where the Widget is published. Atlas resolves the Widget's owner and version from the host catalog.
 
 ## What to copy
 
 Copy the product patterns:
 
-- the host layout with host anchors;
+- route and slot declarations in `atlas.config.ts`;
+- the Host layout with host anchors;
 - typed `hostData` and SDK usage;
 - event names with a domain prefix;
-- widget inputs treated as a public API.
+- Widget inputs treated as a public API.
 
-Leave Native Federation shims, expose names, and manifest paths to Atlas.
+Leave Native Federation setup, remote names, and manifest paths to Atlas.
 
 ## Next steps
 
-- [Build an Angular host](host.md)
-- [Build an Angular app](app.md)
-- [Exported widgets](../exported-widgets.md)
+- [Build an Angular Host](host.md) and [Build an Angular App](app.md) to create your own projects.
+- [React examples](../react/examples.md) for the React side of the same setup.

@@ -39,14 +39,29 @@ Write status messages in plain language that does not require knowledge of Atlas
 
 ## Errors
 
-`ui.error()` splits an error message into a summary line and its suggested actions. An error with one action looks like this:
+`ui.error()` splits an error message into a summary line and its suggested actions. When a command fails with an error that is not already a CLI error, `normalizeToCliError()` in `packages/cli/src/shared/cli-error/cli-error.ts` builds the summary with `formatCliSummary()` and picks suggested actions that match the message.
+
+`formatCliSummary()` prefixes the summary with `Atlas <command> failed: `, or with `Atlas CLI failed: ` when no command is known. It leaves the summary unchanged when it already starts with `Atlas`, `--`, `ATLAS_`, `Unknown help topic`, or `Unknown or incomplete command`, so messages never read "Atlas publish failed: Atlas ...".
+
+A message that does not start with one of those prefixes gets the command prefix:
 
 ```text
-✖ Atlas publish failed: Atlas configuration is invalid.
-  Suggested action: Correct the named configuration or TypeScript diagnostic.
+✖ Atlas publish failed: Could not find tsconfig.app.json or tsconfig.json in /work/apps/orders.
+  Suggested actions:
+    1. Restore the named file or pass an existing Atlas project or path.
+    2. Rerun `atlas publish` after correcting the condition.
 ```
 
-An error with several actions prints them as a numbered list under `Suggested actions:`. Expected failures name the failed subject, explain the condition, and give a concrete recovery action. Stack traces stay available to developers through the error `cause`, but they are not part of normal CLI output. See [error handling](error-handling.md) for the rules that apply across the CLI, the browser runtime, and Columbus.
+A message that already starts with `Atlas` is printed as it is:
+
+```text
+✖ Atlas project "orders" is missing required configuration file "apps/orders/atlas.config.ts".
+  Suggested actions:
+    1. Restore the named file or pass an existing Atlas project or path.
+    2. Rerun `atlas publish` after correcting the condition.
+```
+
+An error with one action prints it on a single `Suggested action:` line. An error with several actions prints them as a numbered list under `Suggested actions:`. Expected failures name the failed subject, explain the condition, and give a concrete recovery action. Stack traces stay available to developers through the error `cause`, but they are not part of normal CLI output. See [error handling](error-handling.md) for the rules that apply across the CLI, the browser runtime, and Columbus.
 
 ## Command headings
 

@@ -1,49 +1,39 @@
 ---
 title: Exported widgets
-description: Create a widget in one app, publish it, and render it in other apps or in the host with the Atlas SDK.
+description: Create a Widget in one App, publish it, and render it in other Apps or in the Host with the Atlas SDK.
 ---
 
 # Exported widgets
 
-An exported widget is a piece of UI that one app builds and releases, and that
-other apps or the host render by ID. This guide shows how to create, publish, and
-consume a widget, and explains how Atlas finds and isolates it.
+An exported widget is a piece of UI that one App builds and releases, and that other Apps or the Host render by ID. This guide shows how to create, publish, and consume a Widget, and explains how Atlas finds and isolates it.
 
 ## What an exported widget is
 
-A widget belongs to a normal Atlas [app](../concepts/apps.md). The app that owns
-a widget is its _provider_. The provider releases the widget together with the
-rest of the app: publishing a new app version publishes its widgets, and
-deploying or rolling back the app does the same for its widgets.
+A Widget belongs to a normal Atlas [App](../concepts/apps.md). The App that owns a Widget is its _provider_. The provider releases the Widget together with the rest of the App: publishing a new App version publishes its Widgets, and deploying or rolling back the App does the same for its Widgets.
 
-A consumer refers to a widget only by its widget ID. It does not import the
-provider's code, and it does not depend on the provider's framework. A React app
-can render an Angular widget, and the reverse.
+A consumer refers to a Widget only by its widget ID. It does not import the provider's code, and it does not depend on the provider's framework. A React App can render an Angular Widget, and the reverse.
 
-## Create a widget
+## Create a Widget
 
-1. From your workspace root, generate the widget in the provider app:
+1. From your workspace root, generate the Widget in the provider App:
 
    ```sh
    npx atlas g widget product-count --app-id 3ae54928-c2c6-491d-b766-6996ce0ef3c8
    ```
 
-   Replace the UUID with your app's `id` from its `atlas.config.ts`. In an
-   interactive terminal, you can omit `--app-id` and pick the app from a list. If
-   the widget already exists, pass `--force` to overwrite it.
+   Replace the UUID with your App's `id` from its `atlas.config.ts`. In an interactive terminal, you can omit `--app-id` and pick the App from a list. If the Widget already exists, pass `--force` to overwrite it.
 
-   > **Expected result:** Atlas creates a folder for the widget in the provider
-   > app:
+   > **Expected result:** Atlas creates a folder for the Widget in the provider App:
    >
    > ```text
    > src/exported-widgets/product-count/
    >   atlas.config.ts
-   >   index.tsx          # React apps
-   >   index.ts           # Angular apps
-   >   widget.config.ts   # Angular apps only
+   >   index.tsx          # React Apps
+   >   index.ts           # Angular Apps
+   >   widget.config.ts   # Angular Apps only
    > ```
 
-2. Keep the generated widget ID. `atlas.config.ts` holds the widget's identity:
+2. Keep the generated widget ID. `atlas.config.ts` holds the Widget's identity:
 
    ```ts
    import type { AtlasWidgetConfig } from '@atlas/schema';
@@ -54,13 +44,9 @@ can render an Angular widget, and the reverse.
    } satisfies AtlasWidgetConfig;
    ```
 
-   The `id` is a random UUID that consumers use to find the widget. Commit it and
-   never change it, even when you rename the folder or the display name. The
-   folder name only controls the source path.
+   The `id` is a random UUID that consumers use to find the Widget. Commit it and never change it, even when you rename the folder or the display name. The folder name only controls the source path.
 
-3. Write the widget as a plain component. In React, `index.tsx` default-exports a
-   component with normal props. In Angular, `index.ts` default-exports a
-   standalone component with signal inputs:
+3. Write the Widget as a plain component. In React, `index.tsx` default-exports a component with normal props. In Angular, `index.ts` default-exports a standalone component with signal inputs:
 
    ```ts
    import { Component, input } from '@angular/core';
@@ -75,23 +61,19 @@ can render an Angular widget, and the reverse.
    }
    ```
 
-   In Angular apps, `widget.config.ts` exports an `ApplicationConfig` where you
-   add the providers that the widget needs.
+   In Angular Apps, `widget.config.ts` exports an `ApplicationConfig` where you add the providers that the Widget needs.
 
-   Atlas handles mounting. The federation setup generates the widget's entry and
-   maps incoming inputs to React props or Angular inputs. Your widget does not
-   create a React root, bootstrap Angular, or register itself.
+   Atlas handles mounting. The federation setup generates the Widget's entry and maps incoming inputs to React props or Angular inputs. Your Widget does not create a React root, bootstrap Angular, or register itself.
 
-4. Publish the provider app as usual:
+4. Publish the provider App as usual:
 
    ```sh
    npx atlas publish catalog --version 1.2.0
    ```
 
-   > **Expected result:** The app's artifact manifest lists the widget with its
-   > ID, owner app, framework, and entry.
+   > **Expected result:** The App's published artifact manifest lists the Widget with its ID, owner App, framework, and entry.
 
-## Render a widget in React
+## Render a Widget in React
 
 The React SDK returns a component for a widget ID:
 
@@ -114,11 +96,9 @@ export function Cart() {
 }
 ```
 
-## Render a widget in Angular
+## Render a Widget in Angular
 
-In Angular, `getWidget` returns a binding that holds the widget ID and its
-inputs. Pass the binding to the `atlasWidget` directive, which you import as
-`WidgetOutlet` from `@atlas/sdk/angular`:
+In Angular, `getWidget` returns a binding that holds the widget ID and its inputs. Pass the binding to the `atlasWidget` directive, which you import as `WidgetOutlet` from `@atlas/sdk/angular`:
 
 ```ts
 import { Component } from '@angular/core';
@@ -142,75 +122,48 @@ export class CartComponent {
 }
 ```
 
-The directive mounts the widget into its element and unmounts it when the element
-is destroyed. When you pass a new binding for the same widget, it updates the
-mounted widget's inputs. You can also pass a `loadingComponent` in the options.
+The directive mounts the Widget into its element and unmounts it when the element is destroyed. When you pass a new binding for the same Widget, it updates the mounted Widget's inputs. You can also pass a `loadingComponent` in the options.
 
 ## Loading and errors
 
-Atlas renders loading and error UI inside the widget's own container. A slow or
-failed widget does not affect its app, the route, a slot, or other widgets. The
-error UI offers a retry that reloads only that widget.
+Atlas renders loading and error UI inside the Widget's own container. A slow or failed Widget does not affect its App, the route, a slot, or other Widgets. The error UI offers a retry that reloads only that Widget.
 
 You can customize this UI at two levels:
 
-- For every widget in the host, return `renderWidgetLoading` and
-  `renderWidgetError` from the host SDK options (`host.config` in a generated
-  host).
-- For one widget, pass `loadingComponent` to `getWidget`.
+- For every Widget in the Host, return `renderWidgetLoading` and `renderWidgetError` from the Host SDK options (`host.config` in a generated Host).
+- For one Widget, pass `loadingComponent` to `getWidget`.
 
-Atlas cleans up each renderer before the widget mounts, retries, or unmounts. See
-the [SDK reference](../reference/sdk.md) for the renderer signatures.
+Atlas cleans up each renderer before the Widget mounts, retries, or unmounts. See the [SDK reference](../reference/sdk.md) for the renderer signatures.
 
-## Where Atlas finds widgets
+## Where Atlas finds Widgets
 
-Atlas resolves a widget ID from the apps in the host's current deployment. A
-widget is available in a host when its provider app is deployed to the same
-environment and declares at least one route or slot for that host. Atlas loads a
-widget's code only when a consumer renders it, so unused widgets never slow down
-host startup.
+Atlas resolves a widget ID from the Apps in the Host's current deployment. A Widget is available in a Host when its provider App is deployed to the same environment and declares at least one route or slot for that Host. Atlas loads a Widget's code only when a consumer renders it, so unused Widgets never slow down Host startup.
 
-When the same widget ID appears in two different provider apps, Atlas refuses to
-resolve it and reports the ID as ambiguous.
+When the same widget ID appears in two different provider Apps, Atlas refuses to resolve it and reports the ID as ambiguous.
 
-`externalAppsDependencies` in an app's `atlas.config.ts` lists provider apps whose
-widgets the app uses:
+`externalAppsDependencies` in an App's `atlas.config.ts` lists provider Apps whose Widgets the App uses:
 
 ```ts
 externalAppsDependencies: ['5b0b569f-cae0-48d4-8a41-194fdad05a15'],
 ```
 
-Atlas copies this list into the published artifact manifest. It does not make
-Atlas load providers from another registry. Its current effect is on
-[Columbus](columbus.md): a published override for a listed provider app is
-accepted even when that app is not in the host's deployment, so you can test a
-provider's local, PR, or other published version.
+Atlas copies this list into the published artifact manifest. It does not make Atlas load providers from another registry. Its current effect is on [Columbus](columbus.md): a published override for a listed provider App is accepted even when that App is not in the Host's deployment, so you can test a provider's local, PR, or other published version.
 
 ## Isolation and caching
 
-- A widget uses the DOM isolation of its provider app. See
-  [Styles and isolation](../concepts/styles-and-isolation.md).
-- A widget loads from the provider's immutable version path, so browsers and CDNs
-  can cache its files indefinitely.
-- Atlas reuses a loaded widget module for the lifetime of the page.
+- A Widget uses the DOM isolation of its provider App. See [Styles and isolation](../concepts/styles-and-isolation.md).
+- A Widget loads from the provider's immutable version path, so browsers and CDNs can cache its files indefinitely.
+- Atlas reuses a loaded Widget module for the lifetime of the page.
 
 ## Common errors
 
-- `Exported widget "<name>" must contain src/exported-widgets/<name>/atlas.config.ts`:
-  run the widget generator, or add an `atlas.config.ts` with a stable UUIDv4
-  `id` and a `name`.
-- `Atlas could not find widget "<id>" in the active environment manifest`:
-  deploy the provider app to the host's environment, and make sure it declares a
-  route or slot for that host.
-- `Atlas found widget "<id>" in more than one provider app`: give one of the
-  widgets a new ID and update its consumers.
-- `... origin "<origin>" ... is not allowed by the host runtime configuration`:
-  the provider's files must load from the origin of `artifactRegistryUrl` or
-  `environmentRegistryUrl` in the host's `atlas.runtime.json`. Publish the
-  provider to that registry.
+- `Exported widget "<name>" must contain src/exported-widgets/<name>/atlas.config.ts`: run the Widget generator, or add an `atlas.config.ts` with a stable UUIDv4 `id` and a `name`.
+- `Atlas could not find widget "<id>" in the active environment manifest`: deploy the provider App to the Host's environment, and make sure it declares a route or slot for that Host.
+- `Atlas found widget "<id>" in more than one provider app`: give one of the Widgets a new ID and update its consumers.
+- `... origin "<origin>" ... is not allowed by the host runtime configuration`: the provider's files must load from the origin of `artifactRegistryUrl` or `environmentRegistryUrl` in the Host's `atlas.runtime.json`. Publish the provider to that registry.
 
 ## Next steps
 
 - [SDK reference](../reference/sdk.md)
 - [Columbus](columbus.md)
-- [Testing apps and hosts](testing-apps-and-hosts.md)
+- [Testing Apps and Hosts](testing-apps-and-hosts.md)

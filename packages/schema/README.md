@@ -1,10 +1,10 @@
 # @atlas/schema
 
-TypeScript types and validators for Atlas configuration, manifests, registries, and the host runtime config. You use its types in `atlas.config.ts`; the Atlas CLI generates the manifests.
+TypeScript types and validators for Atlas configuration, manifests, registries, and the Host runtime config. You use its types in `atlas.config.ts`; the Atlas CLI generates the manifests.
 
 ## Install
 
-The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first. Generated hosts and apps already depend on this package; to add it by hand:
+The `@atlas` packages are not on the public npm registry. Get them from your organization's registry or build them from source; see [Get the packages](https://github.com/bendaj11/atlas/blob/main/docs/reference/compatibility.md#get-the-packages). Generated Hosts and Apps already depend on this package; to add it by hand:
 
 ```sh
 npm install @atlas/schema
@@ -28,4 +28,4 @@ export default {
 
 - [Configuration reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/configuration.md)
 - [Manifests reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/manifests.md)
-- [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md#atlasschema)
+- [Public API reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md#atlasschema)

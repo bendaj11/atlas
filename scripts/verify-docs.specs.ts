@@ -194,4 +194,178 @@ describe('verifyDocs', () => {
       'Framework guide mismatch: docs/guides/angular/host.md has no counterpart in docs/guides/react/',
     ]);
   });
+
+  const BANNED_TERMS = [
+    'active host manifest',
+    'host client',
+    'host shell',
+    'main application page',
+    'the shell',
+    'app shell',
+  ];
+
+  it.each(BANNED_TERMS)(
+    'should report the file and line of a banned term when prose uses %s',
+    async (term) => {
+      await driver.given.markdownFile(
+        'README.md',
+        `# Atlas\n\nOpen ${term.toUpperCase()} now.\n`,
+      );
+
+      expect(
+        verifyDocs({
+          root: driver.get.root(),
+          files: driver.get.markdownFiles(),
+        }),
+      ).toStrictEqual([`Banned term: README.md:3 uses "${term}"`]);
+    },
+  );
+
+  it('should return no problems when banned terms and bare CLI calls appear only in code fences', async () => {
+    await driver.given.markdownFile(
+      'README.md',
+      '# Atlas\n\n```sh\n# the host shell\natlas dev orders\n```\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([]);
+  });
+
+  it('should return no problems when prose mentions a shell without an article', async () => {
+    await driver.given.markdownFile(
+      'README.md',
+      '# Atlas\n\nRun the command in a shell or in your shell.\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([]);
+  });
+
+  it('should ignore files when they are outside docs and are not the root README', async () => {
+    await driver.given.markdownFile(
+      'contributing/guide.md',
+      '# Guide\n\nThe host shell runs `atlas dev`.\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([]);
+  });
+
+  const CLI_COMMANDS = [
+    'dev',
+    'generate',
+    'g',
+    'publish',
+    'deploy',
+    'verify',
+    'bootstrap',
+    'build',
+    'compile-config',
+    'remove-preview',
+    'prune-previews',
+    'version',
+  ];
+
+  it.each(CLI_COMMANDS)(
+    'should report the file and line of inline code when it runs atlas %s without npx',
+    async (command) => {
+      await driver.given.markdownFile(
+        'README.md',
+        `# Atlas\n\nRun \`atlas ${command} orders\`.\n`,
+      );
+
+      expect(
+        verifyDocs({
+          root: driver.get.root(),
+          files: driver.get.markdownFiles(),
+        }),
+      ).toStrictEqual([
+        `CLI without npx: README.md:3 -> \`atlas ${command} orders\` should start with \`npx atlas\``,
+      ]);
+    },
+  );
+
+  it('should return no problems when inline code runs the CLI through npx or names an unknown command', async () => {
+    await driver.given.markdownFile(
+      'README.md',
+      '# Atlas\n\nRun `npx atlas dev orders` from `atlas deployer`.\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([]);
+  });
+
+  it('should report a title mismatch at the heading line when the first heading differs from the frontmatter title', async () => {
+    await driver.given.markdownFile('README.md', '[Page](docs/page.md)\n');
+    await driver.given.markdownFile(
+      'docs/page.md',
+      '---\ntitle: Deploy a host\ndescription: Learn about hosts.\n---\n\n# Deploy the host\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([
+      'Title mismatch: docs/page.md:6 frontmatter title "Deploy a host" does not match first heading "Deploy the host"',
+    ]);
+  });
+
+  it('should report a title mismatch at the title line when the page has no heading outside code fences', async () => {
+    await driver.given.markdownFile('README.md', '[Page](docs/page.md)\n');
+    await driver.given.markdownFile(
+      'docs/page.md',
+      "---\ntitle: 'Deploy a host'\ndescription: Learn about hosts.\n---\n\n```md\n# Deploy a host\n```\n",
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([
+      'Title mismatch: docs/page.md:2 frontmatter title "Deploy a host" does not match first heading ""',
+    ]);
+  });
+
+  it('should report the file and line of an Angular sample when injectAtlasSdk is assigned to a name other than sdk', async () => {
+    await driver.given.markdownFile(
+      'README.md',
+      '[React](docs/guides/react/host.md)\n[Angular](docs/guides/angular/host.md)\n',
+    );
+    await driver.given.markdownFile(
+      'docs/guides/react/host.md',
+      '---\ntitle: Host\ndescription: Learn about Host.\n---\n\n# Host\n\n```ts\nconst atlas = injectAtlasSdk();\n```\n',
+    );
+    await driver.given.markdownFile(
+      'docs/guides/angular/host.md',
+      '---\ntitle: Host\ndescription: Learn about Host.\n---\n\n# Host\n\n```ts\nreadonly sdk = injectAtlasSdk();\nprivate readonly atlas: AtlasSdk = injectAtlasSdk();\n```\n\nconst prose = injectAtlasSdk();\n',
+    );
+
+    expect(
+      verifyDocs({
+        root: driver.get.root(),
+        files: driver.get.markdownFiles(),
+      }),
+    ).toStrictEqual([
+      'Angular SDK name: docs/guides/angular/host.md:10 assigns injectAtlasSdk to "atlas" instead of "sdk"',
+    ]);
+  });
 });

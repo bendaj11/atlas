@@ -18,6 +18,10 @@ export const VERIFICATION_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     environment: [
       {
+        label: 'ATLAS_HOST_URL',
+        description: 'One deployed Atlas host URL; --host-url wins',
+      },
+      {
         label: 'ATLAS_HOST_URLS',
         description: 'Space or comma-separated deployed Atlas host URLs',
       },

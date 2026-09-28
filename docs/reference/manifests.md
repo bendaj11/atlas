@@ -1,29 +1,29 @@
 ---
 title: Manifests reference
-description: Field-by-field reference for the artifact manifest, registry.json, deployment.json, the active host manifest, and the host catalog.
+description: Field-by-field reference for the published artifact manifest, registry.json, deployment.json, the host deployment manifest, and the host catalog.
 ---
 
 # Manifests reference
 
-This page describes the JSON documents that Atlas writes to the registry and reads in the browser: the artifact manifest, `registry.json`, the environment `deployment.json`, the active host manifest, and the in-memory host catalog. Atlas generates all of them. You read this page to debug a deployment or to build tooling, not to write these files by hand. For where each file lives, see [Registry](registry.md). For the files you do write, see [Configuration](configuration.md).
+This page describes the JSON documents that Atlas writes to the registry and reads in the browser: the published artifact manifest, `registry.json`, the environment `deployment.json`, the host deployment manifest, and the in-memory host catalog. Atlas generates all of them. You read this page to debug a deployment or to build tooling, not to write these files by hand. For where each file lives, see the [Registry reference](registry.md). For the files you do write, see the [Configuration reference](configuration.md).
 
 ## Overview
 
-| Document               | Type (`@atlas/schema`)           | Written by                 | Location                                                                  | Mutable        |
-| ---------------------- | -------------------------------- | -------------------------- | ------------------------------------------------------------------------- | -------------- |
-| Artifact manifest      | `AtlasPublishedArtifactManifest` | `atlas publish`            | `apps/<id>/<version>/manifest.json`, `hosts/<id>/<version>/manifest.json` | No             |
-| Registry index         | `AtlasStaticRegistry`            | `atlas publish`            | `registry.json`                                                           | Yes            |
-| Environment deployment | `AtlasEnvironmentDeployment`     | `atlas deploy`             | `environments/<environment>/deployment.json`                              | Yes            |
-| Active host manifest   | `AtlasHostDeploymentManifest`    | `atlas deploy`             | `environments/<environment>/hosts/<hostId>/manifest.json`                 | Yes            |
-| Host catalog           | `AtlasHostCatalog`               | The loader, in the browser | Not stored                                                                | Not applicable |
+| Document                    | Type (`@atlas/schema`)           | Written by                 | Location                                                                  | Mutable        |
+| --------------------------- | -------------------------------- | -------------------------- | ------------------------------------------------------------------------- | -------------- |
+| Published artifact manifest | `AtlasPublishedArtifactManifest` | `npx atlas publish`        | `apps/<id>/<version>/manifest.json`, `hosts/<id>/<version>/manifest.json` | No             |
+| Registry index              | `AtlasStaticRegistry`            | `npx atlas publish`        | `registry.json`                                                           | Yes            |
+| Environment deployment      | `AtlasEnvironmentDeployment`     | `npx atlas deploy`         | `environments/<environment>/deployment.json`                              | Yes            |
+| Host deployment manifest    | `AtlasHostDeploymentManifest`    | `npx atlas deploy`         | `environments/<environment>/hosts/<hostId>/manifest.json`                 | Yes            |
+| Host catalog                | `AtlasHostCatalog`               | The loader, in the browser | Not stored                                                                | Not applicable |
 
 Paths inside these documents are relative. Artifact paths resolve against `artifactRegistryUrl`, and environment paths against `environmentRegistryUrl`, both from [`atlas.runtime.json`](configuration.md#atlasruntimejson).
 
-Every document is validated before use. `@atlas/schema` exports a `validate*` function that returns a list of issues and an `assert*` function that throws `AtlasValidationError` for each type. See [Validation functions](#validation-functions).
+Atlas validates these documents before it uses them. For most of them, `@atlas/schema` exports a `validate*` function that returns a list of issues and an `assert*` function that throws `AtlasValidationError`. `registry.json` (`AtlasStaticRegistry`) has no exported validator. See [Validation functions](#validation-functions).
 
-## Artifact manifest
+## Published artifact manifest
 
-The artifact manifest describes one published version of one app or host. `atlas publish` writes it once, next to the build output, and never changes it.
+The published artifact manifest (`AtlasPublishedArtifactManifest`, which is `AtlasAppArtifactManifest` or `AtlasHostArtifactManifest`) describes one published version of one App or Host. `npx atlas publish` writes it once, next to the build output, and never changes it.
 
 ```json
 {
@@ -74,8 +74,8 @@ The artifact manifest describes one published version of one app or host. `atlas
 
 | Field           | Type                                | Description                                                                                                         |
 | --------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `schemaVersion` | `"2"`                               | Artifact manifest format version.                                                                                   |
-| `kind`          | `"app-artifact" \| "host-artifact"` | Whether the artifact is an app or a host.                                                                           |
+| `schemaVersion` | `"2"`                               | Published artifact manifest format version.                                                                         |
+| `kind`          | `"app-artifact" \| "host-artifact"` | Whether the artifact is an App or a Host.                                                                           |
 | `id`            | `string`                            | The `id` from `atlas.config.ts`.                                                                                    |
 | `name`          | `string`                            | Display name.                                                                                                       |
 | `packageName`   | `string`, optional                  | The project's package name.                                                                                         |
@@ -84,7 +84,7 @@ The artifact manifest describes one published version of one app or host. `atlas
 | `source`        | object, optional                    | Git metadata of a release: optional `gitSha`, `gitBranch`, `gitCommitTitle`.                                        |
 | `framework`     | `"angular" \| "react"`              | Framework of the build.                                                                                             |
 | `entryPath`     | `string`                            | Path of the Native Federation remote entry, relative to the manifest. Default `remoteEntry.json`.                   |
-| `exposes`       | object                              | Federation exposes. `entry` is the module the loader mounts: `./entry` for apps, `./host` for hosts.                |
+| `exposes`       | object                              | Federation exposes. `entry` is the module the loader mounts: `./entry` for Apps, `./host` for Hosts.                |
 | `styles`        | array, optional                     | Stylesheets to load before mounting: `path` relative to the manifest and a Subresource Integrity `integrity` value. |
 | `files`         | array                               | Every payload file. See [File descriptors](#file-descriptors).                                                      |
 
@@ -96,15 +96,15 @@ The artifact manifest describes one published version of one app or host. `atlas
 | `requiredHostSdkVersion`   | `string`                                             | Semver range from `atlas.config.ts`. Default `^0.1.0`.                                                           |
 | `supportedHosts`           | `string[]`                                           | Host IDs from routes and slots, or `["*"]`.                                                                      |
 | `placements`               | `AtlasPlacement[]`                                   | Routes and slots. See [Placements](#placements).                                                                 |
-| `exportedWidgets`          | array, optional                                      | Widgets this app exports. See [Exported widgets](#exported-widgets).                                             |
-| `externalAppsDependencies` | `string[]`, optional                                 | Provider app IDs whose widget overrides Columbus may load. See [Configuration](configuration.md#atlasappconfig). |
+| `exportedWidgets`          | array, optional                                      | Widgets this App exports. See [Exported widgets](#exported-widgets).                                             |
+| `externalAppsDependencies` | `string[]`, optional                                 | Provider App IDs whose Widget overrides Columbus may load. See [Configuration](configuration.md#atlasappconfig). |
 | `metadata`                 | object, optional                                     | String, number, or boolean values for your own tools.                                                            |
 
 ### Host artifact fields
 
-| Field                      | Type     | Description                                                              |
-| -------------------------- | -------- | ------------------------------------------------------------------------ |
-| `requiredLoaderApiVersion` | `string` | Loader API range the host client can mount under. Atlas writes `^1.0.0`. |
+| Field                      | Type     | Description                                                       |
+| -------------------------- | -------- | ----------------------------------------------------------------- |
+| `requiredLoaderApiVersion` | `string` | Loader API range the Host can mount under. Atlas writes `^1.0.0`. |
 
 ### File descriptors
 
@@ -123,9 +123,9 @@ The artifact manifest describes one published version of one app or host. `atlas
 
 | Field    | Type                | Description                                                                                                               |
 | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `id`     | `string`            | Stable placement ID derived from the host ID, the path or slot name, and the kind.                                        |
-| `kind`   | `"route" \| "slot"` | A full page or a named host area.                                                                                         |
-| `hostId` | `string`            | Target host, or `"*"` for every host.                                                                                     |
+| `id`     | `string`            | Stable placement ID derived from the Host ID, the path or slot name, and the kind.                                        |
+| `kind`   | `"route" \| "slot"` | A full page or a named Host area.                                                                                         |
+| `hostId` | `string`            | Target Host, or `"*"` for every Host.                                                                                     |
 | `route`  | object, optional    | For routes: `path`, `match`, `redirectTo`, `layoutId`, `title`, `nav`. See [Route fields](configuration.md#route-fields). |
 | `slot`   | `string`, optional  | For slots: the slot name.                                                                                                 |
 
@@ -134,17 +134,17 @@ The artifact manifest describes one published version of one app or host. `atlas
 | Field             | Type                   | Description                                                          |
 | ----------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion`   | `"1"`                  | Widget record format version.                                        |
-| `id`              | `string`               | Widget UUID from the widget's `atlas.config.ts`.                     |
+| `id`              | `string`               | Widget UUID from the Widget's `atlas.config.ts`.                     |
 | `name`            | `string`               | Display name.                                                        |
-| `ownerAppId`      | `string`               | ID of the app that exports the widget. Must equal the manifest `id`. |
-| `framework`       | `"angular" \| "react"` | Framework the widget needs.                                          |
+| `ownerAppId`      | `string`               | ID of the App that exports the Widget. Must equal the manifest `id`. |
+| `framework`       | `"angular" \| "react"` | Framework the Widget needs.                                          |
 | `expose`          | `string`               | Federation expose name, such as `./widgets/order-summary`.           |
 | `contractVersion` | `"1"`                  | Widget mount contract version.                                       |
 | `metadata`        | object, optional       | Values for your own tools.                                           |
 
 ## registry.json
 
-`registry.json` (`AtlasStaticRegistry`) lists every published release and preview. `atlas publish`, `atlas remove-preview`, and `atlas prune-previews` update it.
+`registry.json` (`AtlasStaticRegistry`) lists every published release and preview. `npx atlas publish`, `npx atlas remove-preview`, and `npx atlas prune-previews` update it.
 
 ```json
 {
@@ -183,7 +183,7 @@ Each artifact entry (`AtlasRegistryArtifact`) has `id`, `name`, optional `packag
 
 ### Manifest descriptors
 
-`AtlasManifestDescriptor` points to one artifact manifest.
+`AtlasManifestDescriptor` points to one published artifact manifest.
 
 | Field       | Type                 | Description                                            |
 | ----------- | -------------------- | ------------------------------------------------------ |
@@ -194,7 +194,7 @@ Each artifact entry (`AtlasRegistryArtifact`) has `id`, `name`, optional `packag
 
 ## deployment.json
 
-`environments/<environment>/deployment.json` (`AtlasEnvironmentDeployment`) records which version of each app and host is selected in one environment. `atlas deploy` updates one entry at a time.
+`environments/<environment>/deployment.json` (`AtlasEnvironmentDeployment`) records which version of each App and Host is selected in one environment. `npx atlas deploy` updates one entry at a time.
 
 ```json
 {
@@ -217,11 +217,14 @@ Each artifact entry (`AtlasRegistryArtifact`) has `id`, `name`, optional `packag
 | `environment`   | `string`           | Environment name.                        |
 | `revision`      | `sha256:<hex>`     | Hash of the selection content.           |
 | `updatedAt`     | ISO 8601 string    | Time of the last deployment.             |
-| `hosts`, `apps` | object keyed by ID | Selected `version` of each host and app. |
+| `hosts`, `apps` | object keyed by ID | Selected `version` of each Host and App. |
 
-## Active host manifest
+## Host deployment manifest
 
-`environments/<environment>/hosts/<hostId>/manifest.json` (`AtlasHostDeploymentManifest`) is what a deployed host reads at startup. `atlas deploy` rewrites it for every host affected by a deployment: the host itself, or every host that one of the deployed app's placements targets.
+The host deployment manifest (`AtlasHostDeploymentManifest`) at `environments/<environment>/hosts/<hostId>/manifest.json` is what a deployed Host reads at startup. The `deploy` command rewrites it as follows:
+
+- When you deploy a Host, it rewrites the host deployment manifest of that Host only.
+- When you deploy an App, it rewrites the host deployment manifest of every Host in the environment's `deployment.json` that at least one selected App in that environment targets, not only the Hosts that the deployed App targets.
 
 ```json
 {
@@ -247,22 +250,22 @@ Each artifact entry (`AtlasRegistryArtifact`) has `id`, `name`, optional `packag
 }
 ```
 
-| Field                | Type                       | Description                                                                              |
-| -------------------- | -------------------------- | ---------------------------------------------------------------------------------------- |
-| `schemaVersion`      | `"v1"`                     | Format version.                                                                          |
-| `kind`               | `"host-deployment"`        | Document kind.                                                                           |
-| `hostId`             | `string`                   | Host this manifest belongs to.                                                           |
-| `environment`        | `string`                   | Environment name.                                                                        |
-| `deploymentRevision` | `string`                   | Hash of the host, environment, and selected manifests.                                   |
-| `host`               | descriptor                 | Artifact manifest of the selected host version.                                          |
-| `apps`               | descriptor array           | Artifact manifests of the selected app versions that target this host, sorted by ID.     |
-| `widgetProviders`    | descriptor array, optional | Manifests of apps that only provide widgets. `atlas deploy` does not currently write it. |
+| Field                | Type                       | Description                                                                                    |
+| -------------------- | -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `schemaVersion`      | `"v1"`                     | Format version.                                                                                |
+| `kind`               | `"host-deployment"`        | Document kind.                                                                                 |
+| `hostId`             | `string`                   | Host this manifest belongs to.                                                                 |
+| `environment`        | `string`                   | Environment name.                                                                              |
+| `deploymentRevision` | `string`                   | Hash of the Host, environment, and selected manifests.                                         |
+| `host`               | descriptor                 | Published artifact manifest of the selected Host version.                                      |
+| `apps`               | descriptor array           | Published artifact manifests of the selected App versions that target this Host, sorted by ID. |
+| `widgetProviders`    | descriptor array, optional | Manifests of Apps that only provide Widgets. The `deploy` command does not write it.           |
 
-Descriptors here may also carry an optional absolute `url`. `atlas deploy` writes relative `path` values only.
+Descriptors here may also carry an optional absolute `url`. The `deploy` command writes relative `path` values only.
 
 ## Host catalog
 
-The host catalog (`AtlasHostCatalog`) is not a file. The loader builds it in the browser: it fetches the active host manifest, downloads and verifies each artifact manifest against its digest, applies any [Columbus](../guides/columbus.md) overrides, and converts each artifact manifest into its runtime form. The host client receives the catalog when it mounts.
+The host catalog (`AtlasHostCatalog`) is not a file. The loader builds it in the browser: it fetches the host deployment manifest, downloads and verifies each published artifact manifest against its digest, applies any [Columbus](../guides/columbus.md) overrides, and converts each published artifact manifest into its runtime form. The Host receives the catalog when it mounts.
 
 | Field             | Type                        | Description                                                                |
 | ----------------- | --------------------------- | -------------------------------------------------------------------------- |
@@ -270,26 +273,26 @@ The host catalog (`AtlasHostCatalog`) is not a file. The loader builds it in the
 | `hostId`          | `string`                    | Host the catalog belongs to.                                               |
 | `revision`        | `string`                    | Hash of the complete selection.                                            |
 | `generatedAt`     | ISO 8601 string             | Time the catalog was built.                                                |
-| `host`            | `AtlasHostManifest`         | Runtime manifest of the host client.                                       |
-| `apps`            | `AtlasManifest[]`           | Runtime manifests of the apps the host mounts.                             |
-| `widgetProviders` | `AtlasManifest[]`, optional | Apps that only provide widgets. They are never mounted as routes or slots. |
+| `host`            | `AtlasHostManifest`         | Runtime manifest of the Host.                                              |
+| `apps`            | `AtlasManifest[]`           | Runtime manifests of the Apps the Host mounts.                             |
+| `widgetProviders` | `AtlasManifest[]`, optional | Apps that only provide Widgets. They are never mounted as routes or slots. |
 
 ### Runtime manifests
 
-`AtlasManifest` (apps) and `AtlasHostManifest` (hosts) are the runtime form of an artifact manifest. `hydratePublishedArtifactManifest` produces them. Compared with the artifact manifest:
+`AtlasManifest` (Apps) and `AtlasHostManifest` (Hosts) are the runtime (hydrated) form of a published artifact manifest. They have `remoteEntryUrl` and no `files`. `hydratePublishedArtifactManifest` produces them. Compared with the published artifact manifest:
 
-| Field             | Value                                                                             |
-| ----------------- | --------------------------------------------------------------------------------- |
-| `schemaVersion`   | `"1"`                                                                             |
-| `kind`            | `"app"` or `"host"`                                                               |
-| `version`         | The release version, or `0.0.0` for a preview.                                    |
-| `buildId`         | The preview's Git SHA, or `canonical` for a release.                              |
-| `channel`         | `production` for a release, `pr` for a preview, `local` for an `atlas dev` build. |
-| `remoteEntryUrl`  | Absolute URL of the remote entry.                                                 |
-| `integrity`       | SRI value of the remote entry, from its file digest.                              |
-| `styles`          | Absolute `href` plus `integrity` for each stylesheet.                             |
-| `prNumber`        | Preview number, for previews.                                                     |
-| `exportedWidgets` | Each widget gains the owner's absolute `remoteEntryUrl`.                          |
+| Field             | Value                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `schemaVersion`   | `"1"`                                                                                 |
+| `kind`            | `"app"` or `"host"`                                                                   |
+| `version`         | The release version, or `0.0.0` for a preview.                                        |
+| `buildId`         | The preview's Git SHA, or `canonical` for a release.                                  |
+| `channel`         | `production` for a release, `pr` for a preview, `local` for an `npx atlas dev` build. |
+| `remoteEntryUrl`  | Absolute URL of the remote entry.                                                     |
+| `integrity`       | SRI value of the remote entry, from its file digest.                                  |
+| `styles`          | Absolute `href` plus `integrity` for each stylesheet.                                 |
+| `prNumber`        | Preview number, for previews.                                                         |
+| `exportedWidgets` | Each Widget gains the owner's absolute `remoteEntryUrl`.                              |
 
 App-specific fields (`isolation`, `requiredHostSdkVersion`, `supportedHosts`, `placements`, `metadata`, `externalAppsDependencies`) are copied unchanged.
 
@@ -297,20 +300,21 @@ App-specific fields (`isolation`, `requiredHostSdkVersion`, `supportedHosts`, `p
 
 All functions are exported from `@atlas/schema`. `validate*` returns an array of `AtlasValidationIssue` (`path` and `message`); `assert*` throws `AtlasValidationError` with code `ATLAS_INVALID_JSON`.
 
-| Document               | Validate                            | Assert                            |
-| ---------------------- | ----------------------------------- | --------------------------------- |
-| Artifact manifest      | `validatePublishedArtifactManifest` | `assertPublishedArtifactManifest` |
-| Environment deployment | `validateEnvironmentDeployment`     | `assertEnvironmentDeployment`     |
-| Active host manifest   | `validateHostDeploymentManifest`    | `assertHostDeploymentManifest`    |
-| Manifest descriptor    | Not available                       | `assertManifestDescriptor`        |
-| Host catalog           | `validateAtlasHostCatalog`          | `assertAtlasHostCatalog`          |
-| Runtime app manifest   | `validateAtlasManifest`             | `assertAtlasManifest`             |
-| Runtime host manifest  | `validateAtlasHostManifest`         | `assertAtlasHostManifest`         |
-| Runtime config         | `validateAtlasHostRuntimeConfig`    | `assertAtlasHostRuntimeConfig`    |
+| Document                         | Validate                            | Assert                            |
+| -------------------------------- | ----------------------------------- | --------------------------------- |
+| Published artifact manifest      | `validatePublishedArtifactManifest` | `assertPublishedArtifactManifest` |
+| Environment deployment           | `validateEnvironmentDeployment`     | `assertEnvironmentDeployment`     |
+| Host deployment manifest         | `validateHostDeploymentManifest`    | `assertHostDeploymentManifest`    |
+| Manifest descriptor              | Not available                       | `assertManifestDescriptor`        |
+| Registry index (`registry.json`) | Not available                       | Not available                     |
+| Host catalog                     | `validateAtlasHostCatalog`          | `assertAtlasHostCatalog`          |
+| Runtime App manifest             | `validateAtlasManifest`             | `assertAtlasManifest`             |
+| Runtime Host manifest            | `validateAtlasHostManifest`         | `assertAtlasHostManifest`         |
+| Runtime config                   | `validateAtlasHostRuntimeConfig`    | `assertAtlasHostRuntimeConfig`    |
 
 ## Related
 
 - [Registry reference](registry.md)
 - [Configuration reference](configuration.md)
 - [Architecture](../introduction/architecture.md)
-- [Errors](errors.md)
+- [Errors reference](errors.md)

@@ -63,6 +63,7 @@ Generated `dist`, cache, IDE, and test artifact directories are ignored and must
 - [Documentation coverage](contributing/documentation-coverage.md) maps every product surface to the page that documents it.
 - [CLI output](contributing/cli-output.md) defines how CLI commands print status, prompts, and errors.
 - [Error handling](contributing/error-handling.md) defines the `AtlasError` contract and where each error boundary lives.
+- [Artifactory adapter](contributing/artifactory-adapter.md) records why Atlas owns its Artifactory storage provider and what its tests cover.
 
 ## Documentation
 

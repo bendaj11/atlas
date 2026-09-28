@@ -97,10 +97,6 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       ...buildStorageOptionsHelp({ includeRegistry: false }),
       {
-        label: '--expected-registry-revision <digest>',
-        description: 'Require current target registry revision',
-      },
-      {
         label: '--parallel-uploads <count>',
         description:
           'Parallel storage requests for uploads and checks; default 16',

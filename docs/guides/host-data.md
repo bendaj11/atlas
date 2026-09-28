@@ -1,22 +1,22 @@
 ---
-title: Share host data with apps
-description: Declare typed host data, keep it live from a React or Angular host, and read it in apps.
+title: Share host data with Apps
+description: Declare typed host data, keep it live from a React or Angular Host, and read it in Apps.
 ---
 
-# Share host data with apps
+# Share host data with Apps
 
-This guide shows you how a host shares read-only state, such as the signed-in user, tenant, or locale, with every mounted app, and how apps read it. It is for host and app developers who already have a generated host and app running. For the API details, see [SDK reference](../reference/sdk.md#host-data).
+This guide shows you how a Host shares read-only state, such as the signed-in user, tenant, or locale, with every mounted App, and how Apps read it. It is for Host and App developers who already have a generated Host and App running. For the API details, see [SDK reference](../reference/sdk.md#host-data).
 
-Host data is for values that apps read. Put commands and services, such as `refreshSession()`, directly on the SDK instead; see [Custom SDK methods](../reference/sdk.md#custom-sdk-methods).
+Host data is for values that Apps read. Put commands and services, such as `refreshSession()`, directly on the SDK instead; see [Custom SDK methods](../reference/sdk.md#custom-sdk-methods).
 
 ## Before you begin
 
-- You have a host generated with `npx atlas g host` and an app generated with `npx atlas g app`. See the [tutorial](../get-started/tutorial.md).
-- You can share a TypeScript file between the host and its apps, for example through a workspace library.
+- You have a Host generated with `npx atlas g host` and an App generated with `npx atlas g app`. See the [tutorial](../get-started/tutorial.md).
+- You can share a TypeScript file between the Host and its Apps, for example through a workspace library.
 
 ## 1. Declare the host data type
 
-Declare the host SDK interface once and share it. The `hostData` property lists your custom fields. Atlas always adds `hostId` and `name`.
+Declare the Host SDK interface once and share it. The `hostData` property lists your custom fields. Atlas always adds `hostId` and `name`.
 
 ```ts
 // libs/host-contract/src/index.ts — a shared library in your workspace
@@ -31,15 +31,15 @@ export interface CustomerHostSdk {
 
 Keep the fields shallow. To change a nested value, replace the whole top-level field.
 
-The generators name this interface `CustomerHostSdk` in the host's `host.config` file. Move it to the shared library and import it from there.
+The generators name this interface `CustomerHostSdk` in the Host's `host.config` file. Move it to the shared library and import it from there.
 
-## 2. Provide host data from the host
+## 2. Provide host data from the Host
 
-Follow the steps for your host framework.
+Follow the steps for your Host framework.
 
-### React host
+### React Host
 
-In a React host, `src/host.config.tsx` exports `useCustomHostSdkOptions`, which `defineReactHost` calls as a React hook. Return `hostData` from it. When the returned values change, Atlas publishes a new snapshot to every mounted app.
+In a React Host, `src/host.config.tsx` exports `useCustomHostSdkOptions`, which `defineReactHost` calls as a React hook. Return `hostData` from it. When the returned values change, Atlas publishes a new snapshot to every mounted App.
 
 1. Create a store for the live value. This example uses a small store; you can use any state library that works with React hooks.
 
@@ -88,13 +88,13 @@ In a React host, `src/host.config.tsx` exports `useCustomHostSdkOptions`, which 
 
    Replace `@shop/host-contract` with the import path of your shared library.
 
-> **Note:** Atlas creates the React host SDK once, on the first render. After that, only `hostData` changes reach apps. Custom SDK methods and UI callbacks from later renders are ignored, so define them so they do not depend on render-time values.
+> **Note:** Atlas creates the React Host SDK once, on the first render. After that, only `hostData` changes reach Apps. Custom SDK methods and UI callbacks from later renders are ignored, so define them so they do not depend on render-time values.
 
-> **Expected result:** When you call `localeStore.set('fr')`, every mounted app sees `locale: 'fr'`.
+> **Expected result:** When you call `localeStore.set('fr')`, every mounted App sees `locale: 'fr'`.
 
-### Angular host
+### Angular Host
 
-In an Angular host, `src/app/host.config.ts` exports `createCustomHostSdkOptions(injector)`, which `defineAngularHost` calls once. Each top-level `hostData` field can be a plain value or an Angular `Signal`. When a Signal changes, Atlas publishes a new snapshot to every mounted app.
+In an Angular Host, `src/app/host.config.ts` exports `createCustomHostSdkOptions(injector)`, which `defineAngularHost` calls once. Each top-level `hostData` field can be a plain value or an Angular `Signal`. When a Signal changes, Atlas publishes a new snapshot to every mounted App.
 
 1. Expose the live value from a service. This example uses an RxJS `BehaviorSubject`.
 
@@ -138,11 +138,11 @@ In an Angular host, `src/app/host.config.ts` exports `createCustomHostSdkOptions
    - Handle Observable errors before `toSignal`. A Signal created from an errored Observable throws when Atlas reads it.
    - Do not put Signals inside nested objects. Atlas watches only top-level fields.
 
-> **Expected result:** When `session.locale$.next('fr')` runs, every mounted app sees `locale: 'fr'`.
+> **Expected result:** When `session.locale$.next('fr')` runs, every mounted App sees `locale: 'fr'`.
 
 #### If you call startHost directly
 
-`defineAngularHost` passes the host's injector to the runtime as `hostDataInjector`, which keeps Signal fields in sync. If you call `startHost` from `@atlas/runtime/angular` yourself, pass `hostDataInjector` too. Without it, Atlas reads each Signal once at startup and never updates it.
+`defineAngularHost` passes the Host's injector to the runtime as `hostDataInjector`, which keeps Signal fields in sync. If you call `startHost` from `@atlas/runtime/angular` yourself, pass `hostDataInjector` too. Without it, Atlas reads each Signal once at startup and never updates it.
 
 ```ts
 const runtime = await startHost<CustomerHostSdk>({
@@ -151,11 +151,11 @@ const runtime = await startHost<CustomerHostSdk>({
 });
 ```
 
-## 3. Read host data in an app
+## 3. Read host data in an App
 
-Read the snapshot through the framework SDK. Both adapters update consumers automatically, even when the host uses the other framework.
+Read the snapshot through the framework SDK. Both adapters update consumers automatically, even when the Host uses the other framework.
 
-### React app
+### React App
 
 `useAtlasSdk` returns plain values and re-renders the component when host data changes.
 
@@ -170,7 +170,7 @@ export function Greeting() {
 }
 ```
 
-### Angular app
+### Angular App
 
 `injectAtlasSdk` returns `hostData` as a Signal. Call it to read the current snapshot.
 
@@ -192,7 +192,7 @@ export class GreetingComponent {
 
 ## Update host data from a custom integration
 
-Prefer the reactive options above. If you start a host yourself with `startHost` from `@atlas/runtime/react` or `@atlas/runtime/angular`, the returned runtime has an `updateHostData(updates)` method that merges the fields you pass and notifies every app:
+Prefer the reactive options above. If you start a Host yourself with `startHost` from `@atlas/runtime/react` or `@atlas/runtime/angular`, the returned runtime has an `updateHostData(updates)` method that merges the fields you pass and notifies every App:
 
 ```ts
 runtime.updateHostData({ locale: 'fr' });
@@ -200,11 +200,11 @@ runtime.updateHostData({ locale: 'fr' });
 
 `updateAtlasHostData(sdk, updates)` from `@atlas/sdk/host` does the same for an SDK object you created with `createAtlasSdk`.
 
-> **Warning:** Do not pass the object returned by `useAtlasSdk()` or `injectAtlasSdk()` to `updateAtlasHostData`. Those are framework facades over the SDK, and the update does not reach the underlying SDK that apps read.
+> **Warning:** Do not pass the object returned by `useAtlasSdk()` or `injectAtlasSdk()` to `updateAtlasHostData`. Those are framework facades over the SDK, and the update does not reach the underlying SDK that Apps read.
 
 ## Test components that read host data
 
-Use `mockAtlasEnvironment` from `@atlas/testkit` to supply host data in unit tests. See [Testing apps and hosts](testing-apps-and-hosts.md).
+Use `mockAtlasEnvironment` from `@atlas/testkit` to supply host data in unit tests. See [Testing Apps and Hosts](testing-apps-and-hosts.md).
 
 ## Related
 

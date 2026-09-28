@@ -1,34 +1,38 @@
 ---
 title: Angular production deployment
-description: Build Angular hosts and apps for production and publish them with the shared Atlas release workflow.
+description: Build an Angular Host or App, publish it with Atlas, and verify the deployed Host.
 ---
 
 # Angular production deployment
 
-This page covers the Angular-specific steps of a release: building the Angular output and handing it to `npx atlas publish`. Everything after publication, such as deployment, rollback, and the static bootstrap page, is the same for every framework and lives in [Production deployment](../../deploy/production-deployment.md).
+This page covers the Angular-specific part of a release: building the Angular output, publishing it, how Native Federation shares Angular packages, and verifying the result. The framework-neutral workflow (registries, environments, deployment, and rollback) is in [Production deployment](../../deploy/production-deployment.md).
 
 ## Before you start
 
 - Configure registry storage and credentials as described in [Production deployment](../../deploy/production-deployment.md#before-you-start).
-- Run the commands below from the workspace root, usually in CI.
+- Run the commands on this page from the workspace root, usually in CI.
 
-## 1. Build the Angular output
+## 1. Build the project
 
-Atlas publishes the output that your Angular build already produced. It does not run the build for you:
+Atlas does not run the Angular build for you. Run the project's `build` script first. Generated projects define it as `ng build`, which uses the production configuration by default:
 
 ```sh
-npm --prefix orders run build
+npm --prefix apps/orders run build
 ```
 
-The generated `build` script runs `ng build`, which uses the production configuration by default. In an Nx workspace, run the project's build target instead, for example `npx nx build orders`. The build goes through the Native Federation builder, which writes the browser output and `remoteEntry.json` under `orders/dist/orders`.
+In an Nx workspace, run the project's build target instead, for example `npx nx build orders`.
 
-## 2. Publish an immutable release
+> **Expected result:** The Native Federation builder writes the browser output and `remoteEntry.json` under `apps/orders/dist/orders`.
 
-Publish the build output as a version:
+## 2. Publish a release
+
+Publish the build output as an immutable version:
 
 ```sh
 npx atlas publish orders --version 1.4.0
 ```
+
+Atlas checks the Angular output and `remoteEntry.json`, then uploads the files together with a [published artifact manifest](../../introduction/glossary.md) (`manifest.json`) to the artifact registry. Publishing does not change what users see.
 
 For a pull request or merge request preview, use `--pr` or `--mr` instead of `--version`:
 
@@ -36,11 +40,11 @@ For a pull request or merge request preview, use `--pr` or `--mr` instead of `--
 npx atlas publish orders --mr 123
 ```
 
-Atlas validates the Angular output and `remoteEntry.json`, then uploads the files and an artifact manifest to the artifact registry. Deployment later needs no Angular workspace or build tools. See [PR previews](../pr-previews.md) for preview workflows.
+See [PR previews](../pr-previews.md) for preview workflows.
 
-## 3. Build the host bootstrap once
+## 3. Build the Host bootstrap once
 
-For the host only, generate the static bootstrap files that your web server serves for every environment:
+For the Host only, generate the static bootstrap files that your web server serves for every environment:
 
 ```sh
 npx atlas bootstrap customer-host
@@ -56,28 +60,33 @@ Select the published version for an environment:
 npx atlas deploy orders --to production --version 1.4.0
 ```
 
-Continue with [Production deployment](../../deploy/production-deployment.md) for the complete first rollout, promotion between environments, and rollback.
+Deploying needs Node.js to run the Atlas CLI, but no Angular workspace and no build step. Continue with [Production deployment](../../deploy/production-deployment.md) for the complete first rollout, version selectors, promotion between registries, and rollback.
 
 ## Native Federation in production
 
-Generated Angular projects share every dependency through Native Federation as a singleton with `strictVersion: true` and `requiredVersion: 'auto'`. When the host and an app use compatible versions of a package, they load one copy. Keep the generated sharing rules when you customize `federation.config.mjs` (or `federation.config.js` on Angular 19). See [Angular generators](generators.md#native-federation-config) for the file format.
+Generated Angular projects share every dependency through Native Federation as a singleton with `strictVersion: true` and `requiredVersion: 'auto'`. Keep the generated sharing rules when you customize `federation.config.mjs` (or `federation.config.js` on Angular 19). See [Native Federation config](generators.md#native-federation-config) for the file format.
+
+> **Warning:** The Native Federation runtime ignores `singleton` and `strictVersion`. An App reuses the Host's copy of a shared package only when both resolve exactly the same version. When the versions differ, even by a patch release, the App loads its own bundled copy with no error or warning. Angular dependency injection then breaks across the Host and App boundary. Keep shared package versions identical; see [Shared dependencies](../../deploy/governance.md#shared-dependencies).
 
 If the build warns `No entry point found for <package>`, follow [Native Federation warns about a missing entry point](troubleshooting.md#native-federation-warns-about-a-missing-entry-point) to decide whether to skip the package.
 
 ## Verify
 
-After you deploy, check the public host:
+After you deploy, check the public Host:
 
 ```sh
-npx atlas verify --host-url https://customer.example.com
+npx atlas verify --host-url https://customer.example
 ```
 
-> **Expected result:** Every check passes, including route ownership.
+`npx atlas verify` loads `atlas.runtime.json` from the Host, fetches the host deployment manifest, and checks every Host, App, and Widget artifact in it: federation metadata, content types, CORS headers, cache headers for immutable and mutable files, and route ownership. It exits with an error when it finds a problem. To check several Hosts, pass `--host-urls` with a comma-separated list.
+
+> **Expected result:** Every check passes.
 
 Your CI/CD system still owns the web server for the bootstrap files, CDN configuration, credentials, and approval gates. See [Security](../../deploy/security.md) and [Production readiness](../../deploy/production-readiness.md).
 
 ## Next steps
 
-- [Production deployment](../../deploy/production-deployment.md)
-- [Production readiness](../../deploy/production-readiness.md)
-- [Angular troubleshooting](troubleshooting.md)
+- [Production deployment](../../deploy/production-deployment.md) for the full release workflow.
+- [PR previews](../pr-previews.md) to review changes before release.
+- [Workspaces and CI](../workspaces-and-ci.md) to publish only affected projects.
+- [Angular troubleshooting](troubleshooting.md) if a build or deploy fails.

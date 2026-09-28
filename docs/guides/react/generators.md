@@ -1,110 +1,73 @@
 ---
 title: React generators
-description: Generate React Hosts, React Apps, and React Widgets with the Atlas CLI, and learn which options and versions they support.
+description: Generate React Hosts, React Apps, and React Widgets with the Atlas CLI, and learn which React versions they support.
 ---
 
 # React generators
 
-The `npx atlas g` command (short for `generate`) creates React Hosts, Apps, and Widgets as
-normal Vite and React projects with Atlas configuration added. This page lists the commands,
-their main options, and the files they create. For every option, see the
-[CLI reference](../../reference/cli.md).
+The `npx atlas g` command (short for `generate`) creates React Hosts, Apps, and Widgets as normal Vite and React projects with Atlas configuration added. This page shows the React commands, what the CLI asks, and which React versions Atlas supports. For every option, see the [CLI reference](../../reference/cli.md#generate-host-and-generate-app). For every generated file, see [React project structure](project-structure.md).
 
 Run the commands on this page from the workspace root.
 
-## Generate a host
+## Generate a Host
 
 ```sh
 npx atlas g host customer-host --framework react
 ```
 
-The generator creates `package.json`, `tsconfig.json`, `vite.config.ts`, `atlas.config.ts`
-with a new Host ID, `atlas.bootstrap.html`, `index.html`, and these source files:
+In an interactive terminal, the CLI asks "Which port would you like to use for the dev server?" Press Enter to accept the suggestion: `4200`, or the next port that no other project in the workspace uses. Pass `--port` to skip the question.
 
-| File                  | Purpose                                                                                         |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/bootstrap.tsx`   | Exports `mount` from `defineReactHost({ config, layout, reactDom, providers, useSdkOptions })`. |
-| `src/host-layout.tsx` | `HostLayout` with the default host anchors.                                                     |
-| `src/host.config.tsx` | `CustomerHostSdk`, `HostProviders`, and `useCustomHostSdkOptions()`.                            |
-| `src/main.tsx`        | Stub for the Vite page.                                                                         |
-| `src/styles.css`      | Global Host styles.                                                                             |
+The generator writes a new Host ID to `atlas.config.ts`. See [Host files](project-structure.md#host-files) for what it creates, and [Build a React Host](host.md) for what to do next.
 
-[Build a React host](host.md#1-generate-the-host) explains each file.
+## Generate an App
 
-## Generate an app
+Replace the example UUID with your Host ID from the Host's `atlas.config.ts`:
 
 ```sh
-npx atlas g app orders --framework react --host-id <host-id>
+npx atlas g app orders --framework react --host-id 0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-Replace `<host-id>` with the `id` from the Host's `atlas.config.ts`. With `--host-id`, the
-App starts with a `/orders` route in that Host. Without it, the App has no routes until you
-add them.
+With `--host-id`, the App starts with a `/orders` route in that Host. Without it, the App has no routes until you add them.
 
-The generator creates `package.json`, `tsconfig.json`, `vite.config.ts`, `atlas.config.ts`
-with a new App ID, `index.html`, and these source files:
+In an interactive terminal, the CLI asks two more questions:
 
-| File                             | Purpose                                                  | Created when |
-| -------------------------------- | -------------------------------------------------------- | ------------ |
-| `src/bootstrap.tsx`              | App lifecycle from `createRoutedApp()` or `defineApp()`. | Always       |
-| `src/App.tsx`                    | Root component.                                          | Always       |
-| `src/index.css`                  | App styles (empty).                                      | Always       |
-| `src/exported-widgets/README.md` | Explains how to add Widgets.                             | Always       |
-| `src/routes.tsx`                 | Inner routes: an index route and `details/:id`.          | With routing |
-| `src/home/Home.tsx`              | Sample index screen.                                     | With routing |
-| `src/details/Details.tsx`        | Sample details screen.                                   | With routing |
+- "Add Atlas inner routing to this app?" Pass `--routing true` or `--no-routing` to decide up front. Non-interactive runs create a routed App.
+- "Which port would you like to use for the dev server?" Press Enter to accept the suggestion: `4201`, or the next port that no other project in the workspace uses. Pass `--port` to skip the question.
 
-In an interactive terminal the CLI asks whether to add inner routing. Pass `--routing` or
-`--no-routing` to decide up front. Non-interactive runs create a routed App.
+The generator writes a new App ID to `atlas.config.ts`. See [App files](project-structure.md#app-files) for what it creates, and [Build a React App](app.md) for what to do next.
 
-## Generate a widget
+## Generate a Widget
+
+Replace the example UUID with the owning App's ID from its `atlas.config.ts`:
 
 ```sh
-npx atlas g widget order-summary --app-id <app-id>
+npx atlas g widget order-summary --app-id 2bea9c13-4899-4f93-9211-cd8c55e9c529
 ```
 
-Replace `<app-id>` with the `id` from the owning App's `atlas.config.ts`. If you omit
-`--app-id`, the CLI asks you to pick one of the configured Apps. The generator creates:
+If you omit `--app-id`, the CLI asks you to pick one of the configured Apps. Pass `--force` to replace an existing Widget with the same name. See [Widget files](project-structure.md#widget-files) for what it creates, and [Export a Widget](sdk.md#export-a-widget) for how to share it.
 
-- `src/exported-widgets/order-summary/atlas.config.ts` with a new Widget ID and a name;
-- `src/exported-widgets/order-summary/index.tsx` with a default-exported component.
+## React options
 
-Consumers render the Widget with `sdk.getWidget('<widget-id>')`. The folder name is internal.
-Pass `--force` to replace an existing Widget with the same name. See
-[Use widgets](sdk.md#use-widgets).
+The [CLI reference](../../reference/cli.md#generate-host-and-generate-app) lists every option. These notes apply to React projects:
 
-## Common options
-
-| Option                        | Applies to | Effect                                                                          |
-| ----------------------------- | ---------- | ------------------------------------------------------------------------------- |
-| `--framework react`           | Host, App  | Selects React. In an interactive terminal the CLI asks when you omit it.        |
-| `--framework-version <range>` | Host, App  | React version for new packages. Existing Nx packages keep their React version.  |
-| `--port <number>`             | Host, App  | Dev-server port. Defaults to the next free port from 4200 (Host) or 4201 (App). |
-| `--directory <path>`          | Host, App  | Target directory.                                                               |
-| `--skip-install`              | Host, App  | Writes files without installing dependencies.                                   |
-| `--skip-format`               | Host, App  | Skips formatting the generated files.                                           |
-| `--force`                     | All        | Writes into an existing directory, or replaces an existing Widget.              |
-
-## Workspaces
-
-In an Nx workspace, Atlas first runs `@nx/react:application` to create the project, then adds
-its own files. Pass `--skip-workspace-generator` to skip the Nx generator. In Turborepo,
-pnpm, Yarn, npm, or standalone projects, Atlas creates a package that the workspace discovers
-normally.
-
-Read [Workspaces and monorepos](../workspaces-and-ci.md) before generating inside a large
-repository.
+- `--framework react` selects React. In an interactive terminal the CLI asks when you omit it; non-interactive runs default to React.
+- `--framework-version <range>` sets the React version for new packages. In an existing Nx workspace, Atlas keeps the workspace's React version.
+- `--style` applies only to Angular projects.
 
 ## Framework versions
 
-Atlas generates React 19 by default and supports React 17, 18, and 19. React 18 and 19
-projects use React Router 7; React 17 projects use React Router 6. Generating any other
-major version requires `--allow-unsupported-version`.
+Atlas generates React 19 by default and supports React 17, 18, and 19. React 18 and 19 projects use React Router 7; React 17 projects use React Router 6. Generating any other major version requires `--allow-unsupported-version`.
 
-The generated `vite.config.ts` calls `@vitejs/plugin-react` as `react({})`. React Compiler
-setup is up to your project.
+The generated `vite.config.ts` calls `@vitejs/plugin-react` as `react({})`. React Compiler setup is up to your project.
+
+## Workspaces
+
+In an Nx workspace, Atlas first runs `@nx/react:application` to create the project, then adds its own files. Pass `--skip-workspace-generator` to skip the Nx generator. In Turborepo, pnpm, Yarn, npm, or standalone projects, Atlas creates a package that the workspace discovers normally. The target folder depends on the [workspace](../../introduction/glossary.md#workspace) kind; in a standalone project it is `apps/<name>`.
+
+Read [Workspaces and CI](../workspaces-and-ci.md) before generating inside a large repository.
 
 ## Next steps
 
 - [React project structure](project-structure.md) for what each generated file does.
 - [CLI reference](../../reference/cli.md) for every generator option.
+- [React troubleshooting](troubleshooting.md) if generation or installation fails.

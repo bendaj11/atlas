@@ -1,10 +1,10 @@
 # @atlas/cli
 
-The Atlas command-line interface. It generates hosts, apps, and exported widgets, runs them locally, publishes build output to a static registry, deploys releases to environments, creates the host bootstrap files, and verifies deployed hosts.
+The Atlas command-line interface. It generates Hosts, Apps, and exported widgets, runs them locally, publishes build output to a static registry, deploys releases to environments, creates the Host bootstrap files, and verifies deployed Hosts.
 
 ## Install
 
-The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first, then install the CLI as a development dependency:
+The `@atlas` packages are not on the public npm registry. Get them from your organization's registry or build them from source; see [Get the packages](https://github.com/bendaj11/atlas/blob/main/docs/reference/compatibility.md#get-the-packages). Then install the CLI as a development dependency:
 
 ```sh
 npm install --save-dev --save-exact @atlas/cli

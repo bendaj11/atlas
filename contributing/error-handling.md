@@ -72,7 +72,7 @@ A good error names the subject, keeps the technical detail, and gives actions th
 ```text
 Atlas could not load app "orders": https://cdn.example/orders/remoteEntry.json returned HTTP 404.
 Suggested actions:
-1. Verify the app remote entry is present at the URL referenced by the active host manifest.
+1. Verify the app remote entry is present at the URL referenced by the host deployment manifest.
 2. Correct and republish the app manifest, then use Retry in the page.
 ```
 

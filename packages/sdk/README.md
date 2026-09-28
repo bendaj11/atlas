@@ -1,10 +1,10 @@
 # @atlas/sdk
 
-The Atlas SDK. Apps and exported widgets use it to read host data, send events, navigate to other apps, and render widgets. It also contains the React and Angular app adapters and the build-time federation config.
+The Atlas SDK. Apps and exported widgets use it to read host data, send events, navigate to other Apps, and render Widgets. It also contains the React and Angular App adapters and the build-time federation config.
 
 ## Install
 
-The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first. Generated hosts and apps already depend on this package; to add it by hand:
+The `@atlas` packages are not on the public npm registry. Get them from your organization's registry or build them from source; see [Get the packages](https://github.com/bendaj11/atlas/blob/main/docs/reference/compatibility.md#get-the-packages). Generated Hosts and Apps already depend on this package; to add it by hand:
 
 ```sh
 npm install @atlas/sdk
@@ -26,7 +26,7 @@ export function Locale() {
 }
 ```
 
-Angular apps use `injectAtlasSdk()` from `@atlas/sdk/angular` instead.
+Angular Apps use `injectAtlasSdk()` from `@atlas/sdk/angular` instead.
 
 ## Entry points
 
@@ -35,6 +35,6 @@ Angular apps use `injectAtlasSdk()` from `@atlas/sdk/angular` instead.
 ## Documentation
 
 - [SDK reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/sdk.md)
-- [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md)
-- [Share host data](https://github.com/bendaj11/atlas/blob/main/docs/guides/host-data.md)
-- [Errors](https://github.com/bendaj11/atlas/blob/main/docs/reference/errors.md)
+- [Public API reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md)
+- [Share host data with Apps](https://github.com/bendaj11/atlas/blob/main/docs/guides/host-data.md)
+- [Errors reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/errors.md)

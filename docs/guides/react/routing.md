@@ -5,32 +5,58 @@ description: Place React Apps at Host URLs, build layouts and navigation in a Re
 
 # React routing
 
-This guide shows how URLs work in a React Host and a React App: where Apps mount, how the
-Host renders navigation and layouts, and how an App routes inside its own path. Read
-[Routing](../../concepts/routing.md) first for the rules that apply to every framework.
+This guide shows how URLs work in a React Host and a React App: where Apps mount, how the Host renders navigation and layouts, and how an App routes inside its own path. Read [Routing](../../concepts/routing.md) first for the rules that apply to every framework. You need a React Host from [Build a React Host](host.md) and an App from [Build a React App](app.md).
 
 ## How routing works
 
-The Host owns the browser URL. Each App declares the paths it serves in its
-`atlas.config.ts`, and Atlas mounts the matching App into the Host's route outlet:
+The Host owns the browser URL. Each App declares the paths it serves in its `atlas.config.ts`, and Atlas mounts the matching App into the Host's route outlet:
 
 1. The App declares a route such as `{ hostId, path: '/orders' }`.
-2. When you publish the App, Atlas copies its routes and slots into the App's
-   [artifact manifest](../../introduction/glossary.md).
-3. When you deploy a version, that App becomes part of the Host's
-   [host catalog](../../introduction/glossary.md) for the environment.
-4. In the browser, Atlas compares the current pathname with the routes in the catalog and
-   mounts the matching App into `AtlasRouteOutlet`. `/orders` and `/orders/details/42` both
-   match `/orders`.
+2. When you publish the App, Atlas copies its routes and slots into the App's [published artifact manifest](../../introduction/glossary.md).
+3. When you deploy a version, that App becomes part of the Host's [host catalog](../../introduction/glossary.md) for the environment.
+4. In the browser, Atlas compares the current pathname with the routes in the catalog and mounts the matching App into `AtlasRouteOutlet`. `/orders` and `/orders/details/42` both match `/orders`.
 5. Inside the App, a React Router memory router handles the part of the URL after `/orders`.
 
-The Host never imports Apps or keeps a route table in its source code.
+The Host never imports Apps or keeps a route table in its source code. See [Architecture](../../introduction/architecture.md) for the full request flow.
 
-## Lay out the host
+## Declare App routes and slots
 
-A React Host places Apps with host anchors from `@atlas/runtime/react`. Routed Apps mount in
-`AtlasRouteOutlet`. Slot Apps mount in the `AtlasSlot` whose `slotId` matches their
-declaration:
+An App declares its placement in `atlas.config.ts`. This App has one route and one slot in the same Host:
+
+```ts
+import type { AtlasAppConfig } from '@atlas/schema' with {
+  'resolution-mode': 'import',
+};
+
+export default {
+  type: 'app',
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'react',
+  routes: [
+    {
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      path: '/orders',
+      title: 'Orders',
+      nav: { label: 'Orders', visible: true, order: 10 },
+    },
+  ],
+  slots: [
+    {
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      slotId: 'header',
+    },
+  ],
+} satisfies AtlasAppConfig;
+```
+
+Replace `hostId` with your Host ID from the Host's `atlas.config.ts`. The [configuration reference](../../reference/configuration.md#route-fields) lists every route and slot field and the path rules. A slot's `slotId` must match an `AtlasSlot` in the Host.
+
+When several routes match a URL, the route with the longest `path` wins. Each path should belong to one App. If two deployed Apps claim the same path in a Host, Atlas keeps the first one, logs an error, and `npx atlas verify` reports the conflict under **route ownership**. Coordinate path ownership between teams; see [Governance](../../deploy/governance.md).
+
+## Lay out the Host
+
+A React Host places Apps with host anchors from `@atlas/runtime/react`. Routed Apps mount in `AtlasRouteOutlet`. Slot Apps mount in the `AtlasSlot` whose `slotId` matches their declaration:
 
 ```tsx
 import {
@@ -61,53 +87,11 @@ export function HostLayout() {
 }
 ```
 
-`defineReactHost()` renders this component for every URL, so you do not create a router in
-the Host. See [Build a React host](host.md#3-build-the-host-layout) for what each anchor
-renders.
-
-## Render custom navigation
-
-`AtlasNavigation` renders a basic list of links. To use your own design system, call
-`useAtlasNavigationItems()` in a component inside the Host layout and render the items
-yourself:
-
-```tsx
-import { useAtlasNavigationItems } from '@atlas/runtime/react';
-
-export function ProductNavigation() {
-  const items = useAtlasNavigationItems();
-
-  return (
-    <nav aria-label="Applications">
-      {items.map((item) => (
-        <a
-          key={item.id}
-          href={item.href}
-          aria-current={item.active ? 'page' : undefined}
-          onClick={(event) => {
-            event.preventDefault();
-            item.navigate();
-          }}
-        >
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  );
-}
-```
-
-Each item has `id`, `appId`, `appName`, `path`, `href`, `label`, `title`, `order`, `active`,
-and `navigate()`. Atlas still decides which routes appear, their order, and which one is
-active; your component only owns the markup. Routes with `nav.visible: false` and redirect
-routes do not appear. When a route has no `nav.label`, the link uses the route `title`, then
-the App name.
+`defineReactHost()` renders this component for every URL, so you do not create a router in the Host. See [Build the Host layout](host.md#3-build-the-host-layout) for what each anchor renders.
 
 ## Use more than one layout
 
-Some pages need a different frame, such as a full-screen editor without the sidebar. Render
-one `AtlasHostLayout` per frame, each with its own `AtlasRouteOutlet`. Atlas shows only the
-layout that the current route activates:
+Some pages need a different frame, such as a full-screen editor without the sidebar. Render one `AtlasHostLayout` per frame, each with its own `AtlasRouteOutlet`. Atlas shows only the layout that the current route activates:
 
 ```tsx
 import {
@@ -149,60 +133,41 @@ routes: [
 
 Routes without `layoutId` use `"default"`. Redirect routes do not activate a layout.
 
-## Declare app routes and slots
+## Render custom navigation
 
-An App declares its placement in `atlas.config.ts`. This App has one route and one slot in
-the same Host:
+`AtlasNavigation` renders a basic list of links. To use your own design system, call `useAtlasNavigationItems()` in a component inside the Host layout and render the items yourself:
 
-```ts
-import type { AtlasAppConfig } from '@atlas/schema' with {
-  'resolution-mode': 'import',
-};
+```tsx
+import { useAtlasNavigationItems } from '@atlas/runtime/react';
 
-export default {
-  type: 'app',
-  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
-  name: 'Orders',
-  framework: 'react',
-  routes: [
-    {
-      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-      path: '/orders',
-      title: 'Orders',
-      nav: { label: 'Orders', visible: true, order: 10 },
-    },
-  ],
-  slots: [
-    {
-      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-      slotId: 'header',
-    },
-  ],
-} satisfies AtlasAppConfig;
+export function ProductNavigation() {
+  const items = useAtlasNavigationItems();
+
+  return (
+    <nav aria-label="Applications">
+      {items.map((item) => (
+        <a
+          key={item.id}
+          href={item.href}
+          aria-current={item.active ? 'page' : undefined}
+          onClick={(event) => {
+            event.preventDefault();
+            item.navigate();
+          }}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
 ```
 
-Route fields:
-
-| Field        | Required | Meaning                                                                                               |
-| ------------ | -------- | ----------------------------------------------------------------------------------------------------- |
-| `hostId`     | Yes      | The ID from the Host's `atlas.config.ts`.                                                             |
-| `path`       | Yes      | The URL path, such as `/orders`. No query string or hash.                                             |
-| `match`      | No       | `'prefix'` (default) matches the path and everything below it. `'full'` matches only the exact path.  |
-| `redirectTo` | No       | Replaces the URL with another path instead of mounting this App.                                      |
-| `layoutId`   | No       | The `AtlasHostLayout` to show while this route is active. Defaults to `"default"`.                    |
-| `title`      | No       | A static page title the Host can show before the App sets its own.                                    |
-| `nav`        | No       | Navigation link: `label`, `order` (lower first, default `0`), and `visible` (`false` hides the link). |
-
-Slot fields are `hostId` and `slotId`. The `slotId` must match an `AtlasSlot` in the Host.
-
-Each path should belong to one App. If two deployed Apps claim the same path in a Host,
-Atlas mounts only one of them and reports the conflict. Coordinate path ownership between
-teams; see [Governance](../../deploy/governance.md).
+Each item has `id`, `appId`, `appName`, `path`, `href`, `label`, `title`, `order`, `active`, and `navigate()`. Atlas still decides which routes appear, their order, and which one is active; your component only owns the markup. Routes with `nav.visible: false` and redirect routes do not appear. When a route has no `nav.label`, the link uses the route `title`, then the App name.
 
 ## Define inner routes
 
-Inside the App, React Router handles the part of the URL below the App's path. Generated
-routed Apps define routes in `src/routes.tsx`:
+Inside the App, React Router handles the part of the URL below the App's path. Generated routed Apps define routes in `src/routes.tsx`:
 
 ```tsx
 import type { RouteObject } from 'react-router-dom';
@@ -222,8 +187,7 @@ export const routes: RouteObject[] = [
 ];
 ```
 
-`src/bootstrap.tsx` creates a memory router, so the App never becomes a second owner of the
-browser history:
+`src/bootstrap.tsx` creates a memory router, so the App never becomes a second owner of the browser history:
 
 ```tsx
 import { createElement } from 'react';
@@ -241,22 +205,17 @@ export default createRoutedApp({
 });
 ```
 
-`createRouterOptions(context)` starts the router at the current inner URL.
-`createRoutedApp()` keeps the router and the browser URL in sync in both directions:
-navigation inside the App updates the browser URL, and browser back and forward update the
-App. Use `Link`, `useNavigate`, and `Outlet` as usual:
+`createRouterOptions(context)` starts the router at the current inner URL. `createRoutedApp()` keeps the router and the browser URL in sync in both directions: navigation inside the App updates the browser URL, and browser back and forward update the App. Use `Link`, `useNavigate`, and `Outlet` as usual:
 
 ```tsx
 <Link to="details/42">Open order 42</Link>
 ```
 
-Inside the App, `/` is the App's root. The browser shows `/orders/details/42` because the
-App is mounted at `/orders`.
+Inside the App, `/` is the App's root. The browser shows `/orders/details/42` because the App is mounted at `/orders`.
 
-## Navigate to another app
+## Navigate to another App
 
-Use React Router only for screens inside the same App. To go to another App, call
-`navigateTo()` on the SDK with the destination App's ID:
+Use React Router only for screens inside the same App. To go to another App, call `navigateTo()` on the SDK with the destination App's ID:
 
 ```tsx
 import { useAtlasSdk } from '@atlas/sdk/react';
@@ -277,16 +236,12 @@ export function OpenCustomersButton() {
 }
 ```
 
-Atlas looks up the destination App's current path in this Host, adds the `state` values as
-query parameters (`undefined` values are skipped, `null` becomes an empty value), and
-navigates. If the destination App has no route in this Host, `navigateTo()` throws an error
-with the code `ATLAS_APP_ROUTE_NOT_FOUND`. See the [SDK reference](../../reference/sdk.md)
-for the full signature.
+Replace the UUID with the destination App's ID from its `atlas.config.ts`. Atlas looks up the destination App's current path in this Host, adds the `state` values as query parameters (`undefined` values are skipped, `null` becomes an empty value), and navigates. If the destination App has no route in this Host, `navigateTo()` throws an error with the code `ATLAS_APP_ROUTE_NOT_FOUND`. See the [SDK reference](../../reference/sdk.md) for the full signature.
 
 ## Common mistakes
 
-- Using `createBrowserRouter` inside an App. Apps use `createMemoryRouter` with
-  `createRouterOptions(context)`.
+- Writing `route` instead of `path` in a route entry.
+- Using `createBrowserRouter` inside an App. Apps use `createMemoryRouter` with `createRouterOptions(context)`.
 - Removing `AtlasRouteOutlet`, or the `default` layout, from the Host.
 - Hard-coding App URLs or remote URLs in Host code.
 - Claiming a path that another App already owns.

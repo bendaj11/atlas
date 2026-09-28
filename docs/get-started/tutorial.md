@@ -5,15 +5,11 @@ description: Create a Host and an App in an empty folder and see the App running
 
 # Tutorial
 
-In this tutorial, you create a React Host and a React App in an empty folder,
-run both on your machine, and see the App inside the Host in your browser. It
-takes about 15 minutes and assumes no prior Atlas knowledge. You need basic
-familiarity with the terminal and with React or Angular.
+In this tutorial, you create a React Host and a React App in an empty folder, run both on your machine, and see the App inside the Host in your browser. It takes about 15 minutes and assumes no prior Atlas knowledge. You need basic familiarity with the terminal and with React or Angular.
 
 By the end, you will have:
 
-- a Host called `customer-host` with a header, a navigation menu, and a route
-  outlet;
+- a Host called `customer-host` with a header, a navigation menu, and a route outlet;
 - an App called `orders` that appears at `/orders` in that Host;
 - both running locally with `npx atlas dev`.
 
@@ -23,18 +19,10 @@ If a term is new to you, look it up in the [Glossary](../introduction/glossary.m
 
 You need:
 
-- **Node.js 22.12 or later in the 22.x line, or Node.js 24** (`^22.12.0 || ^24.0.0`).
-  Check with `node --version`.
+- **Node.js 22.12 or later in the 22.x line, or Node.js 24** (`^22.12.0 || ^24.0.0`). Check with `node --version`.
 - **npm**, which ships with Node.js.
-- **Access to the npm registry that hosts the `@atlas` packages.** The
-  `@atlas` packages are not published to the public npm registry
-  (npmjs.org). If your organization publishes them to a private registry, add
-  the scope to your user `.npmrc`, for example
-  `@atlas:registry=https://registry.example.com/`. Ask your platform team for
-  the URL.
-- **A modern browser.** You do not need the [Columbus](../guides/columbus.md)
-  extension for this tutorial. Columbus is only needed when you run a local
-  App against a Host that is deployed somewhere else.
+- **Access to the `@atlas` packages.** They are not on the public npm registry. [Get the packages](../reference/compatibility.md#get-the-packages) explains how to install them from your organization's registry or build them from source.
+- **A modern browser.** You do not need the [Columbus](../guides/columbus.md) extension for this tutorial. Columbus is only needed when you run a local App against a Host that is deployed somewhere else.
 
 Ports 4200, 4201, 4300, and 4400 must be free.
 
@@ -48,10 +36,7 @@ cd atlas-tutorial
 npm init -y
 ```
 
-This creates an empty project with one `package.json`. Atlas calls this
-layout a standalone project. Atlas also works inside Nx, Turborepo, and npm,
-pnpm, or Yarn workspaces; see [Workspaces and CI](../guides/workspaces-and-ci.md)
-when you are ready to add Atlas to an existing repository.
+This creates an empty project with one `package.json`. Atlas calls this layout a standalone project. Atlas also works inside Nx, Turborepo, and npm, pnpm, or Yarn workspaces; see [Workspace](../introduction/glossary.md#workspace) and [Workspaces and CI](../guides/workspaces-and-ci.md) when you are ready to add Atlas to an existing repository.
 
 ## 2. Install the Atlas CLI
 
@@ -61,26 +46,27 @@ In the `atlas-tutorial` folder, run:
 npm install --save-dev --save-exact @atlas/cli
 ```
 
+This command works when your `.npmrc` points the `@atlas` scope at a registry that has the packages. If you built the packages from source, install the CLI tarball as described in [Get the packages](../reference/compatibility.md#build-from-source) instead, and add `--skip-install` to the two generate commands below.
+
 Check that the CLI works:
 
 ```sh
 npx atlas --help
 ```
 
-> **Expected result:** The command prints the Atlas command list, including
-> `generate`, `dev`, `publish`, and `deploy`.
+> **Expected result:** The command prints the Atlas command list, including `generate`, `dev`, `publish`, and `deploy`.
 
 ## 3. Generate the Host
 
-The Host is the page users open. It owns the layout and the navigation, and it
-shows Apps inside it. In the `atlas-tutorial` folder, run:
+The Host is the page users open. It owns the layout and the navigation, and it shows Apps inside it. In the `atlas-tutorial` folder, run:
 
 ```sh
-npx atlas g host customer-host --framework=react
+npx atlas g host customer-host --framework react --port 4200
 ```
 
-Atlas creates the project in `apps/customer-host` and installs its
-dependencies. This can take a minute.
+`--port 4200` sets the port of the local Host page. If you leave it out, Atlas asks `Which port would you like to use for the dev server?`; press Enter to accept the suggestion. Atlas suggests the first port from 4200 (4201 for an App) that no other project in the workspace uses, so a new project gets 4200.
+
+Atlas creates the project in `apps/customer-host` and installs its dependencies. This can take a minute.
 
 > **Expected result:** The output ends with lines similar to these:
 >
@@ -93,8 +79,7 @@ dependencies. This can take a minute.
 > ✓ Created "customer-host" at /Users/you/atlas-tutorial/apps/customer-host.
 > ```
 
-Open `apps/customer-host/atlas.config.ts`. It looks like this, with a
-different UUID:
+Open `apps/customer-host/atlas.config.ts`. It looks like this, with a different UUID:
 
 ```ts
 import type { AtlasHostConfig } from '@atlas/schema' with {
@@ -109,29 +94,21 @@ export default {
 } satisfies AtlasHostConfig;
 ```
 
-The `id` is the host ID. Apps use it to say which Host they appear in. Copy
-your own value; you need it in the next step.
+The `id` is the [Host ID](../introduction/glossary.md#host-id). Apps use it to say which Host they appear in. Copy your own value; you need it in the next step.
 
 ## 4. Generate the App
 
-An App is a feature that appears inside a Host. In the `atlas-tutorial`
-folder, run the following command. Replace the UUID with the host ID you
-copied in step 3:
+An App is a feature that appears inside a Host. In the `atlas-tutorial` folder, run the following command. Replace the UUID with your Host ID from `apps/customer-host/atlas.config.ts`:
 
 ```sh
-npx atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506 --routing
+npx atlas g app orders --framework react --host-id 0a17281f-287b-4d89-a8ca-0ab0e577c506 --routing true --port 4201
 ```
 
-`--routing` creates sample inner routes (a home page and a details page), so
-Atlas does not ask you about them.
+`--routing true` creates sample inner routes (a home page and a details page), and `--port 4201` sets the App's dev-server port, so Atlas does not ask you about either.
 
-> **Expected result:** Atlas creates `apps/orders` and installs its
-> dependencies. The output ends with
-> `✓ Created "orders" at /Users/you/atlas-tutorial/apps/orders.`
+> **Expected result:** Atlas creates `apps/orders` and installs its dependencies. The output ends with `✓ Created "orders" at /Users/you/atlas-tutorial/apps/orders.`
 
-Open `apps/orders/atlas.config.ts`. The `routes` entry tells Atlas to show this
-App at `/orders` in your Host and to add an **Orders** item to the Host's
-navigation:
+Open `apps/orders/atlas.config.ts`. The `routes` entry tells Atlas to show this App at `/orders` in your Host and to add an **Orders** item to the Host's navigation:
 
 ```ts
 routes: [
@@ -146,13 +123,9 @@ routes: [
 
 ## 5. Tell the App which Host page to open
 
-When you run an App with `npx atlas dev`, Atlas needs to know which Host page
-to show it in. You declare that page in the App's `package.json`. Without it,
-`npx atlas dev orders` stops with the error
-`package.json atlas.previews is required for atlas dev apps.`
+When you run an App with `npx atlas dev`, Atlas needs to know which Host page to show it in. You declare that page in the App's `package.json`. Without it, `npx atlas dev orders` stops with the error `package.json atlas.previews is required for atlas dev apps.`
 
-Open `apps/orders/package.json`. Find the generated `atlas` field and add the
-local Host address to `previews`:
+Open `apps/orders/package.json`. Find the generated `atlas` field and add the local Host address to `previews`:
 
 ```json
 {
@@ -162,9 +135,7 @@ local Host address to `previews`:
 }
 ```
 
-The local Host always runs on `http://localhost:4200` unless you change its
-port. Because the URL has no path, Atlas adds the App's route path and opens
-`http://localhost:4200/orders`.
+The local Host page runs on the port you chose in step 3. Because the URL has no path, Atlas adds the App's route path and opens `http://localhost:4200/orders`.
 
 ## 6. Start the Host
 
@@ -176,8 +147,7 @@ npx atlas dev customer-host
 
 Leave this terminal running.
 
-> **Expected result:** After the React dev server starts, the output ends with
-> lines similar to these, and your browser opens the Host:
+> **Expected result:** After the React dev server starts, the output ends with lines similar to these, and your browser opens the Host:
 >
 > ```text
 > Atlas · Develop · customer-host
@@ -187,8 +157,7 @@ Leave this terminal running.
 > App preview: http://localhost:4200
 > ```
 >
-> The page shows an **Atlas** header and an empty navigation menu. No App is
-> running yet.
+> The page shows an **Atlas** header and an empty navigation menu. No App is running yet.
 
 ## 7. Start the App
 
@@ -200,8 +169,7 @@ npx atlas dev orders
 
 Leave this terminal running too.
 
-> **Expected result:** The output ends with lines similar to these, and your
-> browser opens the Orders page:
+> **Expected result:** The output ends with lines similar to these, and your browser opens the Orders page:
 >
 > ```text
 > Atlas · Develop · orders
@@ -212,17 +180,11 @@ Leave this terminal running too.
 
 ## 8. See the App in the Host
 
-Look at the browser tab at `http://localhost:4200/orders`. If the page was
-already open, reload it.
+Look at the browser tab at `http://localhost:4200/orders`. If the page was already open, reload it.
 
-> **Expected result:** The page shows the Host's **Atlas** header, an
-> **Orders** item in the navigation, and, below it, the Orders App: an
-> **Orders** heading, **Home** and **Details** links, and the text
-> **Orders home**. Select **Details** and the URL changes to
-> `/orders/details/42`.
+> **Expected result:** The page shows the Host's **Atlas** header, an **Orders** item in the navigation, and, below it, the Orders App: an **Orders** heading, **Home** and **Details** links, and the text **Orders home**. Select **Details** and the URL changes to `/orders/details/42`.
 
-Now edit `apps/orders/src/home/Home.tsx`, change the text, and save. The App's
-dev server rebuilds; reload the page to see the change.
+Now edit `apps/orders/src/home/Home.tsx`, change the text, and save. The App's dev server rebuilds; reload the page to see the change.
 
 To stop, press `Ctrl+C` in each terminal.
 
@@ -232,7 +194,7 @@ To stop, press `Ctrl+C` in each terminal.
 flowchart LR
   subgraph T1["Terminal 1: npx atlas dev customer-host"]
     HostDev["Host dev server<br/>localhost:4300"]
-    Page["Local host page<br/>localhost:4200"]
+    Page["Local Host page<br/>localhost:4200"]
     Control["Development session<br/>localhost:4400"]
   end
   subgraph T2["Terminal 2: npx atlas dev orders"]
@@ -245,50 +207,40 @@ flowchart LR
   Browser -->|"4. load App code"| AppDev
 ```
 
-1. `npx atlas dev customer-host` started the Host's Vite dev server on port
-   4300, a local host page on port 4200 that plays the role of the production
-   bootstrap page, and a development session on port 4400.
-2. `npx atlas dev orders` started the App's Vite dev server on port 4201 and
-   registered the local Orders build with the development session that was
-   already running.
-3. The local host page read the development session instead of a deployed
-   registry. It loaded the Host from port 4300, matched `/orders` to the
-   Orders route, and loaded the App from port 4201 into the Host's route
-   outlet.
+1. `npx atlas dev customer-host` started the Host's Vite dev server on port 4300, a local Host page on port 4200 that plays the role of the production bootstrap page, and a [development session](../introduction/glossary.md#development-session) on port 4400.
+2. `npx atlas dev orders` started the App's Vite dev server on port 4201 and registered the local Orders build with the development session that was already running.
+3. The local Host page read the development session instead of a deployed registry. It loaded the Host from port 4300, matched `/orders` to the Orders route, and loaded the App from port 4201 into the Host's route outlet.
 
-In production, the same Host and App code is loaded from an artifact registry
-instead of local dev servers. [Architecture](../introduction/architecture.md)
-explains that flow.
+In production, the same Host and App code is loaded from an artifact registry instead of local dev servers. [Architecture](../introduction/architecture.md) explains that flow.
 
 ## Try Angular instead
 
-Every step works the same with Angular. Use `--framework=angular` in steps 3
-and 4. Atlas lets you mix frameworks, so an Angular Host can show a React App.
+Every step works with Angular too. These are the differences:
+
+- **Generate commands.** Use `--framework angular` in steps 3 and 4. Atlas also asks `Which stylesheet format would you like to use?` (CSS, SCSS, Sass, or Less). Pass `--style css` or another format to skip the prompt:
+
+  ```sh
+  npx atlas g host customer-host --framework angular --style css --port 4200
+  npx atlas g app orders --framework angular --style css --host-id 0a17281f-287b-4d89-a8ca-0ab0e577c506 --routing true --port 4201
+  ```
+
+- **Files.** The Host layout with its host anchors is in `apps/customer-host/src/app/app.component.ts`. The App's lifecycle entry is `apps/orders/src/entry.ts`, and the home page text in step 8 is in `apps/orders/src/app/home/home.component.ts`. See [Angular project structure](../guides/angular/project-structure.md) for every generated file.
+- **Dev-server output.** `npx atlas dev` starts the Angular CLI dev server instead of Vite, so the output shows `i Starting Angular dev server on port 4300` for the Host and `i Starting Angular dev server on port 4201` for the App.
+
+Atlas lets you mix frameworks, so an Angular Host can show a React App and a React Host can show an Angular App.
 
 ## Troubleshooting
 
-- **`package.json atlas.previews is required for atlas dev apps.`** You skipped
-  step 5. Add the `previews` entry to `apps/orders/package.json`.
-- **The Orders page is blank or shows a loading error.** Make sure the Host is
-  still running in the first terminal, then reload the page.
-- **A port is already in use.** Stop the other process, or see
-  [Local development](../guides/local-development.md) for the `--port`,
-  `--bootstrap-port`, and `--control-port` options.
-- **`npm install` fails with `404 Not Found` for `@atlas/cli`.** npm cannot
-  find the `@atlas` packages. Configure the `@atlas` scope in your `.npmrc`, as
-  described in [Before you start](#before-you-start).
+- **`package.json atlas.previews is required for atlas dev apps.`** You skipped step 5. Add the `previews` entry to `apps/orders/package.json`.
+- **The Orders page is blank or shows a loading error.** Make sure the Host is still running in the first terminal, then reload the page.
+- **A port is already in use.** Stop the other process, or see [Local development](../guides/local-development.md) for the `--port`, `--bootstrap-port`, and `--control-port` options.
+- **`npm install` fails with `404 Not Found` for `@atlas/cli`.** npm cannot find the `@atlas` packages. Follow [Get the packages](../reference/compatibility.md#get-the-packages).
 
 For other problems, see [Troubleshooting](../troubleshooting.md).
 
 ## Next steps
 
-- [Hosts](../concepts/hosts.md) and [Apps](../concepts/apps.md): learn what each
-  side owns and how they connect.
-- [React Host guide](../guides/react/host.md) or
-  [Angular Host guide](../guides/angular/host.md): customize the layout,
-  navigation, and shared services.
-- [React App guide](../guides/react/app.md) or
-  [Angular App guide](../guides/angular/app.md): build real screens and use the
-  SDK.
-- [Production deployment](../deploy/production-deployment.md): publish and
-  deploy your projects.
+- [Hosts](../concepts/hosts.md) and [Apps](../concepts/apps.md): learn what each side owns and how they connect.
+- [Build a React Host](../guides/react/host.md) or [Build an Angular Host](../guides/angular/host.md): customize the layout, navigation, and shared services.
+- [Build a React App](../guides/react/app.md) or [Build an Angular App](../guides/angular/app.md): build real screens and use the SDK.
+- [Production deployment](../deploy/production-deployment.md): publish and deploy your projects.

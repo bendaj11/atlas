@@ -1,81 +1,70 @@
 ---
 title: Angular generators
-description: Learn exactly which files the Angular host, app, and widget generators create, and how Atlas picks Angular and Native Federation versions.
+description: Generate Angular Hosts, Angular Apps, and Angular Widgets with the Atlas CLI, and learn how Atlas picks Angular and Native Federation versions.
 ---
 
 # Angular generators
 
-This page lists what the Atlas generators create for Angular hosts, apps, and widgets, and which files you are expected to edit. Use it as a reference after you have followed [Build an Angular host](host.md) or [Build an Angular app](app.md). For every generator option, see the [CLI reference](../../reference/cli.md).
+The `npx atlas g` command (short for `generate`) creates Angular Hosts, Apps, and Widgets as normal Angular projects with Atlas configuration added. This page shows the Angular commands, what the CLI asks, how the Native Federation config works, and which Angular versions Atlas supports. For every option, see the [CLI reference](../../reference/cli.md#generate-host-and-generate-app). For every generated file, see [Angular project structure](project-structure.md).
 
-## Generate a host
+Run the commands on this page from the workspace root.
 
-```sh
-npx atlas g host customer-host --framework=angular
-```
-
-| File                                             | Owner     | Purpose                                                                                                           |
-| ------------------------------------------------ | --------- | ----------------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts`                                | Host team | The stable host UUID, display name, and framework.                                                                |
-| `atlas.bootstrap.html`                           | Host team | The HTML template that `npx atlas bootstrap` uses for the static entry page.                                      |
-| `src/app/app.component.ts`                       | Host team | The page layout with host anchors (`<atlas-route-outlet>`, `<atlas-slot>`, and others) inside `*atlasHostLayout`. |
-| `src/app/app.config.ts`                          | Host team | Angular providers. On Angular 20 it adds `provideZonelessChangeDetection()`. Atlas adds the router.               |
-| `src/app/host.config.ts`                         | Host team | `CustomerHostSdk` and `createCustomHostSdkOptions()`, the host SDK capabilities.                                  |
-| `src/bootstrap.ts`                               | Atlas     | Exports `mount` from `defineAngularHost()`. Exposed to Native Federation as `./host`.                             |
-| `src/main.ts`                                    | Atlas     | A placeholder browser entry. Atlas never runs the host from it; start the host with `npx atlas dev`.              |
-| `src/index.html`                                 | Atlas     | Contains the `<atlas-host-root>` element.                                                                         |
-| `src/styles.css`                                 | Host team | Global host styles. The extension follows `--style`.                                                              |
-| `federation.config.mjs`                          | Atlas     | Native Federation config. See [Native Federation config](#native-federation-config).                              |
-| `angular.json`, `tsconfig*.json`, `package.json` | Atlas     | Angular workspace, TypeScript, and package setup.                                                                 |
-
-The generated `package.json` includes `dev`, `build`, `atlas:publish`, and `atlas:bootstrap` scripts.
-
-## Generate an app
+## Generate a Host
 
 ```sh
-npx atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
+npx atlas g host customer-host --framework angular
 ```
 
-Replace the example UUID with the `id` from your host's `atlas.config.ts`. `--host-id` adds an initial `/orders` route for that host. Omit it when you will define routes or slots later.
+In an interactive terminal, the CLI asks two more questions:
 
-| File                                             | Owner    | Purpose                                                                                                                 |
-| ------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts`                                | App team | The app UUID, name, framework, and, with `--host-id`, one route.                                                        |
-| `src/entry.ts`                                   | Atlas    | The Atlas lifecycle. Its default export, created with `defineApp()`, mounts and unmounts the app. Exposed as `./entry`. |
-| `src/main.ts`                                    | Atlas    | The Angular browser entry. It runs `initFederation()` from `@atlas/sdk/federation` and re-exports `src/entry.ts`.       |
-| `src/app/app.config.ts`                          | App team | `createAppConfig()`, which returns the Angular providers, including `provideAtlasApp()`.                                |
-| `src/app/app.component.ts`                       | App team | The app root component.                                                                                                 |
-| `src/app/app.routes.ts`                          | App team | Inner Angular routes. Routed apps only.                                                                                 |
-| `src/app/home/`, `src/app/details/`              | App team | Example routed pages. Routed apps only.                                                                                 |
-| `src/exported-widgets/README.md`                 | App team | Explains how to add widgets.                                                                                            |
-| `public/`                                        | App team | Static files copied to the build output.                                                                                |
-| `federation.config.mjs`                          | Atlas    | Native Federation config.                                                                                               |
-| `angular.json`, `tsconfig*.json`, `package.json` | Atlas    | Angular workspace, TypeScript, and package setup. `package.json` has an empty `atlas.previews` list.                    |
+- "Which stylesheet format would you like to use?" Choose CSS, SCSS, Sass, or Less. Pass `--style` to skip the question. Non-interactive runs use CSS.
+- "Which port would you like to use for the dev server?" Press Enter to accept the suggestion: `4200`, or the next port that no other project in the workspace uses. Pass `--port` to skip the question.
 
-Apps are routed by default. Pass `--no-routing` for a single-page app without a router. In interactive mode, the CLI asks.
+The generator writes a new Host ID to `atlas.config.ts`. See [Host files](project-structure.md#host-files) for what it creates, and [Build an Angular Host](host.md) for what to do next.
 
-Atlas mounts the app by loading `src/entry.ts`. It never runs your lifecycle from `src/main.ts`. The host supplies the SDK and app context at mount time, so the generated app does not create either one.
+## Generate an App
 
-## Generate a widget
+Replace the example UUID with your Host ID from the Host's `atlas.config.ts`:
 
 ```sh
-npx atlas g widget order-status --app-id=2bea9c13-4899-4f93-9211-cd8c55e9c529
+npx atlas g app orders --framework angular --host-id 0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-Run this inside a workspace that contains the app. Without `--app-id`, the CLI asks you to choose the app. Pass `--force` to replace an existing widget with the same name.
+With `--host-id`, the App starts with a `/orders` route in that Host. Without it, the App has no routes until you add them.
 
-For an Angular app, the generator creates `src/exported-widgets/order-status/` with three files:
+In an interactive terminal, the CLI asks three more questions:
 
-| File               | Purpose                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts`  | The widget's new UUID and display name. Consumers call `getWidget()` with this UUID.                          |
-| `index.ts`         | A default-exported standalone component with a `title` signal input.                                          |
-| `widget.config.ts` | Exports `widgetConfig: ApplicationConfig` with an empty `providers` list. Add the providers the widget needs. |
+- "Add Atlas inner routing to this app?" Pass `--routing true` or `--no-routing` to decide up front. Non-interactive runs create a routed App.
+- "Which stylesheet format would you like to use?" Pass `--style` to skip the question. Non-interactive runs use CSS.
+- "Which port would you like to use for the dev server?" Press Enter to accept the suggestion: `4201`, or the next port that no other project in the workspace uses. Pass `--port` to skip the question.
 
-At build time, Atlas generates an entry for each widget folder that calls `createExportedWidget(Widget, widgetConfig)` and exposes it as `./widgets/order-status`. The folder name and expose path are internal wiring; consumers use only the UUID. See [Angular SDK](sdk.md#export-a-widget) and [Exported widgets](../exported-widgets.md).
+The generator writes a new App ID to `atlas.config.ts`. See [App files](project-structure.md#app-files) for what it creates, and [Build an Angular App](app.md) for what to do next.
+
+## Generate a Widget
+
+Replace the example UUID with the owning App's ID from its `atlas.config.ts`:
+
+```sh
+npx atlas g widget order-status --app-id 2bea9c13-4899-4f93-9211-cd8c55e9c529
+```
+
+If you omit `--app-id`, the CLI asks you to pick one of the configured Apps. Pass `--force` to replace an existing Widget with the same name. See [Widget files](project-structure.md#widget-files) for what it creates, and [Export a Widget](sdk.md#export-a-widget) for how to share it.
+
+At build time, Atlas generates an entry for each Widget folder that calls `createExportedWidget(Widget, widgetConfig)` and exposes it as `./widgets/order-status`. The folder name and expose path are internal wiring; consumers use only the UUID.
+
+## Angular options
+
+The [CLI reference](../../reference/cli.md#generate-host-and-generate-app) lists every option. These notes apply to Angular projects:
+
+- `--framework angular` selects Angular. In an interactive terminal the CLI asks when you omit it; non-interactive runs default to React, so always pass it in scripts.
+- `--style <format>` sets the stylesheet format: `css`, `scss`, `sass`, or `less`.
+- `--framework-version <range>` sets the Angular version for new packages. When the workspace already declares `@angular/core`, Atlas uses that version for the new project instead of changing the workspace.
 
 ## Native Federation config
 
-The generated federation config delegates to `@atlas/sdk/federation-config`, which adds the Atlas exposes (`./host` for a host; `./entry` plus one `./widgets/<name>` per widget for an app) and shares every dependency as a singleton with `strictVersion: true` and `requiredVersion: 'auto'`.
+The generated federation config delegates to `@atlas/sdk/federation-config`, which adds the Atlas exposes (`./host` for a Host; `./entry` plus one `./widgets/<name>` per Widget for an App) and shares every dependency as a singleton with `strictVersion: true` and `requiredVersion: 'auto'`.
+
+> **Warning:** The Native Federation runtime ignores `singleton` and `strictVersion`. When the Host and an App resolve different versions of a shared package, even a different patch version, the App loads its own bundled copy with no error or warning. Angular dependency injection then breaks across the Host and App boundary. Keep shared package versions identical; see [Shared dependencies](../../deploy/governance.md#shared-dependencies).
 
 The file name and helper depend on the Angular major version:
 
@@ -115,18 +104,16 @@ Atlas generates Angular 20.3.0 by default. Pass `--framework-version` to choose 
 | 21             | Zoneless                                          | `@angular-architects/native-federation-v4` and `@softarc/native-federation` |
 | 22             | Zoneless                                          | `@angular-architects/native-federation`                                     |
 
-On Zone.js versions, the generated `src/entry.ts` imports `zone.js` and `package.json` depends on it.
-
-When the workspace already declares `@angular/core`, Atlas uses that version for the new project instead of changing the workspace.
+Zoneless change detection is enabled only on Angular 20.2 and later. On Angular 19, 20.0, and 20.1, the generated `src/entry.ts` imports `zone.js` and `package.json` depends on it.
 
 ## Workspaces
 
-In an Nx workspace, Atlas creates the Angular project with `@nx/angular:application` and then adds the Atlas files. Pass `--skip-workspace-generator` to skip the Nx generator. In Turborepo, pnpm, Yarn, or npm workspaces, and in standalone projects, Atlas creates a package that the workspace discovers normally.
+In an Nx workspace, Atlas creates the Angular project with `@nx/angular:application` and then adds the Atlas files. Pass `--skip-workspace-generator` to skip the Nx generator. In Turborepo, pnpm, Yarn, or npm workspaces, and in standalone projects, Atlas creates a package that the workspace discovers normally. The target folder depends on the [workspace](../../introduction/glossary.md#workspace) kind; in a standalone project it is `apps/<name>`.
 
 Read [Workspaces and CI](../workspaces-and-ci.md) before you generate projects inside a large repository.
 
 ## Next steps
 
-- [Angular project structure](project-structure.md)
-- [CLI reference](../../reference/cli.md)
-- [Angular troubleshooting](troubleshooting.md)
+- [Angular project structure](project-structure.md) for what each generated file does.
+- [CLI reference](../../reference/cli.md) for every generator option.
+- [Angular troubleshooting](troubleshooting.md) if generation or installation fails.
