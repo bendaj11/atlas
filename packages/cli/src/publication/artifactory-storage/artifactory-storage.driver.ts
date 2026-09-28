@@ -155,6 +155,7 @@ export class ArtifactoryStorageDriver {
       ),
     read: () => this.storage().read(this.fixture.path),
     readStream: () => this.storage().readStream(this.fixture.path),
+    readWithVersion: () => this.storage().readWithVersion(this.fixture.path),
     inspect: () => this.storage().inspect(this.fixture.path),
     verifyDelivery: () => this.storage().verifyDelivery([this.fixture.path]),
     verifyDeliveryOf: (paths: readonly string[], concurrency: number) =>

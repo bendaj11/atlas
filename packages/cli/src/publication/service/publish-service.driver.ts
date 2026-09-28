@@ -72,6 +72,9 @@ export class PublishServiceDriver {
   };
 
   given = {
+    versionedReadsAndVerifiedWrites: () => {
+      this.storage.enableVersionedReadsAndVerifiedWrites();
+    },
     unknownWriteOutcome: (operation: 'create' | 'replace') => {
       if (operation === 'create') {
         const create = this.storage.create.bind(this.storage);
@@ -228,6 +231,7 @@ export class PublishServiceDriver {
 
   get = {
     deliveryEvents: () => this.deliveryEvents,
+    registryRequests: () => this.storage.registryRequests,
     registryExists: () => this.storage.has('registry.json'),
     result: () => this.result,
     name: () => this.name,
@@ -276,8 +280,8 @@ export class PublishServiceDriver {
     )
       throw new Error('Cache refresh unavailable');
     for (const path of paths) {
-      const bytes = await this.storage.read(path);
-      if (bytes) this.cachedObjects.set(path, bytes);
+      if (this.storage.has(path))
+        this.cachedObjects.set(path, this.storage.required(path).bytes);
     }
   }
 
@@ -351,9 +355,27 @@ interface StoredObject {
 
 class MemoryPublicationStorage implements AtlasPublicationStorage {
   verifyDelivery?: AtlasPublicationStorage['verifyDelivery'];
+  verifiesWrites?: boolean;
+  readWithVersion?: AtlasPublicationStorage['readWithVersion'];
+  readonly registryRequests: string[] = [];
   private readonly objects = new Map<string, StoredObject>();
 
+  enableVersionedReadsAndVerifiedWrites(): void {
+    this.verifiesWrites = true;
+    this.readWithVersion = async (path) => {
+      this.recordRegistryRequest('readWithVersion', path);
+      const object = this.objects.get(path);
+
+      return object && { bytes: object.bytes, versionToken: object.token };
+    };
+  }
+
+  recordRegistryRequest(method: string, path: string): void {
+    if (path === 'registry.json') this.registryRequests.push(method);
+  }
+
   async read(path: string): Promise<Uint8Array | undefined> {
+    this.recordRegistryRequest('read', path);
     return this.objects.get(path)?.bytes;
   }
 
@@ -370,6 +392,7 @@ class MemoryPublicationStorage implements AtlasPublicationStorage {
   async inspect(
     path: string,
   ): Promise<AtlasPublicationObjectMetadata | undefined> {
+    this.recordRegistryRequest('inspect', path);
     const object = this.objects.get(path);
     return object
       ? {
@@ -411,6 +434,7 @@ class MemoryPublicationStorage implements AtlasPublicationStorage {
     metadata: AtlasPublicationObjectMetadata,
     condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
+    this.recordRegistryRequest('replace', path);
     const existing = this.objects.get(path);
     if (condition.createOnly && existing) throw new Error('conflict');
     if (condition.versionToken && existing?.token !== condition.versionToken) {

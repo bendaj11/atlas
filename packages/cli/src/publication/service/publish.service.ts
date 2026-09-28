@@ -42,6 +42,7 @@ import {
   readRegistry,
   readRegistryState,
   REGISTRY_PATH,
+  type RegistryState,
   verifyPublicRegistry,
   writeRegistry,
 } from '../registry-io/registry-io.js';
@@ -69,6 +70,7 @@ interface CommitOptions {
   readonly immutable: PublicationFiles;
   readonly config: AtlasRegistryConfig | undefined;
   readonly concurrency: number;
+  readonly registryState?: RegistryState;
 }
 
 export class AtlasPublishService {
@@ -195,7 +197,10 @@ export class AtlasPublishService {
       };
     }
 
-    const commit = (lease: AtlasPublicationLease) =>
+    const commit = (
+      lease: AtlasPublicationLease,
+      registryState?: RegistryState,
+    ) =>
       this.commitPublication({
         storage,
         lease,
@@ -204,6 +209,7 @@ export class AtlasPublishService {
         immutable,
         config,
         concurrency,
+        ...(registryState ? { registryState } : {}),
       });
 
     if (build.manifest.preview) {
@@ -228,9 +234,9 @@ export class AtlasPublishService {
     return withPublicationLease(storage, async (lease) => {
       this.progress.succeed('Acquired publish lock');
       this.progress.start('Checking registry');
-      const current = await readRegistry(storage);
-      assertExpectedRegistryRevision(this.args, current);
-      publishArtifact(current, build.manifest, descriptor);
+      const registryState = await readRegistryState(storage);
+      assertExpectedRegistryRevision(this.args, registryState.registry);
+      publishArtifact(registryState.registry, build.manifest, descriptor);
       this.progress.succeed(`Registry accepts ${version}`);
       await uploadAndVerify({
         storage,
@@ -240,7 +246,7 @@ export class AtlasPublishService {
         progress: this.progress,
       });
 
-      return commit(lease);
+      return commit(lease, registryState);
     });
   }
 
@@ -252,12 +258,10 @@ export class AtlasPublishService {
     immutable,
     config,
     concurrency,
+    registryState,
   }: CommitOptions): Promise<AtlasPublishResult> {
     const version = describeVersion(manifest);
-
-    await lease.assertHeld();
-
-    const state = await readRegistryState(storage);
+    const state = registryState ?? (await readRegistryState(storage));
     assertExpectedRegistryRevision(this.args, state.registry);
     const mutation = publishArtifact(state.registry, manifest, descriptor);
     const artifactPaths = [

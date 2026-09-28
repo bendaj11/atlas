@@ -10,6 +10,7 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
+  AtlasVersionedObject,
 } from '../publication-storage/types.js';
 
 export interface ArtifactoryOptions extends ArtifactoryConnectionOptions {
@@ -35,7 +36,7 @@ const DEFAULT_MAX_BUFFERED_BYTES = 256 * 1024 * 1024;
 
 /** Artifactory-backed publication under an organization-owned, whole-command writer lock. */
 export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
-  readonly verifiesCreatedObjects = true;
+  readonly verifiesWrites = true;
   private readonly client: ArtifactoryStorageClient;
   private readonly maxBufferedBytes: number;
   private pendingMutation: Promise<void> = Promise.resolve();
@@ -70,6 +71,19 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     const stream = await this.readStream(path);
 
     return stream ? collectBody(stream, this.maxBufferedBytes) : undefined;
+  }
+
+  async readWithVersion(
+    path: string,
+  ): Promise<AtlasVersionedObject | undefined> {
+    const bytes = await this.read(path);
+
+    if (!bytes) return undefined;
+
+    return {
+      bytes,
+      versionToken: createHash('sha256').update(bytes).digest('hex'),
+    };
   }
 
   readStream(path: string): Promise<AsyncIterable<Uint8Array> | undefined> {

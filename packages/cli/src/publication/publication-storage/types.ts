@@ -5,9 +5,15 @@ export interface AtlasPublicationDeliveryOptions {
   readonly concurrency?: number;
 }
 
+export interface AtlasVersionedObject {
+  readonly bytes: Uint8Array;
+  readonly versionToken?: string;
+}
+
 export interface AtlasPublicationStorage {
-  readonly verifiesCreatedObjects?: boolean;
+  readonly verifiesWrites?: boolean;
   read(path: string): Promise<Uint8Array | undefined>;
+  readWithVersion?(path: string): Promise<AtlasVersionedObject | undefined>;
   readStream(path: string): Promise<AsyncIterable<Uint8Array> | undefined>;
   inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined>;
   verifyDelivery?(

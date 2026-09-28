@@ -13,5 +13,6 @@ export type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
   AtlasRegistryConfig,
+  AtlasVersionedObject,
   S3Options,
 } from './publication/index.js';

@@ -114,12 +114,15 @@ export async function uploadAndVerify(options: {
   let uploaded = 0;
 
   const upload = async (file: PublicationFile): Promise<void> => {
-    await lease?.assertHeld();
     await createImmutable(storage, file);
+
+    if (!storage.verifiesWrites) await verifyStoredObject(storage, file);
+
     uploaded += 1;
     progress.update(`Uploading files ${uploaded}/${count} (${size})`);
   };
 
+  await lease?.assertHeld();
   progress.start(`Uploading files 0/${count} (${size})`);
   await forEachConcurrently({
     items: files.payloads,
@@ -127,24 +130,24 @@ export async function uploadAndVerify(options: {
     operation: upload,
   });
   await upload(files.manifest);
-  progress.succeed(`Uploaded ${pluralize(count, 'file')} (${size})`);
 
-  if (storage.verifiesCreatedObjects) return;
+  if (storage.verifiesWrites)
+    await verifyStoredMetadata(storage, files.manifest);
 
-  let verified = 0;
+  progress.succeed(
+    `Uploaded and verified ${pluralize(count, 'file')} (${size})`,
+  );
+}
 
-  progress.start(`Verifying uploaded files 0/${count}`);
-  await forEachConcurrently({
-    items: [...files.payloads, files.manifest],
-    concurrency,
-    operation: async (file) => {
-      await lease?.assertHeld();
-      await verifyStoredObject(storage, file);
-      verified += 1;
-      progress.update(`Verifying uploaded files ${verified}/${count}`);
-    },
-  });
-  progress.succeed(`Verified ${pluralize(count, 'uploaded file')}`);
+async function verifyStoredMetadata(
+  storage: AtlasPublicationStorage,
+  file: PublicationFile,
+): Promise<void> {
+  const metadata = await storage.inspect(file.path);
+
+  if (!metadata) throw new Error(`Published object ${file.path} is missing.`);
+
+  assertMetadata(file.path, metadata, file.metadata);
 }
 
 async function verifyStoredObject(

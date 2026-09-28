@@ -38,6 +38,21 @@ describe('registry-io', () => {
       expect((await driver.get.state()).versionToken).toBe('v1');
     });
 
+    it('should read registry and version in one request when storage supports versioned reads', async () => {
+      const registry = createEmptyStaticRegistry();
+      driver.given.storedRegistry(registry).given.versionedReads();
+
+      const state = await driver.get.state();
+
+      expect({
+        state,
+        inspections: driver.get.inspectMock().mock.calls.length,
+      }).toStrictEqual({
+        state: { registry, versionToken: 'v1' },
+        inspections: 0,
+      });
+    });
+
     it('should reject when registry.json changes between inspections', async () => {
       driver.given.storedRegistry(createEmptyStaticRegistry());
       driver.given.registryChangingDuringRead();
@@ -65,6 +80,20 @@ describe('registry-io', () => {
       ).rejects.toThrow(
         'Conditional publication write conflicted: registry.json',
       );
+    });
+
+    it('should read registry.json back when storage does not verify writes', async () => {
+      await driver.when.written(createEmptyStaticRegistry());
+
+      expect(driver.get.readMock()).toHaveBeenCalledWith('registry.json');
+    });
+
+    it('should skip reading registry.json back when storage verifies writes', async () => {
+      driver.given.writeVerifyingStorage();
+
+      await driver.when.written(createEmptyStaticRegistry());
+
+      expect(driver.get.readMock()).not.toHaveBeenCalled();
     });
 
     it('should replace conditionally when the version token matches', async () => {

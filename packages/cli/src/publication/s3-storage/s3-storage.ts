@@ -1,4 +1,5 @@
-import { Readable } from 'node:stream';
+import { createHash } from 'node:crypto';
+import { crc32 } from 'node:zlib';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -15,6 +16,7 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
+  AtlasVersionedObject,
 } from '../publication-storage/types.js';
 import {
   DEFAULT_LOCK_LEASE_MS,
@@ -47,6 +49,7 @@ export interface S3Options {
 }
 
 export class S3PublicationStorage implements AtlasPublicationStorage {
+  readonly verifiesWrites = true;
   private readonly client: Pick<S3Client, 'send'>;
   private readonly prefix: string;
   private readonly lock: S3DeploymentLock;
@@ -175,60 +178,59 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     return objects;
   }
 
-  async create(
+  async readWithVersion(
     path: string,
-    bytes: AtlasPublicationBody,
-    metadata: AtlasPublicationObjectMetadata,
-  ): Promise<void> {
+  ): Promise<AtlasVersionedObject | undefined> {
     try {
-      await this.client.send(
-        new PutObjectCommand({
-          ...this.objectInput(path),
-          Body: uploadBodyOf(bytes),
-          CacheControl: metadata.cacheControl,
-          ContentType: metadata.contentType,
-          IfNoneMatch: '*',
-        }),
+      const response = await this.client.send(
+        new GetObjectCommand(this.objectInput(path)),
       );
-    } catch (error) {
-      if (isPreconditionFailure(error))
-        throw new Error(
-          `Immutable publication object already exists: ${path}`,
-          { cause: error },
-        );
+      const bytes = response.Body
+        ? await response.Body.transformToByteArray()
+        : new Uint8Array();
 
-      throw new S3StorageError(`create ${path}`, error);
+      return {
+        bytes,
+        ...(response.ETag ? { versionToken: response.ETag } : {}),
+      };
+    } catch (error) {
+      if (isMissingObject(error)) return undefined;
+      throw new S3StorageError(`read ${path}`, error);
     }
   }
 
-  async replace(
+  create(
     path: string,
-    bytes: AtlasPublicationBody,
+    body: AtlasPublicationBody,
+    metadata: AtlasPublicationObjectMetadata,
+  ): Promise<void> {
+    return this.write({
+      path,
+      body,
+      metadata,
+      condition: { IfNoneMatch: '*' },
+      operation: 'create',
+      conflictMessage: `Immutable publication object already exists: ${path}`,
+    });
+  }
+
+  replace(
+    path: string,
+    body: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
     condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
-    try {
-      await this.client.send(
-        new PutObjectCommand({
-          ...this.objectInput(path),
-          Body: uploadBodyOf(bytes),
-          CacheControl: metadata.cacheControl,
-          ContentType: metadata.contentType,
-          ...(condition.createOnly ? { IfNoneMatch: '*' } : {}),
-          ...(condition.versionToken
-            ? { IfMatch: condition.versionToken }
-            : {}),
-        }),
-      );
-    } catch (error) {
-      if (isPreconditionFailure(error)) {
-        throw new Error(`Conditional publication write conflicted: ${path}`, {
-          cause: error,
-        });
-      }
-
-      throw new S3StorageError(`replace ${path}`, error);
-    }
+    return this.write({
+      path,
+      body,
+      metadata,
+      condition: {
+        ...(condition.createOnly ? { IfNoneMatch: '*' } : {}),
+        ...(condition.versionToken ? { IfMatch: condition.versionToken } : {}),
+      },
+      operation: 'replace',
+      conflictMessage: `Conditional publication write conflicted: ${path}`,
+    });
   }
 
   async remove(path: string): Promise<void> {
@@ -247,6 +249,84 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     return this.lock.acquire(owner);
   }
 
+  private async write({
+    path,
+    body,
+    metadata,
+    condition,
+    operation,
+    conflictMessage,
+  }: {
+    path: string;
+    body: AtlasPublicationBody;
+    metadata: AtlasPublicationObjectMetadata;
+    condition: { IfNoneMatch?: string; IfMatch?: string };
+    operation: 'create' | 'replace';
+    conflictMessage: string;
+  }): Promise<void> {
+    const bytes = await collectBody(body);
+    let storedChecksum: string | undefined;
+
+    try {
+      const response = await this.client.send(
+        new PutObjectCommand({
+          ...this.objectInput(path),
+          Body: bytes,
+          CacheControl: metadata.cacheControl,
+          ContentType: metadata.contentType,
+          ChecksumAlgorithm: 'CRC32',
+          ...condition,
+        }),
+      );
+      storedChecksum = response.ChecksumCRC32;
+    } catch (error) {
+      if (isPreconditionFailure(error))
+        throw new Error(conflictMessage, { cause: error });
+
+      throw new S3StorageError(`${operation} ${path}`, error);
+    }
+
+    if (storedChecksum === undefined) {
+      await this.confirmStoredObject({ path, bytes, metadata });
+
+      return;
+    }
+
+    if (storedChecksum !== computeCrc32Checksum(bytes))
+      throw new Error(
+        `S3-compatible storage stored different bytes for ${path}.`,
+      );
+  }
+
+  private async confirmStoredObject({
+    path,
+    bytes,
+    metadata,
+  }: {
+    path: string;
+    bytes: Uint8Array;
+    metadata: AtlasPublicationObjectMetadata;
+  }): Promise<void> {
+    const [stored, storedMetadata] = await Promise.all([
+      this.read(path),
+      this.inspect(path),
+    ]);
+
+    if (!stored || !storedMetadata)
+      throw new Error(`Published object ${path} is missing.`);
+
+    if (computeSha256(stored) !== computeSha256(bytes))
+      throw new Error(
+        `S3-compatible storage stored different bytes for ${path}.`,
+      );
+
+    if (
+      storedMetadata.cacheControl !== metadata.cacheControl ||
+      storedMetadata.contentType !== metadata.contentType
+    )
+      throw new Error(`Atlas object ${path} has unexpected HTTP metadata.`);
+  }
+
   private objectInput(path: string): { Bucket: string; Key: string } {
     return { Bucket: this.options.bucket, Key: this.objectKey(path) };
   }
@@ -260,10 +340,6 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       ? key.slice(this.prefix.length + 1)
       : key;
   }
-}
-
-function uploadBodyOf(body: AtlasPublicationBody): Uint8Array | Readable {
-  return body instanceof Uint8Array ? body : Readable.from(body);
 }
 
 function buildS3ClientConfig(options: S3Options): S3ClientConfig {
@@ -286,4 +362,25 @@ function buildS3ClientConfig(options: S3Options): S3ClientConfig {
       ? { forcePathStyle: options.forcePathStyle }
       : {}),
   };
+}
+
+async function collectBody(body: AtlasPublicationBody): Promise<Uint8Array> {
+  if (body instanceof Uint8Array) return body;
+
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of body) chunks.push(chunk);
+
+  return Buffer.concat(chunks);
+}
+
+function computeCrc32Checksum(bytes: Uint8Array): string {
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(bytes));
+
+  return checksum.toString('base64');
+}
+
+function computeSha256(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
 }

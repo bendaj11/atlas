@@ -52,6 +52,10 @@ export function isPublicationStorage(
     typeof storage.read === 'function' &&
     typeof storage.readStream === 'function' &&
     typeof storage.inspect === 'function' &&
+    (storage.verifiesWrites === undefined ||
+      typeof storage.verifiesWrites === 'boolean') &&
+    (storage.readWithVersion === undefined ||
+      typeof storage.readWithVersion === 'function') &&
     (storage.verifyDelivery === undefined ||
       typeof storage.verifyDelivery === 'function') &&
     typeof storage.list === 'function' &&

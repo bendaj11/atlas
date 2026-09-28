@@ -14,6 +14,7 @@ export type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
+  AtlasVersionedObject,
 } from './publication-storage/types.js';
 export { S3PublicationStorage } from './s3-storage/s3-storage.js';
 export { resolveParallelUploads } from './storage-environment/storage-environment.js';

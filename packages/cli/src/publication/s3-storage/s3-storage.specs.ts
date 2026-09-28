@@ -31,6 +31,80 @@ describe('S3PublicationStorage', () => {
     });
   });
 
+  it('should ask the storage for a CRC32 checksum when an immutable object is created', async () => {
+    await driver.when.created('apps/orders/1.4.0/manifest.json', {
+      cacheControl: 'immutable',
+      contentType: 'application/json',
+    });
+
+    expect(driver.get.commands()[0]).toMatchObject({
+      ChecksumAlgorithm: 'CRC32',
+    });
+  });
+
+  it('should confirm a create from the returned checksum without reading the object back', async () => {
+    await driver.when.created('apps/orders/1.4.0/manifest.json', {
+      cacheControl: 'immutable',
+      contentType: 'application/json',
+    });
+
+    expect(driver.get.commandNames()).toStrictEqual(['PutObjectCommand']);
+  });
+
+  it('should read the object back when the storage returns no checksum', async () => {
+    driver.given.noChecksumEcho();
+
+    await driver.when.created('apps/orders/1.4.0/manifest.json', {
+      cacheControl: 'immutable',
+      contentType: 'application/json',
+    });
+
+    expect([...driver.get.commandNames()].sort()).toStrictEqual([
+      'GetObjectCommand',
+      'HeadObjectCommand',
+      'PutObjectCommand',
+    ]);
+  });
+
+  it('should reject a create when the returned checksum does not match the uploaded bytes', async () => {
+    driver.given.storedBytes(new Uint8Array([9, 9]));
+
+    await expect(
+      driver.when.created('apps/a/manifest.json', {
+        cacheControl: 'immutable',
+        contentType: 'application/json',
+      }),
+    ).rejects.toThrow(
+      'S3-compatible storage stored different bytes for apps/a/manifest.json.',
+    );
+  });
+
+  it('should reject a create when read-back metadata does not match the requested metadata', async () => {
+    driver.given.noChecksumEcho().given.storedContentType('text/plain');
+
+    await expect(
+      driver.when.created('apps/a/manifest.json', {
+        cacheControl: 'immutable',
+        contentType: 'application/json',
+      }),
+    ).rejects.toThrow(
+      'Atlas object apps/a/manifest.json has unexpected HTTP metadata.',
+    );
+  });
+
+  it('should reject a create when read-back bytes do not match the uploaded bytes', async () => {
+    driver.given.noChecksumEcho().given.storedBytes(new Uint8Array([9, 9]));
+
+    await expect(
+      driver.when.created('apps/a/manifest.json', {
+        cacheControl: 'immutable',
+        contentType: 'application/json',
+      }),
+    ).rejects.toThrow(
+      'S3-compatible storage stored different bytes for apps/a/manifest.json.',
+    );
+  });
+
   it('should prefix object keys when a prefix is configured', async () => {
     driver.given.options({ prefix: '/platform/' });
 
@@ -42,6 +116,44 @@ describe('S3PublicationStorage', () => {
     expect(driver.get.commands()[0]).toMatchObject({
       Key: 'platform/registry.json',
     });
+  });
+
+  it('should confirm a replace from the returned checksum without reading the object back', async () => {
+    await driver.when.replaced('registry.json', { createOnly: true });
+
+    expect(driver.get.commandNames()).toStrictEqual(['PutObjectCommand']);
+  });
+
+  it('should reject a replace when the returned checksum does not match the uploaded bytes', async () => {
+    driver.given.storedBytes(new Uint8Array([9, 9]));
+
+    await expect(
+      driver.when.replaced('registry.json', { createOnly: true }),
+    ).rejects.toThrow(
+      'S3-compatible storage stored different bytes for registry.json.',
+    );
+  });
+
+  it('should read bytes and version token in one request when read with version', async () => {
+    driver.given.response(() => ({
+      Body: { transformToByteArray: async () => new Uint8Array([7]) },
+      ETag: '"etag-1"',
+    }));
+
+    const stored = await driver.when.readWithVersion('registry.json');
+
+    expect({ stored, requests: driver.get.commandNames() }).toStrictEqual({
+      stored: { bytes: new Uint8Array([7]), versionToken: '"etag-1"' },
+      requests: ['GetObjectCommand'],
+    });
+  });
+
+  it('should resolve undefined when a versioned read finds no object', async () => {
+    driver.given.failure(sdkError(404, 'NoSuchKey'));
+
+    await expect(
+      driver.when.readWithVersion('registry.json'),
+    ).resolves.toBeUndefined();
   });
 
   it('should use a version condition when a mutable object is replaced', async () => {

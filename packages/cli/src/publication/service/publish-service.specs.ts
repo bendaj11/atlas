@@ -157,13 +157,22 @@ describe('AtlasPublishService', () => {
       'start: Checking registry',
       'succeed: Registry accepts version 1.4.0',
       `start: Uploading files 0/2 (${driver.get.size()})`,
-      `succeed: Uploaded 2 files (${driver.get.size()})`,
-      'start: Verifying uploaded files 0/2',
-      'succeed: Verified 2 uploaded files',
+      `succeed: Uploaded and verified 2 files (${driver.get.size()})`,
       'start: Updating registry',
       'succeed: Registry now lists version 1.4.0',
       'start: Checking public registry',
       'succeed: Public registry serves the new revision',
+    ]);
+  });
+
+  it('should read and write registry.json once when storage supports versioned reads and verified writes', async () => {
+    driver.given.versionedReadsAndVerifiedWrites();
+
+    await driver.when.publish();
+
+    expect(driver.get.registryRequests()).toStrictEqual([
+      'readWithVersion',
+      'replace',
     ]);
   });
 

@@ -33,6 +33,19 @@ describe('ArtifactoryPublicationStorage', () => {
     await expect(driver.when.read()).resolves.toBeUndefined();
   });
 
+  it('should derive the version token from downloaded bytes when read with version', async () => {
+    driver.given.download('hello');
+
+    await expect(driver.when.readWithVersion()).resolves.toEqual({
+      bytes: driver.get.bytes(),
+      versionToken: driver.get.metadata().versionToken,
+    });
+  });
+
+  it('should return undefined when a versioned read finds no object', async () => {
+    await expect(driver.when.readWithVersion()).resolves.toBeUndefined();
+  });
+
   it('should return undefined when streamed object is missing', async () => {
     await expect(driver.when.readStream()).resolves.toBeUndefined();
   });

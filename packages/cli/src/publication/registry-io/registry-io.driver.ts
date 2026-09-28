@@ -25,6 +25,8 @@ export class RegistryIoDriver {
   private readonly verifyRegistry =
     jest.fn<NonNullable<AtlasRegistryConfig['verifyRegistry']>>();
   private inspectDrift = false;
+  private readonly inspect = jest.spyOn(this.storage, 'inspect');
+  private readonly read = jest.spyOn(this.storage, 'read');
 
   readonly given = {
     storedRegistry: (registry: AtlasStaticRegistry | string) => {
@@ -32,6 +34,27 @@ export class RegistryIoDriver {
         'registry.json',
         typeof registry === 'string' ? registry : JSON.stringify(registry),
       );
+
+      return this;
+    },
+    versionedReads: () => {
+      Object.assign(this.storage, {
+        readWithVersion: async (path: string) => {
+          const stored = this.storage.objects.get(path);
+
+          return (
+            stored && {
+              bytes: stored.bytes,
+              versionToken: stored.metadata.versionToken,
+            }
+          );
+        },
+      });
+
+      return this;
+    },
+    writeVerifyingStorage: () => {
+      Object.assign(this.storage, { verifiesWrites: true });
 
       return this;
     },
@@ -106,6 +129,8 @@ export class RegistryIoDriver {
         assertExpectedRegistryRevision(this.args(), current),
     publicRegistryRoot: () => resolvePublicRegistryRoot(this.args()),
     fetchMock: () => this.fetchResource,
+    inspectMock: () => this.inspect,
+    readMock: () => this.read,
   };
 
   private args(): CliArguments {

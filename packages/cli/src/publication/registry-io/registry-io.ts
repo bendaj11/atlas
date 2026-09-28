@@ -29,23 +29,23 @@ export async function readRegistry(
 ): Promise<AtlasStaticRegistry | undefined> {
   const bytes = await storage.read(REGISTRY_PATH);
 
-  if (!bytes) return undefined;
-  let value: unknown;
-
-  try {
-    value = JSON.parse(new TextDecoder().decode(bytes));
-  } catch (error) {
-    throw new Error('Atlas registry.json is not valid JSON.', { cause: error });
-  }
-
-  assertStaticRegistry(value);
-
-  return value;
+  return bytes ? parseRegistry(bytes) : undefined;
 }
 
 export async function readRegistryState(
   storage: AtlasPublicationStorage,
 ): Promise<RegistryState> {
+  if (storage.readWithVersion) {
+    const stored = await storage.readWithVersion(REGISTRY_PATH);
+
+    return stored
+      ? {
+          registry: parseRegistry(stored.bytes),
+          ...(stored.versionToken ? { versionToken: stored.versionToken } : {}),
+        }
+      : { registry: undefined };
+  }
+
   const before = await storage.inspect(REGISTRY_PATH);
   const registry = await readRegistry(storage);
   const after = await storage.inspect(REGISTRY_PATH);
@@ -81,11 +81,28 @@ export async function writeRegistry(options: {
     { cacheControl: MUTABLE_CACHE_CONTROL, contentType: 'application/json' },
     versionToken ? { versionToken } : { createOnly: true },
   );
+
+  if (storage.verifiesWrites) return;
+
   const stored = await storage.read(REGISTRY_PATH);
 
   if (!stored || computeSha256Digest(stored) !== computeSha256Digest(bytes)) {
     throw new Error('Atlas could not verify registry.json after write.');
   }
+}
+
+function parseRegistry(bytes: Uint8Array): AtlasStaticRegistry {
+  let value: unknown;
+
+  try {
+    value = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    throw new Error('Atlas registry.json is not valid JSON.', { cause: error });
+  }
+
+  assertStaticRegistry(value);
+
+  return value;
 }
 
 export function assertExpectedRegistryRevision(

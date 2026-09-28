@@ -85,7 +85,7 @@ describe('publication-files', () => {
       expect(driver.get.createdPaths().at(-1)).toBe(files.manifest.path);
     });
 
-    it('should read back every file when storage does not verify created objects', async () => {
+    it('should read back every file when storage does not verify writes', async () => {
       await driver.given.payload('main.js', faker.lorem.sentence());
       const files = await driver.get.files();
 
@@ -97,9 +97,9 @@ describe('publication-files', () => {
       ]);
     });
 
-    it('should skip read-back when storage verifies created objects', async () => {
+    it('should skip read-back when storage verifies writes', async () => {
       await driver.given.payload('main.js', faker.lorem.sentence());
-      driver.given.storageVerifyingCreatedObjects();
+      driver.given.storageVerifyingWrites();
       const files = await driver.get.files();
 
       await driver.when.uploaded(files);
@@ -118,12 +118,47 @@ describe('publication-files', () => {
         `Uploading files 0/2 (${size})`,
         `Uploading files 1/2 (${size})`,
         `Uploading files 2/2 (${size})`,
-        `Uploaded 2 files (${size})`,
-        'Verifying uploaded files 0/2',
-        'Verifying uploaded files 1/2',
-        'Verifying uploaded files 2/2',
-        'Verified 2 uploaded files',
+        `Uploaded and verified 2 files (${size})`,
       ]);
+    });
+
+    it('should verify every payload before uploading the manifest', async () => {
+      await driver.given.payload('a.js', faker.lorem.sentence());
+      await driver.given.payload('b.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+
+      await driver.when.uploaded(files);
+
+      const calls = driver.get.storageCalls();
+      const manifestCreate = calls.indexOf(`create ${files.manifest.path}`);
+
+      expect(
+        files.payloads.every(
+          ({ path }) => calls.indexOf(`read ${path}`) < manifestCreate,
+        ),
+      ).toBe(true);
+    });
+
+    it('should reject when storage that verifies writes stored the manifest with other HTTP metadata', async () => {
+      driver.given.storageVerifyingWrites().given.storedMetadata({
+        cacheControl: 'no-cache',
+        contentType: 'text/plain',
+      });
+      const files = await driver.get.files();
+
+      await expect(driver.when.uploaded(files)).rejects.toThrow(
+        `Atlas object ${files.manifest.path} has unexpected HTTP metadata.`,
+      );
+    });
+
+    it('should confirm the lease once instead of once per file', async () => {
+      await driver.given.payload('a.js', faker.lorem.sentence());
+      await driver.given.payload('b.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+
+      await driver.when.uploadedUnderLease(files);
+
+      expect(driver.get.leaseChecks()).toBe(1);
     });
 
     it('should accept an existing object when its bytes and metadata match', async () => {
