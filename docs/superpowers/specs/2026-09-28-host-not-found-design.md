@@ -1,7 +1,7 @@
 # Host-owned not-found page
 
 Date: 2026-09-28
-Status: Approved design, pending implementation plan
+Status: Implemented
 
 ## Problem
 

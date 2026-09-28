@@ -198,15 +198,19 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
     updateAtlasHostData(sdk, pickCustomHostData(props.options.hostData));
   }, [props.options.hostData, sdk]);
 
+  const sdkChildren = createElement(AtlasSdkProvider, {
+    sdk,
+    children: props.children,
+  });
+
   return createElement(AtlasHostAnchorsContext.Provider, {
     value: anchors,
-    children: createElement(AtlasNotFoundContext.Provider, {
-      value: props.notFound ?? AtlasDefaultNotFound,
-      children: createElement(AtlasSdkProvider, {
-        sdk,
-        children: props.children,
-      }),
-    }),
+    children: props.notFound
+      ? createElement(AtlasNotFoundContext.Provider, {
+          value: props.notFound,
+          children: sdkChildren,
+        })
+      : sdkChildren,
   });
 }
 

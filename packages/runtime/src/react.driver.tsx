@@ -258,7 +258,7 @@ export class ReactAdapterDriver {
     stopMock: () => this.stop,
     regionText: () => this.rendered!.getByTestId('region').textContent,
     itemsText: () => this.rendered!.getByTestId('items').textContent,
-    anchorTag: (kind: 'status' | 'navigation' | 'route-outlet') =>
+    anchorTag: (kind: 'status' | 'navigation') =>
       this.anchors().get(kind)?.tagName,
     routeOutletParentTag: () =>
       this.anchors().get('route-outlet')?.parentElement?.tagName,
