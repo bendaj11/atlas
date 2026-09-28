@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import type { AtlasHostArtifactManifest } from '@atlas/schema';
 import {
   aHostArtifactManifest,
   aManifestDescriptor,
@@ -81,7 +82,7 @@ describe('loadHostDeployment', () => {
       });
 
       it('should log the skipped app reference when loaded', () => {
-        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
           `Atlas skipped "${app.path}" because its manifest could not be loaded. The rest of the host still loads.`,
           expect.any(Error),
         );
@@ -113,7 +114,7 @@ describe('loadHostDeployment', () => {
       });
 
       it('should log the skipped widget provider reference when loaded', () => {
-        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
           `Atlas skipped "${provider.path}" because its manifest could not be loaded. The rest of the host still loads.`,
           expect.any(Error),
         );
@@ -122,10 +123,11 @@ describe('loadHostDeployment', () => {
 
     describe('when an app reference points to a host artifact', () => {
       let stray: DeploymentManifestReference;
+      let strayArtifact: AtlasHostArtifactManifest;
 
       beforeEach(async () => {
         const host = await aReferenceTo(hostArtifact);
-        const strayArtifact = aHostArtifactManifest();
+        strayArtifact = aHostArtifactManifest();
         stray = await aReferenceTo(strayArtifact);
 
         await driver.given
@@ -140,8 +142,9 @@ describe('loadHostDeployment', () => {
       });
 
       it('should log the skipped reference when loaded', () => {
-        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
           `Atlas skipped "${stray.path}" because it is a host artifact, not an app. The rest of the host still loads.`,
+          expect.objectContaining({ kind: 'host', id: strayArtifact.id }),
         );
       });
     });

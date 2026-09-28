@@ -7,6 +7,7 @@ import type {
 import { encodeTextAsBytes } from '../../shared/bytes.testkit.js';
 import type { FetchBytes } from '../fetch-bytes.js';
 import { loadHostDeployment } from './deployment.js';
+import type { LogError } from './deployment.types.js';
 
 export class DeploymentDriver {
   private readonly manifestUrl = faker.internet.url();
@@ -21,15 +22,9 @@ export class DeploymentDriver {
 
     return bytes;
   });
-  private readonly consoleError = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => undefined);
+  private readonly logError = jest.fn<LogError>();
   private catalog: AtlasHostCatalog | undefined;
   private error: unknown;
-
-  constructor() {
-    this.consoleError.mockClear();
-  }
 
   readonly given = {
     artifactRegistryUrl: (url: string) => {
@@ -73,6 +68,7 @@ export class DeploymentDriver {
         this.catalog = await loadHostDeployment({
           manifestUrl: this.manifestUrl,
           fetchBytes: this.fetchBytes,
+          logError: this.logError,
           requestPolicy: { retryCount: 0, timeoutMs: 1_000 },
           ...(this.artifactRegistryUrl
             ? { artifactRegistryUrl: this.artifactRegistryUrl }
@@ -94,6 +90,6 @@ export class DeploymentDriver {
     catalog: () => this.catalog!,
     error: () => this.error,
     fetchBytesMock: () => this.fetchBytes,
-    consoleErrorMock: () => this.consoleError,
+    logErrorMock: () => this.logError,
   };
 }

@@ -16,6 +16,8 @@ export type ResolvedManifestReference = AtlasManifestDescriptor & {
   url: string;
 };
 
+export type LogError = (message: string, failure: unknown) => void;
+
 export interface LoadHostDeploymentOptions {
   manifestUrl: string;
   /** Root used to resolve manifest references that carry only a relative path. */
@@ -24,6 +26,7 @@ export interface LoadHostDeploymentOptions {
   expectedEnvironment?: string;
   fetchBytes?: FetchBytes;
   requestPolicy?: AtlasRetryPolicy;
+  logError?: LogError;
 }
 
 export interface LoadPublishedManifestOptions {

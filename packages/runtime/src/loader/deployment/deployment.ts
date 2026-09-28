@@ -16,6 +16,7 @@ import type {
   DeploymentManifestReference,
   LoadHostDeploymentOptions,
   LoadPublishedManifestOptions,
+  LogError,
   PublishedManifest,
   ResolvedManifestReference,
 } from './deployment.types.js';
@@ -26,6 +27,9 @@ export async function loadHostDeployment(
   options: LoadHostDeploymentOptions,
 ): Promise<AtlasHostCatalog> {
   const fetchBytes = options.fetchBytes ?? fetchBytesFromNetwork;
+  const logError =
+    options.logError ??
+    ((message: string, failure: unknown) => console.error(message, failure));
   const deploymentBytes = await runResiliently({
     operation: (signal) => fetchBytes(options.manifestUrl, signal),
     context: { stage: 'manifest', resource: options.manifestUrl },
@@ -57,7 +61,7 @@ export async function loadHostDeployment(
 
       return reference === deployment.host
         ? load()
-        : loadAppManifest({ reference, load });
+        : loadAppManifest({ reference, load, logError });
     },
     MANIFEST_DOWNLOAD_CONCURRENCY,
   );
@@ -87,20 +91,23 @@ export async function loadHostDeployment(
 async function loadAppManifest({
   reference,
   load,
+  logError,
 }: {
   reference: DeploymentManifestReference;
   load: () => Promise<PublishedManifest>;
+  logError: LogError;
 }): Promise<AtlasManifest | undefined> {
   try {
     const manifest = await load();
 
     if (manifest.kind === 'app') return manifest;
 
-    console.error(
+    logError(
       `Atlas skipped "${reference.path}" because it is a ${manifest.kind} artifact, not an app. The rest of the host still loads.`,
+      manifest,
     );
   } catch (failure) {
-    console.error(
+    logError(
       `Atlas skipped "${reference.path}" because its manifest could not be loaded. The rest of the host still loads.`,
       failure,
     );
