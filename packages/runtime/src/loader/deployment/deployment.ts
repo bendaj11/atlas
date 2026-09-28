@@ -2,6 +2,7 @@ import {
   assertHostDeploymentManifest,
   hydratePublishedArtifactManifest,
   type AtlasHostCatalog,
+  type AtlasHostManifest,
   type AtlasHostDeploymentManifest,
   type AtlasManifest,
   type AtlasManifestDescriptor,
@@ -44,14 +45,20 @@ export async function loadHostDeployment(
   ];
   const manifests = await mapWithConcurrency(
     references,
-    (reference) =>
-      loadPublishedManifest({
-        reference: resolveManifestReferenceUrl(reference, options),
-        fetchBytes,
-        ...(options.requestPolicy
-          ? { requestPolicy: options.requestPolicy }
-          : {}),
-      }),
+    (reference) => {
+      const load = () =>
+        loadPublishedManifest({
+          reference: resolveManifestReferenceUrl(reference, options),
+          fetchBytes,
+          ...(options.requestPolicy
+            ? { requestPolicy: options.requestPolicy }
+            : {}),
+        });
+
+      return reference === deployment.host
+        ? load()
+        : loadAppManifest({ reference, load });
+    },
     MANIFEST_DOWNLOAD_CONCURRENCY,
   );
   const host = manifests[0];
@@ -63,8 +70,8 @@ export async function loadHostDeployment(
   }
 
   const appCount = deployment.apps.length;
-  const apps = requireAppManifests(manifests.slice(1, 1 + appCount));
-  const widgetProviders = requireAppManifests(manifests.slice(1 + appCount));
+  const apps = manifests.slice(1, 1 + appCount).filter(isAppManifest);
+  const widgetProviders = manifests.slice(1 + appCount).filter(isAppManifest);
 
   return {
     schemaVersion: '1',
@@ -77,22 +84,35 @@ export async function loadHostDeployment(
   };
 }
 
-function requireAppManifests(
-  manifests: readonly PublishedManifest[],
-): AtlasManifest[] {
-  const apps: AtlasManifest[] = [];
+async function loadAppManifest({
+  reference,
+  load,
+}: {
+  reference: DeploymentManifestReference;
+  load: () => Promise<PublishedManifest>;
+}): Promise<AtlasManifest | undefined> {
+  try {
+    const manifest = await load();
 
-  for (const manifest of manifests) {
-    if (manifest.kind !== 'app') {
-      throw new AtlasRuntimeConfigurationError(
-        `Active host manifest references "${manifest.id}" as an app, but it is a ${manifest.kind} artifact.`,
-      );
-    }
+    if (manifest.kind === 'app') return manifest;
 
-    apps.push(manifest);
+    console.error(
+      `Atlas skipped "${reference.path}" because it is a ${manifest.kind} artifact, not an app. The rest of the host still loads.`,
+    );
+  } catch (failure) {
+    console.error(
+      `Atlas skipped "${reference.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+      failure,
+    );
   }
 
-  return apps;
+  return undefined;
+}
+
+function isAppManifest(
+  manifest: AtlasManifest | AtlasHostManifest | undefined,
+): manifest is AtlasManifest {
+  return manifest?.kind === 'app';
 }
 
 export async function loadPublishedManifest(

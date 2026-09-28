@@ -78,6 +78,103 @@ describe('loadDeploymentCatalog', () => {
       });
     });
 
+    describe('when an app manifest fails to load', () => {
+      const failure = new Error(faker.lorem.sentence());
+
+      beforeEach(() => {
+        driver.given
+          .publishedArtifact(host)
+          .given.publishedArtifactFailure(failure)
+          .given.publishedArtifact(widgetProvider);
+      });
+
+      it('should assemble the catalog without the failed app when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.catalog()).toMatchObject({
+          host,
+          apps: [],
+          widgetProviders: [widgetProvider],
+        });
+      });
+
+      it('should log the skipped app reference with the failure when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${deployment.apps[0]!.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+          failure,
+        );
+      });
+    });
+
+    describe('when a widget provider manifest fails to load', () => {
+      const failure = new Error(faker.lorem.sentence());
+
+      beforeEach(() => {
+        driver.given
+          .publishedArtifact(host)
+          .given.publishedArtifact(app)
+          .given.publishedArtifactFailure(failure);
+      });
+
+      it('should assemble the catalog without the failed widget provider when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.catalog()).toMatchObject({
+          host,
+          apps: [app],
+          widgetProviders: [],
+        });
+      });
+
+      it('should log the skipped widget provider reference with the failure when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${deployment.widgetProviders![0]!.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+          failure,
+        );
+      });
+    });
+
+    describe('when an app reference resolves to a host artifact', () => {
+      const stray = aHostManifest();
+
+      beforeEach(() => {
+        driver.given
+          .publishedArtifact(host)
+          .given.publishedArtifact(stray)
+          .given.publishedArtifact(widgetProvider);
+      });
+
+      it('should assemble the catalog without the host artifact in apps when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.catalog()).toMatchObject({ apps: [] });
+      });
+
+      it('should log the skipped reference with the artifact when loaded', async () => {
+        await driver.when.loaded();
+
+        expect(driver.get.logErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${deployment.apps[0]!.path}" because it is a host artifact, not an app. The rest of the host still loads.`,
+          stray,
+        );
+      });
+    });
+
+    it('should reject with the failure when the host manifest fails to load', async () => {
+      const failure = new Error(faker.lorem.sentence());
+      driver.given
+        .publishedArtifactFailure(failure)
+        .given.publishedArtifact(app)
+        .given.publishedArtifact(widgetProvider);
+      await driver.when.loaded();
+
+      expect(driver.get.error()).toBe(failure);
+    });
+
     it('should omit widget providers when the deployment declares none', async () => {
       const plain = aHostDeploymentManifest({
         hostId: runtime.hostId,

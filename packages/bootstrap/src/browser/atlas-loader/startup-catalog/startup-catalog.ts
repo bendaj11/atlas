@@ -17,7 +17,10 @@ export type FetchDevelopmentSession = (
 
 export type StartupCatalogDependencies = Pick<
   AtlasLoaderDependencies,
-  'fetchBytes' | 'loadPublishedArtifact' | 'requestDevelopmentSession'
+  | 'fetchBytes'
+  | 'loadPublishedArtifact'
+  | 'requestDevelopmentSession'
+  | 'logError'
 > & { fetchJson: FetchDevelopmentSession };
 
 export interface StartupCatalogContext extends Pick<LoaderContext, 'runtime'> {

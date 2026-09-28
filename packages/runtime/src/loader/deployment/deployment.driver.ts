@@ -21,8 +21,15 @@ export class DeploymentDriver {
 
     return bytes;
   });
+  private readonly consoleError = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => undefined);
   private catalog: AtlasHostCatalog | undefined;
   private error: unknown;
+
+  constructor() {
+    this.consoleError.mockClear();
+  }
 
   readonly given = {
     artifactRegistryUrl: (url: string) => {
@@ -87,5 +94,6 @@ export class DeploymentDriver {
     catalog: () => this.catalog!,
     error: () => this.error,
     fetchBytesMock: () => this.fetchBytes,
+    consoleErrorMock: () => this.consoleError,
   };
 }

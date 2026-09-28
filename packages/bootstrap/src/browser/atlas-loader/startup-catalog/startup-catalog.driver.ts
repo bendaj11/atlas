@@ -88,6 +88,7 @@ export class StartupCatalogDriver {
             fetchBytes: this.fetchBytes,
             loadPublishedArtifact: this.loadPublishedArtifact,
             requestDevelopmentSession: this.requestDevelopmentSession,
+            logError: jest.fn(),
           },
         });
       } catch (error) {

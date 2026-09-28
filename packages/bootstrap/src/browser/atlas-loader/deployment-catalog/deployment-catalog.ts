@@ -2,6 +2,7 @@ import type {
   AtlasDeploymentManifestReference,
   AtlasHostCatalog,
   AtlasHostDeploymentManifest,
+  AtlasHostManifest,
   AtlasManifest,
 } from '@atlas/schema';
 import {
@@ -23,7 +24,7 @@ import type {
 
 export type DeploymentCatalogDependencies = Pick<
   AtlasLoaderDependencies,
-  'fetchBytes' | 'loadPublishedArtifact'
+  'fetchBytes' | 'loadPublishedArtifact' | 'logError'
 >;
 
 export interface DeploymentCatalogContext extends Pick<
@@ -42,7 +43,9 @@ export async function loadDeploymentCatalog({
   const manifests = await mapWithConcurrency({
     values: collectDeploymentManifestReferences(deployment),
     operation: (reference) =>
-      dependencies.loadPublishedArtifact({ reference, runtime }),
+      reference === deployment.host
+        ? dependencies.loadPublishedArtifact({ reference, runtime })
+        : loadAppManifest({ reference, runtime, dependencies }),
     concurrency: ARTIFACT_LOAD_CONCURRENCY,
   });
 
@@ -55,8 +58,8 @@ export async function loadDeploymentCatalog({
   }
 
   const appCount = deployment.apps.length;
-  const apps = manifests.slice(1, 1 + appCount) as AtlasManifest[];
-  const widgetProviders = manifests.slice(1 + appCount) as AtlasManifest[];
+  const apps = manifests.slice(1, 1 + appCount).filter(isAppManifest);
+  const widgetProviders = manifests.slice(1 + appCount).filter(isAppManifest);
 
   return {
     schemaVersion: '1',
@@ -67,6 +70,41 @@ export async function loadDeploymentCatalog({
     apps,
     ...(deployment.widgetProviders?.length ? { widgetProviders } : {}),
   };
+}
+
+async function loadAppManifest({
+  reference,
+  runtime,
+  dependencies,
+}: DeploymentCatalogContext & {
+  reference: AtlasDeploymentManifestReference;
+}): Promise<AtlasManifest | undefined> {
+  try {
+    const manifest = await dependencies.loadPublishedArtifact({
+      reference,
+      runtime,
+    });
+
+    if (manifest.kind === 'app') return manifest;
+
+    dependencies.logError(
+      `Atlas skipped "${reference.path}" because it is a ${manifest.kind} artifact, not an app. The rest of the host still loads.`,
+      manifest,
+    );
+  } catch (failure) {
+    dependencies.logError(
+      `Atlas skipped "${reference.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+      failure,
+    );
+  }
+
+  return undefined;
+}
+
+function isAppManifest(
+  manifest: AtlasManifest | AtlasHostManifest | undefined,
+): manifest is AtlasManifest {
+  return manifest?.kind === 'app';
 }
 
 async function fetchDeploymentManifest({

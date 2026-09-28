@@ -123,9 +123,9 @@ sequenceDiagram
 ```
 
 - **Retries and timeouts.** In deployed Hosts, resource requests retry three times after a failure and time out after 15 seconds. The `resourcesRetryCount` and `resourcesTimeoutMs` fields in a Host's `atlas.config.ts` change these values only for the Host page that `npx atlas dev` serves. A deployed `atlas.runtime.json` rejects them unless its environment is `development`, so deployed Hosts always use the defaults.
-- **Integrity failures skip the App.** If an App's manifest or remote entry does not match its digest, the runtime does not run that App's code. Other Apps still load.
+- **App and Widget failures skip only that artifact.** If an App or Widget provider manifest cannot be downloaded, does not match its digest, or is not an App artifact, the loader leaves it out of the host catalog and logs `Atlas skipped "<path>" …` to the browser console. If an App's remote entry does not match its integrity value, the runtime does not run that App's code. A Widget that fails to load shows an error card with a retry button in its own container. In every case the Host and the other Apps keep loading.
 - **Per-App error state.** A failed mount changes only that App's state to `error`. The Host shows its error UI through `AtlasHostStatus` or `<atlas-host-status>`; the layout and other Apps stay usable.
-- **Host failures are fatal.** If the runtime config, the host deployment manifest, or the Host itself cannot load, the bootstrap page shows a recovery screen with an error code. A Host is the one artifact every page depends on, so deploy Host changes with the most care.
+- **Host failures are fatal.** If the runtime config, the host deployment manifest, the Host's published artifact manifest, or the Host itself cannot load, the bootstrap page shows a recovery screen with an error code. A Host is the one artifact every page depends on, so deploy Host changes with the most care.
 - **Observability.** The runtime emits `host.start`, `host.ready`, `host.error`, `operation.success`, `operation.retry`, `operation.error`, and `app.state` events. Forward them to your monitoring tool; see [Production readiness](../deploy/production-readiness.md).
 
 ## How framework adapters work

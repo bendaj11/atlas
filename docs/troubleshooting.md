@@ -43,6 +43,7 @@ If the Host ID or the environment is wrong, fix the runtime config that your pla
    - The route's `hostId` matches `hostId` in the Host's `atlas.runtime.json`.
    - The route's `path` matches the URL you open. See [Routing](concepts/routing.md).
 4. Check that the App is deployed to the Host's environment.
+5. Open the browser console. A message that starts with `Atlas skipped "<path>"` means the loader left that App or Widget provider out because its published artifact manifest could not be downloaded, did not match its digest, or was not an App artifact. The rest of the Host still loads. Republish the App, then deploy it again.
 
 ## A route shows the wrong App
 

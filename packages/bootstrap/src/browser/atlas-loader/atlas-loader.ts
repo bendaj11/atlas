@@ -103,5 +103,6 @@ function createBrowserAtlasLoaderDependencies(): AtlasLoaderDependencies {
     requestDevelopmentSession,
     applyOverrides,
     validateCatalog,
+    logError: (message, failure) => console.error(message, failure),
   };
 }

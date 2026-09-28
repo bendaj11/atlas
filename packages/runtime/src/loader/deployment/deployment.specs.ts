@@ -6,6 +6,7 @@ import {
 } from '@atlas/testkit/internal';
 import { DeploymentDriver } from './deployment.driver.js';
 import { aDeploymentWith, aReferenceTo } from './deployment.testkit.js';
+import type { DeploymentManifestReference } from './deployment.types.js';
 
 describe('loadHostDeployment', () => {
   let driver: DeploymentDriver;
@@ -49,6 +50,100 @@ describe('loadHostDeployment', () => {
         .when.loaded();
 
       expect(driver.get.catalog().host.id).toBe(hostArtifact.id);
+    });
+
+    describe('when an app manifest digest differs from its descriptor', () => {
+      let app: DeploymentManifestReference;
+
+      beforeEach(async () => {
+        const host = await aReferenceTo(hostArtifact);
+        const provider = await aReferenceTo(providerArtifact);
+        app = await aReferenceTo(appArtifact, {
+          digest: aManifestDescriptor().digest,
+        });
+
+        await driver.given
+          .deployment(
+            aDeploymentWith({ host, apps: [app], widgetProviders: [provider] }),
+          )
+          .given.artifactAt(host.url!, hostArtifact)
+          .given.artifactAt(app.url!, appArtifact)
+          .given.artifactAt(provider.url!, providerArtifact)
+          .when.loaded();
+      });
+
+      it('should return the catalog without the rejected app when loaded', () => {
+        expect(driver.get.catalog()).toMatchObject({
+          host: { id: hostArtifact.id },
+          apps: [],
+          widgetProviders: [{ id: providerArtifact.id }],
+        });
+      });
+
+      it('should log the skipped app reference when loaded', () => {
+        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${app.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+          expect.any(Error),
+        );
+      });
+    });
+
+    describe('when a widget provider manifest cannot be fetched', () => {
+      let provider: DeploymentManifestReference;
+
+      beforeEach(async () => {
+        const host = await aReferenceTo(hostArtifact);
+        const app = await aReferenceTo(appArtifact);
+        provider = await aReferenceTo(providerArtifact);
+
+        await driver.given
+          .deployment(
+            aDeploymentWith({ host, apps: [app], widgetProviders: [provider] }),
+          )
+          .given.artifactAt(host.url!, hostArtifact)
+          .given.artifactAt(app.url!, appArtifact)
+          .when.loaded();
+      });
+
+      it('should return the catalog without the missing widget provider when loaded', () => {
+        expect(driver.get.catalog()).toMatchObject({
+          apps: [{ id: appArtifact.id }],
+          widgetProviders: [],
+        });
+      });
+
+      it('should log the skipped widget provider reference when loaded', () => {
+        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${provider.path}" because its manifest could not be loaded. The rest of the host still loads.`,
+          expect.any(Error),
+        );
+      });
+    });
+
+    describe('when an app reference points to a host artifact', () => {
+      let stray: DeploymentManifestReference;
+
+      beforeEach(async () => {
+        const host = await aReferenceTo(hostArtifact);
+        const strayArtifact = aHostArtifactManifest();
+        stray = await aReferenceTo(strayArtifact);
+
+        await driver.given
+          .deployment(aDeploymentWith({ host, apps: [stray] }))
+          .given.artifactAt(host.url!, hostArtifact)
+          .given.artifactAt(stray.url!, strayArtifact)
+          .when.loaded();
+      });
+
+      it('should return the catalog without the host artifact in apps when loaded', () => {
+        expect(driver.get.catalog()).toMatchObject({ apps: [] });
+      });
+
+      it('should log the skipped reference when loaded', () => {
+        expect(driver.get.consoleErrorMock()).toHaveBeenCalledWith(
+          `Atlas skipped "${stray.path}" because it is a host artifact, not an app. The rest of the host still loads.`,
+        );
+      });
     });
 
     it('should reject with ATLAS_INVALID_RUNTIME_CONFIG when a reference has no url and no artifactRegistryUrl is given', async () => {

@@ -147,6 +147,7 @@ export class AtlasLoaderDriver {
             jest.fn<typeof requestDevelopmentSession>(),
           applyOverrides: this.applyOverrides,
           validateCatalog: this.validateCatalog,
+          logError: jest.fn(),
         });
       } catch (error) {
         this.error = error;

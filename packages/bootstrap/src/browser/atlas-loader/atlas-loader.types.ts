@@ -12,6 +12,8 @@ export type LoaderDocument = Pick<
   'createElement' | 'getElementById' | 'head'
 >;
 
+export type LogError = (message: string, failure: unknown) => void;
+
 export interface AtlasLoaderDependencies {
   readonly document: LoaderDocument;
   readonly location?: Pick<Location, 'href'>;
@@ -23,6 +25,7 @@ export interface AtlasLoaderDependencies {
   readonly requestDevelopmentSession: typeof requestDevelopmentSession;
   readonly applyOverrides: typeof applyOverrides;
   readonly validateCatalog: typeof validateCatalog;
+  readonly logError: LogError;
 }
 
 export interface LoaderContext {

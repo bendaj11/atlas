@@ -8,6 +8,7 @@ import type {
 import { jest } from '@jest/globals';
 import type { fetchBytes } from '../../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../../published-artifact/index.js';
+import type { LogError } from '../atlas-loader.types.js';
 import { loadDeploymentCatalog } from './deployment-catalog.js';
 
 type PublishedManifest = AtlasManifest | AtlasHostManifest;
@@ -17,6 +18,7 @@ export class DeploymentCatalogDriver {
   private readonly fetchBytes = jest.fn<typeof fetchBytes>();
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
+  private readonly logError = jest.fn<LogError>();
   private catalog: AtlasHostCatalog | undefined;
   private error: unknown;
 
@@ -35,6 +37,11 @@ export class DeploymentCatalogDriver {
     },
     publishedArtifact: (manifest: PublishedManifest) => {
       this.loadPublishedArtifact.mockResolvedValueOnce(manifest);
+
+      return this;
+    },
+    publishedArtifactFailure: (failure: Error) => {
+      this.loadPublishedArtifact.mockRejectedValueOnce(failure);
 
       return this;
     },
@@ -65,6 +72,7 @@ export class DeploymentCatalogDriver {
     error: () => this.error,
     fetchBytesMock: () => this.fetchBytes,
     loadPublishedArtifactMock: () => this.loadPublishedArtifact,
+    logErrorMock: () => this.logError,
   };
 
   private load(): Promise<AtlasHostCatalog> {
@@ -73,6 +81,7 @@ export class DeploymentCatalogDriver {
       dependencies: {
         fetchBytes: this.fetchBytes,
         loadPublishedArtifact: this.loadPublishedArtifact,
+        logError: this.logError,
       },
     });
   }
