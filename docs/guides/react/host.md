@@ -246,29 +246,44 @@ Read [React SDK](sdk.md) for how Apps consume these services, and [Share host da
 
 ## 5. Add loading and error UI
 
-Atlas shows functional default loading and error states. To use your design system, return renderer functions from `useCustomHostSdkOptions()` alongside your SDK members:
+Atlas shows functional default loading and error states. To use your design system, pass components to `defineReactHost()` (or as props on `AtlasHostProvider`), next to `layout`:
 
 ```tsx
-export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
-  return {
-    // ...your SDK members
-    renderHostError: (container, error, retry) =>
-      renderHostFailure(container, { error, retry }),
-    renderLoading: (container, event) =>
-      renderAppSkeleton(container, event.manifest.name),
-    renderError: (container, event, retry) =>
-      renderAppFailure(container, { app: event.manifest.name, retry }),
-  };
+function AppLoading() {
+  return <div className="app-skeleton" />;
 }
+
+function AppError({ error, retry }: AtlasErrorProps) {
+  return (
+    <div className="app-failure">
+      <p>{error.message}</p>
+      <button onClick={retry}>Retry</button>
+    </div>
+  );
+}
+
+export const mount = defineReactHost<CustomerHostSdk>({
+  config: atlasConfig,
+  layout: HostLayout,
+  reactDom: { createRoot },
+  providers: HostProviders,
+  useSdkOptions: useCustomHostSdkOptions,
+  loading: AppLoading,
+  error: AppError,
+  widgetLoading: WidgetLoading,
+  widgetError: WidgetError,
+  hostError: HostError,
+});
 ```
 
-| Option                                     | Covers                                                         |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `renderHostError`                          | Failed Atlas startup, rendered into `AtlasHostStatus`.         |
-| `renderLoading`, `renderError`             | One routed or slotted App, rendered into that App's container. |
-| `renderWidgetLoading`, `renderWidgetError` | One exported Widget.                                           |
+| Option                         | Covers                                                         |
+| ------------------------------ | -------------------------------------------------------------- |
+| `hostError`                    | Failed Atlas startup, rendered into `AtlasHostStatus`.         |
+| `loading`, `error`             | One routed or slotted App, rendered into that App's container. |
+| `widgetLoading`, `widgetError` | One exported Widget.                                           |
+| `notFound`                     | No matching route.                                             |
 
-Renderers receive DOM containers rather than React elements because Apps may use different frameworks. Use a React portal, a separate root, or an imperative design-system API. `renderHostError` and the Widget renderers may return a cleanup function; return one when you create a root or subscription.
+`loading`, `widgetLoading`, and `notFound` are plain components that take no props. `error`, `widgetError`, and `hostError` take `AtlasErrorProps` (`error: Error`, `retry: () => void`), both exported from `@atlas/runtime/react`. Retry works once. Components render inside the Host's own React tree (a portal inside the router), so context, router links, and DI work; Atlas needs no manual cleanup. A per-Widget `loadingComponent` passed to `getWidget` beats `widgetLoading`, which beats the Atlas default. Omit any component to keep the Atlas default UI.
 
 A failing App shows its error UI in its own container. The rest of the Host keeps working.
 

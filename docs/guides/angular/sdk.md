@@ -179,7 +179,7 @@ export class OrderSummaryComponent {
 Replace the UUID with the Widget ID that the owning team shares.
 
 - `getWidget()` only creates a typed binding. `[atlasWidget]` mounts the Widget into its element, forwards changed inputs without remounting when the Widget supports updates, and unmounts it when Angular destroys the element. It works inside `@if` and `@for` blocks.
-- Pass `loadingComponent` next to `inputs` to show your own component while the Widget loads. Without it, the Host's `renderWidgetLoading` renderer applies.
+- Pass `loadingComponent` next to `inputs` to show your own component while the Widget loads. Without it, the Host's `widgetLoadingComponent` applies.
 
 ### Export a Widget
 

@@ -174,7 +174,7 @@ Replace the UUID with the Widget ID that the owning team shares.
 
 - Atlas returns the same component for the same Widget ID and `loadingComponent`, so calling `getWidget()` during render is safe.
 - The component mounts the Widget when it renders, forwards changed props without remounting, and unmounts the Widget when React removes it. It works inside conditions and lists.
-- `loadingComponent` renders while the Widget code loads. Without it, the Host's `renderWidgetLoading` renderer applies.
+- `loadingComponent` renders while the Widget code loads. Without it, the Host's `widgetLoading` component applies.
 - If the Widget cannot mount, the component throws during render. Wrap Widgets in an error boundary when a failure should not replace the surrounding screen.
 
 ### Export a Widget

@@ -130,10 +130,10 @@ Atlas renders loading and error UI inside the Widget's own container. A slow or 
 
 You can customize this UI at two levels:
 
-- For every Widget in the Host, return `renderWidgetLoading` and `renderWidgetError` from the Host SDK options (`host.config` in a generated Host).
-- For one Widget, pass `loadingComponent` to `getWidget`.
+- For every Widget in the Host, pass `widgetLoading` and `widgetError` (React) or `widgetLoadingComponent` and `widgetErrorComponent` (Angular) to the Host definition.
+- For one Widget, pass `loadingComponent` to `getWidget`. It beats the Host's Widget loading component.
 
-Atlas cleans up each renderer before the Widget mounts, retries, or unmounts. See the [SDK reference](../reference/sdk.md) for the renderer signatures.
+See the [SDK reference](../reference/sdk.md#loading-and-failure-ui) for the component props.
 
 ## Where Atlas finds Widgets
 

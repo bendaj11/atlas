@@ -225,22 +225,52 @@ Read [Angular SDK](sdk.md) for how Apps consume these services.
 
 ## 5. Add loading and error UI
 
-The default status UI works without configuration. To use your design system, return renderers from `createCustomHostSdkOptions()`. The `render*` helpers below are placeholders for your own code:
+The default status UI works without configuration. To use your design system, pass components to `defineAngularHost()`, next to `component`:
 
 ```ts
-return {
-  hostData: { projectId: 'customer-portal' },
-  renderHostError: (container, error, retry) =>
-    renderHostFailure(container, { error, retry }),
-  renderLoading: (container, event) =>
-    renderAppSkeleton(container, event.manifest.name),
-  renderError: (container, event, retry) =>
-    renderAppFailure(container, { app: event.manifest.name, retry }),
-};
+import { AppLoadingComponent } from './app-loading.component';
+import { AppErrorComponent } from './app-error.component';
+
+export const mount = defineAngularHost<CustomerHostSdk>({
+  config: atlasConfig,
+  component: AppComponent,
+  appConfig,
+  sdkOptions: createCustomHostSdkOptions,
+  loadingComponent: AppLoadingComponent,
+  errorComponent: AppErrorComponent,
+  widgetLoadingComponent: WidgetLoadingComponent,
+  widgetErrorComponent: WidgetErrorComponent,
+  hostErrorComponent: HostErrorComponent,
+});
 ```
 
-- `renderHostError` covers a failed Host startup. It may return a function that Atlas calls to clean up.
-- `renderLoading` and `renderError` cover one routed or slotted App. A failure in one App does not replace the rest of the Host.
+Error components declare `error` and `retry` inputs. Atlas sets them with `setInput`:
+
+```ts
+import { Component, input } from '@angular/core';
+
+@Component({
+  selector: 'app-error',
+  standalone: true,
+  template: `
+    <p>{{ error().message }}</p>
+    <button (click)="retry()()">Retry</button>
+  `,
+})
+export class AppErrorComponent {
+  readonly error = input.required<Error>();
+  readonly retry = input.required<() => void>();
+}
+```
+
+| Option                                           | Covers                                                                                 |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `hostErrorComponent`                             | Failed Host startup, rendered into `<atlas-host-status>`.                              |
+| `loadingComponent`, `errorComponent`             | One routed or slotted App. A failure in one App does not replace the rest of the Host. |
+| `widgetLoadingComponent`, `widgetErrorComponent` | One exported Widget.                                                                   |
+| `notFoundComponent`                              | No matching route.                                                                     |
+
+`loadingComponent`, `widgetLoadingComponent`, and `notFoundComponent` take no inputs. `errorComponent`, `widgetErrorComponent`, and `hostErrorComponent` must declare `error` and `retry` inputs, matching `AngularErrorInputs`. Retry works once. Atlas creates these components with `createComponent` inside the application injector, so DI works and no manual cleanup is needed. A per-Widget `loadingComponent` passed to `getWidget` beats the Host's `widgetLoadingComponent`, which beats the Atlas default. Omit any component to keep the Atlas default UI.
 
 ## 6. Run the Host locally
 

@@ -140,7 +140,7 @@ Prefix event names with the owning domain, such as `orders.updated`.
 - React caches the returned component per widget ID and loading component. Define `loadingComponent` outside the render function; an inline component remounts the Widget on every render.
 - A React Widget that fails to mount throws `AtlasWidgetMountError` during render. Wrap it in an error boundary.
 - Angular's `WidgetOutlet` directive updates inputs when the binding changes and unmounts the Widget when Angular destroys the element.
-- Without a `loadingComponent`, Atlas uses the Host's `renderWidgetLoading`, then its own accessible default.
+- Without a `loadingComponent`, Atlas uses the Host's `widgetLoading` component, then its own accessible default.
 
 See [Exported widgets](../guides/exported-widgets.md).
 
@@ -223,16 +223,18 @@ Relative targets resolve inside the App path. Absolute URLs throw `ATLAS_EXTERNA
 
 ## Loading and failure UI
 
-A Host configures loading and error UI once, in the options it returns from `useSdkOptions` or `sdkOptions`. Apps never choose their own fallback. Every callback is optional; Atlas renders accessible defaults.
+A Host configures loading and error UI once, as framework components on the Host definition (`defineReactHost` / `AtlasHostProvider` in React, `defineAngularHost` / `bootstrapAngularHost` in Angular), next to `notFound`. Apps never choose their own fallback. Every component is optional; Atlas renders accessible defaults for the ones you omit.
 
-| Option                                         | Called with                                | Description                                                                     |
-| ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| `renderHostError(container, error, retry)`     | Status anchor, error, retry callback       | Global startup error. May return a cleanup function.                            |
-| `renderLoading(container, event)`              | Placement element, `AtlasHostMountEvent`   | Shared loader for every App placement, from mount start until the App is ready. |
-| `renderError(container, event, retry)`         | Placement element, event, retry callback   | Shared fallback for a failed App placement.                                     |
-| `renderWidgetLoading(container, context)`      | Widget element, `AtlasWidgetRenderContext` | Shared loader for every Widget. May return a cleanup function.                  |
-| `renderWidgetError(container, context, retry)` | Widget element, context, retry callback    | Shared fallback for a failed Widget. May return a cleanup function.             |
-| `observe(event)`                               | `AtlasRuntimeEvent`                        | Receives runtime events. See [Runtime events](#runtime-events).                 |
+| Option (React / Angular)                   | Covers                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `hostError` / `hostErrorComponent`         | Global startup error, shown in the status anchor. Retry restarts Atlas.         |
+| `loading` / `loadingComponent`             | Shared loader for every App placement, from mount start until the App is ready. |
+| `error` / `errorComponent`                 | Shared fallback for a failed App placement. Retry reloads only that App.        |
+| `widgetLoading` / `widgetLoadingComponent` | Shared loader for every Widget.                                                 |
+| `widgetError` / `widgetErrorComponent`     | Shared fallback for a failed Widget. Retry reloads only that Widget.            |
+| `observe(event)`                           | Receives runtime events. See [Runtime events](#runtime-events).                 |
+
+Loading components take no props. Error components take `error: Error` and `retry: () => void`: `AtlasErrorProps` in React, `AngularErrorInputs` (declared as inputs, set with `setInput`) in Angular. Retry works once per failure. Components render inside the Host's own framework tree, so context, router links, and DI work; Atlas needs no manual cleanup. A per-Widget `loadingComponent` passed to `getWidget` beats the Host's `widgetLoading`/`widgetLoadingComponent`, which beats the Atlas default.
 
 The bootstrap placeholder covers startup, so there is no Host loading UI. The status anchor shows only the Host start error: `AtlasHostStatus` in React, `<atlas-host-status>` in Angular. Without a status anchor, Hosts created with `defineReactHost` or `defineAngularHost` show the error at the top of the Host container. Slot placements get a compact default loader. See [Host anchors](../concepts/host-anchors.md).
 

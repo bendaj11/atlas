@@ -164,7 +164,7 @@ To render navigation with your own components, read the same items yourself. Rea
 
 The bootstrap loader covers startup. The Host layout stays hidden behind the bootstrap placeholder until Atlas is ready to show it, so the status anchor never shows a startup loader.
 
-If startup fails, Atlas renders an error with a retry action into the status anchor. You can replace it with your own UI through `renderHostError` in the Host SDK options. After a retry, the error stays on screen until the new attempt is ready, and then Atlas removes it or replaces it with the new error.
+If startup fails, Atlas renders an error with a retry action into the status anchor. You can replace it with your own component through `hostError` (React) or `hostErrorComponent` (Angular) on the Host definition. After a retry, the error stays on screen until the new attempt is ready, and then Atlas removes it or replaces it with the new error.
 
 If the Host has not rendered a status anchor, Atlas shows the error at the top of the Host element instead, and moves it into the status anchor once one renders.
 
