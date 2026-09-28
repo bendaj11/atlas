@@ -91,4 +91,28 @@ describe('AtlasHostAnchorRegistry', () => {
 
     expect(driver.get.activeLayout()).toBe(layoutId);
   });
+
+  it('should report no route not found when the flag was never set', () => {
+    expect(driver.get.routeNotFound()).toBe(false);
+  });
+
+  it('should report route not found when the flag is set', () => {
+    driver.when.routeNotFoundSet(true);
+
+    expect(driver.get.routeNotFound()).toBe(true);
+  });
+
+  it('should notify route not found subscribers when the flag changes', () => {
+    driver.given.routeNotFoundSubscribed().when.routeNotFoundSet(true);
+
+    expect(driver.get.routeNotFoundListenerMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not notify route not found subscribers when the same flag is set again', () => {
+    driver.given.routeNotFoundSubscribed().when.routeNotFoundSet(true);
+
+    driver.when.routeNotFoundSet(true);
+
+    expect(driver.get.routeNotFoundListenerMock()).toHaveBeenCalledTimes(1);
+  });
 });

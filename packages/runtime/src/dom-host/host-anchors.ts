@@ -11,7 +11,9 @@ export class AtlasHostAnchorRegistry {
   private readonly anchorsByKey = new Map<string, HTMLElement>();
   private readonly anchorListeners = new Set<AtlasHostAnchorListener>();
   private readonly layoutListeners = new Set<AtlasHostAnchorListener>();
+  private readonly routeNotFoundListeners = new Set<AtlasHostAnchorListener>();
   private activeLayoutId: string | undefined;
+  private routeNotFound = false;
 
   register(
     kind: AtlasHostAnchorKind,
@@ -61,6 +63,26 @@ export class AtlasHostAnchorRegistry {
     this.layoutListeners.add(listener);
 
     return () => this.layoutListeners.delete(listener);
+  }
+
+  setRouteNotFound(routeNotFound: boolean): void {
+    if (this.routeNotFound === routeNotFound) return;
+
+    this.routeNotFound = routeNotFound;
+
+    for (const listener of this.routeNotFoundListeners) listener();
+  }
+
+  isRouteNotFound(): boolean {
+    return this.routeNotFound;
+  }
+
+  subscribeRouteNotFound(
+    listener: AtlasHostAnchorListener,
+  ): UnsubscribeAnchorListener {
+    this.routeNotFoundListeners.add(listener);
+
+    return () => this.routeNotFoundListeners.delete(listener);
   }
 
   private notifyAnchorListeners(): void {

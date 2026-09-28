@@ -10,6 +10,7 @@ export class HostAnchorsDriver {
   private readonly registry = new AtlasHostAnchorRegistry();
   private readonly listener = jest.fn<AtlasHostAnchorListener>();
   private readonly layoutListener = jest.fn<AtlasHostAnchorListener>();
+  private readonly routeNotFoundListener = jest.fn<AtlasHostAnchorListener>();
   private readonly releases: ReleaseAnchor[] = [];
   private error: unknown;
 
@@ -21,6 +22,11 @@ export class HostAnchorsDriver {
     },
     layoutsSubscribed: () => {
       this.registry.subscribeLayouts(this.layoutListener);
+
+      return this;
+    },
+    routeNotFoundSubscribed: () => {
+      this.registry.subscribeRouteNotFound(this.routeNotFoundListener);
 
       return this;
     },
@@ -41,6 +47,8 @@ export class HostAnchorsDriver {
     released: (index: number) => this.releases[index]!(),
     activeLayoutSet: (layoutId: string | undefined) =>
       this.registry.setActiveLayout(layoutId),
+    routeNotFoundSet: (routeNotFound: boolean) =>
+      this.registry.setRouteNotFound(routeNotFound),
   };
 
   readonly get = {
@@ -50,6 +58,8 @@ export class HostAnchorsDriver {
     activeLayout: () => this.registry.getActiveLayout(),
     listenerMock: () => this.listener,
     layoutListenerMock: () => this.layoutListener,
+    routeNotFound: () => this.registry.isRouteNotFound(),
+    routeNotFoundListenerMock: () => this.routeNotFoundListener,
     error: () => this.error,
   };
 }
