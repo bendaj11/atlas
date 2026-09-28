@@ -58,7 +58,7 @@ The [CLI reference](../../reference/cli.md#generate-host-and-generate-app) lists
 
 - `--framework angular` selects Angular. In an interactive terminal the CLI asks when you omit it; non-interactive runs default to React, so always pass it in scripts.
 - `--style <format>` sets the stylesheet format: `css`, `scss`, `sass`, or `less`.
-- `--framework-version <range>` sets the Angular version for new packages. When the workspace already declares `@angular/core`, Atlas uses that version for the new project instead of changing the workspace.
+- `--framework-version <range>` sets the Angular version for new packages. In an existing Nx workspace that already declares `@angular/core`, Atlas uses that version for the new project instead of changing the workspace. In other workspaces, a new project gets the default version unless you pass this flag.
 
 ## Native Federation config
 

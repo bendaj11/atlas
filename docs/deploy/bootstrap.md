@@ -18,7 +18,7 @@ es-module-shims.js
 ```
 
 - `index.html` contains the `atlas-host-root` element, a loading placeholder, and a module script that loads `/atlas.loader.js?v=<hash>`. The hash changes when the loader changes.
-- `atlas.loader.js` is the Atlas [loader](../introduction/glossary.md). It reads the runtime config, resolves the deployed Host and Apps, verifies them, and mounts the Host.
+- `atlas.loader.js` is the Atlas [loader](../introduction/glossary.md#loader). It reads the runtime config, resolves the deployed Host and Apps, verifies them, and mounts the Host.
 - `es-module-shims.js` is the ES module shim the loader runs in shim mode to load Native Federation modules.
 
 The bootstrap contains no environment name and no registry URL. You build it once and serve the same files in every environment. Atlas does not generate a web server configuration; you write it using the [Host platform contract](#host-platform-contract) below.

@@ -5,7 +5,7 @@ description: Generate a React Host, lay out the page with host anchors, provide 
 
 # Build a React Host
 
-This guide walks you through building a React [Host](../../introduction/glossary.md): the page layout, top-level navigation, and shared browser services that every App runs inside. It is for the team that owns the Host. If you have not run Atlas before, complete the [tutorial](../../get-started/tutorial.md) first.
+This guide walks you through building a React [Host](../../introduction/glossary.md#host): the page layout, top-level navigation, and shared browser services that every App runs inside. It is for the team that owns the Host. If you have not run Atlas before, complete the [tutorial](../../get-started/tutorial.md) first.
 
 > **Note:** If you completed the tutorial, skip step 1 and open `apps/customer-host`.
 
@@ -76,7 +76,7 @@ export const mount = defineReactHost<CustomerHostSdk>({
 });
 ```
 
-In a browser, the Atlas [loader](../../introduction/glossary.md) reads the [runtime config](../../introduction/glossary.md) (`atlas.runtime.json`), resolves which Host and App versions are deployed, and calls `mount` with a container element. `defineReactHost()` then:
+In a browser, the Atlas [loader](../../introduction/glossary.md#loader) reads the [runtime config](../../introduction/glossary.md#runtime-config) (`atlas.runtime.json`), resolves which Host and App versions are deployed, and calls `mount` with a container element. `defineReactHost()` then:
 
 1. creates a React Router browser router with one catch-all route that renders `HostLayout`;
 2. wraps the tree in `HostProviders`;
@@ -180,7 +180,7 @@ To render navigation with your own design system instead of `AtlasNavigation`, u
 
 ## 4. Provide Host services through the SDK
 
-Apps never import Host source code. Instead, the Host exposes shared capabilities through the [SDK](../../introduction/glossary.md), and Apps read them with `useAtlasSdk()`.
+Apps never import Host source code. Instead, the Host exposes shared capabilities through the [SDK](../../introduction/glossary.md#sdk), and Apps read them with `useAtlasSdk()`.
 
 Declare your SDK in `src/host.config.tsx`. The file has three parts:
 

@@ -5,7 +5,7 @@ description: Generate a React App, choose where it appears in a Host, build its 
 
 # Build a React App
 
-This guide shows you how to build a React [App](../../introduction/glossary.md): a feature that a team develops and releases on its own and that appears inside a Host at a URL or in a named slot. It is for feature teams that already have a Host to run in.
+This guide shows you how to build a React [App](../../introduction/glossary.md#app): a feature that a team develops and releases on its own and that appears inside a Host at a URL or in a named slot. It is for feature teams that already have a Host to run in.
 
 > **Note:** If you completed the tutorial, skip step 1 and open `apps/orders`.
 

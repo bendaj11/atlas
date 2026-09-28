@@ -14,7 +14,7 @@ Framework-specific build notes live in the [React production deployment](../guid
 Atlas splits a release into four independent operations:
 
 1. **Build.** Your framework build (Vite, Angular CLI) writes output to the project's `dist` folder.
-2. **Publish.** `npx atlas publish` uploads that output once, as an immutable release, to the [artifact registry](../introduction/glossary.md). Publishing does not change what any user sees.
+2. **Publish.** `npx atlas publish` uploads that output once, as an immutable release, to the [artifact registry](../introduction/glossary.md#artifact-registry). Publishing does not change what any user sees.
 3. **Deploy.** `npx atlas deploy` selects a published release for a logical environment such as `staging` or `production`. It writes only small JSON files to the environment registry.
 4. **Serve the bootstrap.** Your platform serves the static [bootstrap](bootstrap.md) files and a same-origin `atlas.runtime.json` at the Host's public URL.
 
@@ -98,7 +98,7 @@ Run every command from the workspace root in CI.
    npx atlas deploy orders --to production --version 1.4.0
    ```
 
-   Apps have no public URL of their own. The routes and slots in the App's `atlas.config.ts` decide which deployed Hosts show it, and Atlas rewrites the host deployment manifest of each affected Host.
+   Apps have no public URL of their own. The routes and slots in the App's `atlas.config.ts` decide which deployed Hosts show it, and Atlas rewrites the host deployment manifest of every Host in the environment that any deployed App targets, not only the Hosts this App appears in.
 
 7. Verify the public Host.
 

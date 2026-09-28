@@ -92,7 +92,7 @@ A successful rebuild message does not guarantee that the served code changed. If
 ## Framework notes for shared issues
 
 - **Missing Host SDK members:** In an Angular Host, custom members come from `createCustomHostSdkOptions()` in `src/app/host.config.ts`. See [Host APIs are missing from the SDK](../../troubleshooting.md#host-apis-are-missing-from-the-sdk).
-- **Peer dependency conflicts:** When the workspace already declares `@angular/core`, Atlas generates the new project for that Angular version. Atlas has verified Angular 19 to 22; see [Framework versions](generators.md#framework-versions) and [Install fails with peer conflicts](../../troubleshooting.md#install-fails-with-peer-conflicts).
+- **Peer dependency conflicts:** In an Nx workspace that already declares `@angular/core`, Atlas generates the new project for that Angular version. In other workspaces, pass `--framework-version` with your workspace's Angular version. Atlas has verified Angular 19 to 22; see [Framework versions](generators.md#framework-versions) and [Install fails with peer conflicts](../../troubleshooting.md#install-fails-with-peer-conflicts).
 
 ## Next steps
 

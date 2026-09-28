@@ -277,7 +277,7 @@ npx atlas deploy <artifact> --to <environment> --version <selector> [options]
 | `--dry-run`                         | boolean | Off                         | Resolve and validate without writing.                                                                               |
 | [Storage options](#storage-options) |         |                             | Select and configure the storage provider.                                                                          |
 
-`npx atlas deploy --help` also lists `--expected-registry-revision`, but the `deploy` command does not read it. Only the `publish`, `remove-preview`, and `prune-previews` commands check the registry revision.
+The `deploy` command does not take `--expected-registry-revision`. Only the `publish`, `remove-preview`, and `prune-previews` commands check the registry revision.
 
 Pass either `--registry-url`, or both `--source-registry-url` and `--target-registry-url`. You cannot combine `--registry-url` with the source or target flags. Registry URLs must use HTTPS (loopback HTTP is allowed) and must not contain credentials, a query, or a hash.
 
@@ -338,7 +338,7 @@ npx atlas verify --host-url <url> [options]
 | `--host-url <url>`   | string | `ATLAS_HOST_URL`  | One deployed Host page or base URL.                   |
 | `--host-urls <urls>` | string | `ATLAS_HOST_URLS` | Several Host URLs, separated by commas or whitespace. |
 
-You can combine both flags; Atlas removes duplicates. The command fails if no URL is given or if any check fails. `npx atlas verify --help` does not mention `ATLAS_HOST_URL`, but the command reads it.
+You can combine both flags; Atlas removes duplicates. The command fails if no URL is given or if any check fails.
 
 ```sh
 npx atlas verify --host-url https://shop.example.com

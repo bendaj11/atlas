@@ -61,7 +61,7 @@ Host infrastructure. Apps do not import it.
 | `@atlas/runtime/react`   | `defineReactHost`, `AtlasHostProvider`, `startHost`, and the React host anchors.                |
 | `@atlas/runtime/angular` | `defineAngularHost`, `startHost`, and the Angular host anchors.                                 |
 
-Framework peer dependencies are optional: Angular `>=19 <23`, React `>=17 <20`, and `react-router-dom` `>=6.4 <8`.
+Framework peer dependencies are optional: `@angular/common`, `@angular/core`, `@angular/platform-browser`, and `@angular/router` `>=19 <23`; `react` and `react-dom` `>=17 <20`; and `react-router-dom` `>=6.4 <8`.
 
 ## @atlas/schema
 

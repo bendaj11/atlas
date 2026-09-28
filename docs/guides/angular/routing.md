@@ -12,8 +12,8 @@ This guide shows how URLs work in an Angular Host and an Angular App: where Apps
 The Host owns the browser URL. Each App declares the paths it serves in its `atlas.config.ts`, and Atlas mounts the matching App into the Host's route outlet:
 
 1. The App declares a route such as `{ hostId, path: '/orders' }`.
-2. When you publish the App, Atlas copies its routes and slots into the App's [published artifact manifest](../../introduction/glossary.md).
-3. When you deploy a version, that App becomes part of the Host's [host catalog](../../introduction/glossary.md) for the environment.
+2. When you publish the App, Atlas copies its routes and slots into the App's [published artifact manifest](../../introduction/glossary.md#published-artifact-manifest).
+3. When you deploy a version, that App becomes part of the Host's [host catalog](../../introduction/glossary.md#host-catalog) for the environment.
 4. In the browser, Atlas compares the current pathname with the routes in the catalog and mounts the matching App into `<atlas-route-outlet>`. `/orders` and `/orders/details/42` both match `/orders`. Slot placements mount into their `<atlas-slot>` anchors independently.
 5. Inside the App, Angular Router handles the part of the URL after `/orders`.
 

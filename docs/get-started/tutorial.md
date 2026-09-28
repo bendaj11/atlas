@@ -46,7 +46,7 @@ In the `atlas-tutorial` folder, run:
 npm install --save-dev --save-exact @atlas/cli
 ```
 
-This command works when your `.npmrc` points the `@atlas` scope at a registry that has the packages. If you built the packages from source, install the CLI tarball as described in [Get the packages](../reference/compatibility.md#build-from-source) instead, and add `--skip-install` to the two generate commands below.
+This command works when your `.npmrc` points the `@atlas` scope at a registry that has the packages. If you built the packages from source, install the CLI tarball as described in [Build from source](../reference/compatibility.md#build-from-source) instead. Then add `--skip-install` to the two generate commands below, and after step 4 follow steps 6 and 7 of that section to install `apps/customer-host` and `apps/orders`. With `--skip-install`, the generate output has no `Installing dependencies` lines.
 
 Check that the CLI works:
 

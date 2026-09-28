@@ -16,7 +16,7 @@ export const DEVELOPMENT_HELP: Readonly<Record<string, CommandHelp>> = {
       {
         label: '--port <number>',
         description:
-          'Host browser port or app framework port (defaults to next unused port from host 4200 or app 4201)',
+          'Host browser port or app framework port (defaults to the configured dev-server port, else host 4200 or app 4201)',
       },
       {
         label: '--control-port <number>',
@@ -29,12 +29,23 @@ export const DEVELOPMENT_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       {
         label: '--host-client-port <number>',
-        description: 'Internal host-client framework port (default: 4300)',
+        description:
+          'Internal host-client framework port (default: 4300, or 4200 when the bootstrap port is 4300; the configured port with --bootstrap-port or a deployed preview)',
       },
       {
         label: '--registry-url <url>',
         description:
           'Published registry used by a local host for catalog and Columbus version choices',
+      },
+      {
+        label: '--environment <name>',
+        description:
+          'Environment whose host deployment manifest the development session reads (default: production)',
+      },
+      {
+        label: '--entry <path>',
+        description:
+          'App remote entry file name inside the build output (default: remoteEntry.json)',
       },
       {
         label: '--no-open',

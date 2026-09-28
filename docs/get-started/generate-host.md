@@ -52,7 +52,7 @@ npx atlas g host customer-host --framework react --port 4200 --no-input
 By default, Atlas picks the folder from the workspace kind:
 
 - In a standalone project, Atlas creates `apps/<name>`.
-- In an npm, pnpm, or Yarn workspace or in Turborepo, Atlas uses the folder of a `hosts/*` workspace pattern if you have one, otherwise the `apps/*` pattern, otherwise `apps/<name>`.
+- In an npm, pnpm, or Yarn workspace or in Turborepo, Atlas reads the workspace patterns. An App goes into the folder of the `apps/*` pattern, otherwise into the folder of the first pattern with a wildcard (for example, `packages/<name>` when the only pattern is `packages/*`), otherwise into `apps/<name>`. A Host goes into the folder of a `hosts/*` pattern if you have one, otherwise into the same folder an App would use.
 - In Nx, Atlas runs the Nx application generator first and creates the project in `<current directory>/<name>`.
 - If you run the command from a folder directly below the workspace root, such as `hosts/`, Atlas creates the project there.
 

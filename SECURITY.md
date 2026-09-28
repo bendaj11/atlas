@@ -1,6 +1,6 @@
 # Security policy
 
-This page explains how to report a security vulnerability in Atlas privately. It covers the `@atlas/*` npm packages and the Columbus browser extension in this repository.
+This page explains how to report a security vulnerability in Atlas privately. It covers the `@atlas/*` packages and the Columbus browser extension in this repository.
 
 ## Supported versions
 

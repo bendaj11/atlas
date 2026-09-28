@@ -91,7 +91,42 @@ You need Git, Node.js `^22.12.0` or `^24.0.0`, and pnpm 10.
 
    > **Expected result:** `npx atlas --version` prints the version you built, such as `0.5.7`.
 
-Generated Hosts and Apps list `@atlas/*` packages with a range such as `^0.5.7`. npm rejects an override that conflicts with a direct dependency (`EOVERRIDE`), so pass `--skip-install` when you generate, replace each `@atlas/*` range in the generated `package.json` with the same `file:` path (relative to that `package.json`), and then install.
+6. Install each generated project. Generated Hosts and Apps list `@atlas/*` packages with a range such as `^0.5.7`, which npm cannot find in the registry. Generate with `--skip-install`, then edit each generated project's `package.json`:
+
+   - Replace every `@atlas/*` range in `dependencies` and `devDependencies` with the matching `file:` path.
+   - In a standalone project, also add the `overrides` map from step 4, so the CLI's own `@atlas` dependencies resolve to the tarballs. In a workspace, npm, pnpm, and Yarn read overrides only from the workspace root, so the map from step 4 already covers every project.
+
+   Write every path relative to that `package.json`. For a project in `apps/orders`, the paths start with `file:../../vendor/atlas/`:
+
+   ```json
+   {
+     "dependencies": {
+       "@atlas/schema": "file:../../vendor/atlas/schema.tgz",
+       "@atlas/sdk": "file:../../vendor/atlas/sdk.tgz"
+     },
+     "devDependencies": {
+       "@atlas/cli": "file:../../vendor/atlas/cli.tgz"
+     },
+     "overrides": {
+       "@atlas/bootstrap": "file:../../vendor/atlas/bootstrap.tgz",
+       "@atlas/cli": "file:../../vendor/atlas/cli.tgz",
+       "@atlas/generators": "file:../../vendor/atlas/generators.tgz",
+       "@atlas/runtime": "file:../../vendor/atlas/runtime.tgz",
+       "@atlas/schema": "file:../../vendor/atlas/schema.tgz",
+       "@atlas/sdk": "file:../../vendor/atlas/sdk.tgz",
+       "@atlas/testkit": "file:../../vendor/atlas/testkit.tgz"
+     }
+   }
+   ```
+
+   A generated Host also lists `@atlas/runtime` in `dependencies`; replace that range too. Keep the other fields of the generated file.
+
+7. Run the install where your workspace installs dependencies:
+
+   - In a standalone project (a folder without npm, pnpm, Yarn, Nx, or Turborepo workspaces), each generated project is its own npm project. Run `npm install` in each project folder, such as `apps/customer-host` and `apps/orders`.
+   - In a workspace, run the install once from the workspace root. The root `overrides` from step 4 apply to every project.
+
+   > **Expected result:** `npm ls @atlas/sdk` in the project folder shows the version you built, resolved from the tarball.
 
 ## Package versioning
 

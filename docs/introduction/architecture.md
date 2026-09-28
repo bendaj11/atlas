@@ -93,7 +93,7 @@ sequenceDiagram
   CI->>CLI: npx atlas deploy orders --to production --version 1.4.0
   CLI->>A: Read registry.json and the artifact manifest
   CLI->>E: Write environments/production/deployment.json
-  CLI->>E: Rewrite environments/production/hosts/<hostId>/manifest.json<br/>for every Host the App is placed in
+  CLI->>E: Rewrite environments/production/hosts/<hostId>/manifest.json<br/>for every Host that any deployed App targets
   Note over E: Next page load uses 1.4.0
   CI->>CLI: npx atlas deploy orders --to production --version 1.3.2
   CLI->>E: Rewrite deployment.json and host deployment manifests
@@ -163,7 +163,7 @@ Shadow DOM isolates markup and styles, not scripts. Plan for these limits before
 - **Fonts.** Browsers ignore `@font-face` rules inside a shadow root. Declare shared fonts in the Host's global stylesheet; Apps can then use them by family name.
 - **Third-party CSS.** Stylesheets that target `html`, `body`, or `:root` match nothing inside a shadow root. Atlas rewrites `:root` selectors to `:host`, but not `html` or `body` selectors. Global CSS resets and themes often need adjustment.
 - **Global queries.** Code that calls `document.querySelector` cannot see elements inside an App's shadow root. Query from the App's own container instead.
-- **JavaScript is shared.** All Apps share one `window`, one global scope, and one set of shared dependencies. Shadow DOM is not a security boundary.
+- **JavaScript is shared.** All Apps share one `window` and one global scope, and they share a dependency with the Host only when the installed versions match exactly (see [Shared dependencies](../deploy/governance.md#shared-dependencies)). Shadow DOM is not a security boundary.
 
 [Styles and isolation](../concepts/styles-and-isolation.md) explains how to work with these limits.
 

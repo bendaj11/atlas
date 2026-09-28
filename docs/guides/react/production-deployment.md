@@ -32,7 +32,7 @@ Publish the build output as an immutable version:
 npx atlas publish orders --version 1.4.0
 ```
 
-Atlas checks the output and `remoteEntry.json`, then uploads the files together with a [published artifact manifest](../../introduction/glossary.md) (`manifest.json`) to the artifact registry. Publishing does not change what users see.
+Atlas checks the output and `remoteEntry.json`, then uploads the files together with a [published artifact manifest](../../introduction/glossary.md#published-artifact-manifest) (`manifest.json`) to the artifact registry. Publishing does not change what users see.
 
 For a pull request or merge request preview, use `--pr` or `--mr` instead of `--version`:
 

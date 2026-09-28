@@ -5,7 +5,7 @@ description: Use the Atlas SDK from React components to read host data, navigate
 
 # React SDK
 
-This guide shows how React code talks to its Host through the Atlas [SDK](../../introduction/glossary.md) (`@atlas/sdk`). It covers the everyday tasks in an App and in Host components. For every type and signature, see the [SDK reference](../../reference/sdk.md).
+This guide shows how React code talks to its Host through the Atlas [SDK](../../introduction/glossary.md#sdk) (`@atlas/sdk`). It covers the everyday tasks in an App and in Host components. For every type and signature, see the [SDK reference](../../reference/sdk.md).
 
 ## Before you start
 
@@ -142,7 +142,7 @@ For images and CSS in `src/`, use Vite imports instead. See [React assets and st
 
 ## Use Widgets
 
-A [Widget](../../introduction/glossary.md) is a component that one App exports and other Apps or the Host render by ID. The owner can use Angular or React; the consumer does not need to know.
+A [Widget](../../introduction/glossary.md#widget) is a component that one App exports and other Apps or the Host render by ID. The owner can use Angular or React; the consumer does not need to know.
 
 ### Render a Widget
 

@@ -21,7 +21,7 @@ When the local Host page loads, the Atlas loader reads the development session a
 
 - Generate a Host and an App. See [Generate a Host](../get-started/generate-host.md) and [Generate an App](../get-started/generate-app.md).
 - This page uses a Host in `apps/customer-host` and an App in `apps/orders`. The folder depends on your [workspace](../introduction/glossary.md#workspace) kind. `npx atlas dev` accepts the project name or its folder.
-- Run all commands from your workspace root, the folder that contains your projects, or from the project folder.
+- Run all commands from your workspace root (the folder that contains your projects) or from the project folder.
 - You do not need [Columbus](columbus.md) to run a local Host with local Apps. You need it only in the advanced case of running local code inside a deployed page.
 
 ## Configure previews

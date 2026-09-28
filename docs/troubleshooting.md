@@ -100,7 +100,7 @@ The framework troubleshooting pages cover framework-specific rebuild behavior.
 
 ## Install fails with peer conflicts
 
-In a workspace that already declares `react` or `@angular/core`, Atlas aligns the companion framework packages to the existing major version. Upgrade or downgrade the workspace framework version first, or create the project as a separate package with its own framework version.
+Only in an Nx workspace does Atlas align a new project with the React or Angular version the workspace already declares. In an npm, pnpm, or Yarn workspace, in Turborepo, and in a standalone project, a new project gets the default framework version, which can conflict with the version your other projects use. Pass `--framework-version` with your workspace's version when you generate, or upgrade the workspace to the default version first. See [React generators](guides/react/generators.md) and [Angular generators](guides/angular/generators.md).
 
 ## A broken override stops the page
 

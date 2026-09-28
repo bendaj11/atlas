@@ -10,6 +10,10 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
     description: 'Run a host, or run one app locally inside a host',
   },
   {
+    label: 'compile-config',
+    description: 'Compile atlas.config.ts into .atlas/atlas.config.js',
+  },
+  {
     label: 'bootstrap',
     description: 'Create deployable host bootstrap files',
   },

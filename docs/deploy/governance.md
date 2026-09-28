@@ -23,7 +23,7 @@ The reason is structural. Some files in the registry are shared by every team:
 
 - `registry.json` lists every published release. Every publish rewrites it.
 - `environments/<environment>/deployment.json` records the selected version of every Host and App in that environment. Every deploy rewrites it.
-- The host deployment manifest `environments/<environment>/hosts/<hostId>/manifest.json` lists every App deployed to that Host. Deploying any App that targets the Host rewrites it.
+- The host deployment manifest `environments/<environment>/hosts/<hostId>/manifest.json` lists every App deployed to that Host. Deploying any App rewrites the manifest of every Host in the environment that any deployed App targets, so one team's deploy can rewrite a Host manifest that another team's Apps appear in.
 
 Storage policies can restrict who writes release paths such as `apps/<appId>/**`, but they cannot give a team write access to "its" entry inside a shared file.
 
@@ -88,14 +88,14 @@ Apps call Host services through the typed Host SDK that the Host provides. Chang
 
 What Atlas does today:
 
-- An App's `atlas.config.ts` can set `requiredHostSdkVersion`, a version range for the Host SDK the App needs. Atlas validates that the value is a valid semantic version range and records it in the published artifact manifest.
+- An App's `atlas.config.ts` can set `requiredHostSdkVersion`, a version range of `@atlas/sdk` that the App expects the Host to run. Atlas validates that the value is a valid semantic version range and records it in the published artifact manifest.
 - When an App does not set it, Atlas records the default `^0.1.0`. That range does not match the current `0.5.x` SDK packages, so the recorded value is misleading unless you set it yourself.
 - Atlas does not compare `requiredHostSdkVersion` with the Host at publish, deploy, verify, or runtime. A mismatch has no effect. It is metadata only.
 
 **Recommended practice:**
 
 - Make Host SDK changes additive. Add new members; keep old members working until no deployed App uses them.
-- Version the Host SDK types package with semantic versioning, and have Apps declare the range they were built against in `requiredHostSdkVersion`, so the information exists when you need to audit deployed Apps.
+- Set `requiredHostSdkVersion` in each App to the `@atlas/sdk` range the App was built against, such as `^0.5.7`, so the information exists when you need to audit deployed Apps. Version your own Host SDK types package with semantic versioning too, and record which range an App needs in its `package.json` dependency on that package.
 - Before removing a member, check which deployed App versions still use it, for example by searching the source of the versions listed in `environments/<environment>/deployment.json`.
 
 ## Adopt Atlas in an existing single-page app

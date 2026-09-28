@@ -5,7 +5,7 @@ description: Generate an Angular Host, lay out its host anchors, provide Host se
 
 # Build an Angular Host
 
-This guide walks you through building an Angular [Host](../../introduction/glossary.md): the page layout, top-level navigation, and shared browser services that every App runs inside. It is for the Angular team that owns the Host. If you have not run Atlas before, complete the [tutorial](../../get-started/tutorial.md) first.
+This guide walks you through building an Angular [Host](../../introduction/glossary.md#host): the page layout, top-level navigation, and shared browser services that every App runs inside. It is for the Angular team that owns the Host. If you have not run Atlas before, complete the [tutorial](../../get-started/tutorial.md) first.
 
 > **Note:** If you completed the tutorial with `--framework angular`, skip step 1 and open `apps/customer-host`.
 
@@ -167,7 +167,7 @@ To give some routes a different layout, add another `*atlasHostLayout` block wit
 
 ## 4. Provide Host services through the SDK
 
-Apps never import Host source code. Instead, the Host exposes shared capabilities through the [SDK](../../introduction/glossary.md), and Apps read them with `injectAtlasSdk()`. Define them in `src/app/host.config.ts`, which the generated `src/bootstrap.ts` passes to `defineAngularHost()`.
+Apps never import Host source code. Instead, the Host exposes shared capabilities through the [SDK](../../introduction/glossary.md#sdk), and Apps read them with `injectAtlasSdk()`. Define them in `src/app/host.config.ts`, which the generated `src/bootstrap.ts` passes to `defineAngularHost()`.
 
 In this example, `OrdersApi`, `ToastService`, and `MonitoringService` are placeholders for your own product services:
 
