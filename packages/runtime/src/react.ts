@@ -4,6 +4,7 @@ import {
   Fragment,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
   type ComponentType,
@@ -25,6 +26,11 @@ import {
   createHostNavigation,
 } from '@atlas/sdk/react';
 import { AtlasHostProviderMissingError } from './adapters/adapter.errors.js';
+import {
+  AtlasHostUiPortals,
+  createHostUiStore,
+  createReactHostUiRenderers,
+} from './adapters/react-host-ui.js';
 import { startDomHost } from './dom-host/dom-host.js';
 import { createDomHostSdk } from './dom-host/dom-host-sdk.js';
 import { AtlasHostAnchorRegistry } from './dom-host/host-anchors.js';
@@ -49,6 +55,8 @@ import type {
 } from './react.types.js';
 
 export type {
+  AtlasErrorProps,
+  AtlasHostComponents,
   AtlasHostProviderProps,
   HostOptions,
   HostSdkOptions,
@@ -85,6 +93,9 @@ export function AtlasDefaultHostLayout(): ReactElement {
 export function defineReactHost<THostSdk extends object = {}>(
   definition: ReactHostDefinition<THostSdk>,
 ): AtlasHostClientEntry['mount'] {
+  const { config, layout, reactDom, providers, useSdkOptions, ...components } =
+    definition;
+
   return (request) =>
     new Promise((resolve, reject) => {
       const root = document.createElement('atlas-host-root');
@@ -92,30 +103,37 @@ export function defineReactHost<THostSdk extends object = {}>(
 
       request.container.append(root);
 
-      const router = createBrowserRouter([
-        { path: '*', Component: definition.layout },
-      ]);
-      const application = createElement(AtlasReactHostApplication<THostSdk>, {
-        definition,
-        request,
-        router,
-        onReady: () => {
-          root.hidden = false;
+      const onReady = () => {
+        root.hidden = false;
 
-          resolve({
-            unmount: () => {
-              unmount();
-              root.remove();
-            },
-          });
+        resolve({
+          unmount: () => {
+            unmount();
+            root.remove();
+          },
+        });
+      };
+      const router = createBrowserRouter([
+        {
+          path: '*',
+          Component: () =>
+            createElement(AtlasReactHostApplication<THostSdk>, {
+              config,
+              layout,
+              useSdkOptions,
+              components,
+              request,
+              router,
+              onReady,
+            }),
         },
-      });
-      const element = definition.providers
-        ? createElement(definition.providers, null, application)
-        : application;
+      ]);
+      const application = createElement(RouterProvider, { router });
       const unmount = renderReactHost({
-        reactDom: definition.reactDom,
-        element,
+        reactDom,
+        element: providers
+          ? createElement(providers, null, application)
+          : application,
         container: root,
         onUncaughtError: (error) => {
           console.error(error);
@@ -128,28 +146,31 @@ export function defineReactHost<THostSdk extends object = {}>(
 function AtlasReactHostApplication<THostSdk extends object>(
   props: ReactHostApplicationProps<THostSdk>,
 ): ReactElement {
-  const { definition, request, router, onReady } = props;
-  const { config, useSdkOptions } = definition;
+  const { config, layout, useSdkOptions, components, request, router } = props;
   const sdkOptions = useSdkOptions();
+  const hostData = useMemo(
+    () => ({
+      ...sdkOptions.hostData,
+      hostId: config.id,
+      name: config.name ?? config.id,
+    }),
+    [sdkOptions.hostData, config.id, config.name],
+  );
 
   return createElement(AtlasHostProvider<THostSdk>, {
+    ...components,
     hostId: config.id,
-    ...(definition.notFound ? { notFound: definition.notFound } : {}),
-    onReady,
+    onReady: props.onReady,
     options: {
       ...sdkOptions,
       router,
       federation: { initFederation, loadRemoteModule },
-      hostData: {
-        ...sdkOptions.hostData,
-        hostId: config.id,
-        name: config.name ?? config.id,
-      },
+      hostData,
       runtimeConfig: request.runtimeConfig,
       hostContainer: request.container,
       ...(request.catalog ? { catalog: request.catalog } : {}),
     },
-    children: createElement(RouterProvider, { router }),
+    children: createElement(layout),
   });
 }
 
@@ -187,7 +208,7 @@ export async function startHost<THostSdk extends object = {}>(
 export function AtlasHostProvider<THostSdk extends object = {}>(
   props: AtlasHostProviderProps<THostSdk>,
 ): ReactElement {
-  const [{ options, sdk, anchors, services }] = useState(() =>
+  const [{ options, sdk, anchors, store, services }] = useState(() =>
     createHostProviderState(props),
   );
 
@@ -220,7 +241,12 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
 
   const sdkChildren = createElement(AtlasSdkProvider, {
     sdk,
-    children: props.children,
+    children: createElement(
+      Fragment,
+      null,
+      props.children,
+      createElement(AtlasHostUiPortals, { store, components: props }),
+    ),
   });
 
   return createElement(AtlasHostAnchorsContext.Provider, {
@@ -242,12 +268,15 @@ function createHostProviderState<THostSdk extends object>(
     hostOptions.navigation ?? createHostNavigation(hostOptions.router);
   const sdk = createDomHostSdk({ options: hostOptions, hostId, navigation });
   const anchors = new AtlasHostAnchorRegistry();
+  const store = createHostUiStore();
+  const ui = createReactHostUiRenderers({ store, components: props });
 
   return {
     options: { ...hostOptions, navigation, sdk, anchors },
     sdk,
     anchors,
-    services: onReady ? { onReady } : {},
+    store,
+    services: onReady ? { ui, onReady } : { ui },
   };
 }
 

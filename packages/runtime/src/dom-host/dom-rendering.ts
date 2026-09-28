@@ -1,13 +1,14 @@
 import { createLoaderElement } from '../shared/loader.js';
 import type { AtlasHostMountEvent } from '../host-runtime/host-runtime.types.js';
+import type { DisposeRenderer } from '../widget-loader/widget-loader.types.js';
 import type {
-  HostMountStateRenderInput,
+  AtlasHostMountErrorEvent,
+  DomHostUiRenderers,
+  HostMountStateRendererInput,
   HostNavigationRenderInput,
-  MountStateRenderingOptions,
+  RenderHostMountState,
   RetryPlacementMount,
 } from './dom-host.types.js';
-
-type PlacementStatusRole = 'status' | 'alert';
 
 export function renderHostNavigation(input: HostNavigationRenderInput): void {
   const { document, nav, items } = input;
@@ -32,114 +33,133 @@ export function renderHostNavigation(input: HostNavigationRenderInput): void {
   );
 }
 
-export function renderHostMountState(input: HostMountStateRenderInput): void {
-  const { document, event, retry, options } = input;
-  const container = event.container;
-  container.dataset.atlasState = event.state;
-  container.dataset.atlasAppId = event.manifest.id;
-  container.setAttribute(
-    'aria-busy',
-    event.state === 'loading' ? 'true' : 'false',
-  );
+export function createHostMountStateRenderer(
+  input: HostMountStateRendererInput,
+): RenderHostMountState {
+  const { document, ui } = input;
+  const statuses = new WeakMap<HTMLElement, DisposeRenderer>();
 
-  const existingStatus = container.querySelector<HTMLElement>(
-    ':scope > [data-atlas-placement-status]',
-  );
+  return (event, retry) => {
+    const { container, state } = event;
+    container.dataset.atlasState = state;
+    container.dataset.atlasAppId = event.manifest.id;
+    container.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
 
-  if (event.state === 'mounting' || event.state === 'mounted')
-    existingStatus?.remove();
+    statuses.get(container)?.();
+    statuses.delete(container);
 
-  if (event.state === 'loading')
-    renderPlacementLoadingState({ document, event, existingStatus, options });
-
-  if (event.state === 'error')
-    renderPlacementErrorState({
+    const disposeStatus = renderPlacementStatus({
       document,
+      ui,
       event,
       retry,
-      existingStatus,
-      options,
     });
 
-  if (event.state === 'unmounted') {
-    container.replaceChildren();
+    if (disposeStatus) statuses.set(container, disposeStatus);
 
-    delete container.dataset.atlasAppId;
-  }
+    if (state === 'unmounted') {
+      container.replaceChildren();
+
+      delete container.dataset.atlasAppId;
+    }
+  };
 }
 
-function renderPlacementLoadingState(input: {
+function renderPlacementStatus(input: {
   document: Document;
-  event: AtlasHostMountEvent;
-  existingStatus: HTMLElement | null;
-  options: MountStateRenderingOptions;
-}): void {
-  const { document, event, existingStatus, options } = input;
-
-  if (options.renderLoading) {
-    options.renderLoading(event.container, event);
-
-    return;
-  }
-
-  const loader = createLoaderElement({
-    document,
-    label: `Loading ${event.manifest.name}`,
-    compact: event.placement.kind === 'slot',
-  });
-  loader.setAttribute('data-atlas-placement-status', '');
-
-  existingStatus?.remove();
-  event.container.prepend(loader);
-}
-
-function renderPlacementErrorState(input: {
-  document: Document;
+  ui: DomHostUiRenderers;
   event: AtlasHostMountEvent;
   retry: RetryPlacementMount;
-  existingStatus: HTMLElement | null;
-  options: MountStateRenderingOptions;
-}): void {
-  const { document, event, retry, existingStatus, options } = input;
+}): DisposeRenderer | undefined {
+  const { document, ui, event, retry } = input;
 
-  if (options.renderError) {
-    options.renderError(event.container, event, retry);
+  if (event.state === 'loading') {
+    const status = createPlacementStatus(document, event.container);
 
-    return;
+    if (ui.renderLoading)
+      return removeStatusAfter(status, ui.renderLoading(status, event));
+
+    status.append(
+      createLoaderElement({
+        document,
+        label: `Loading ${event.manifest.name}`,
+        compact: event.placement.kind === 'slot',
+      }),
+    );
+
+    return removeStatusAfter(status);
   }
 
-  const status = findOrCreatePlacementStatusElement({
-    document,
-    container: event.container,
-    existingStatus,
-    role: 'alert',
-  });
+  if (!isMountErrorEvent(event)) return undefined;
+
+  const status = createPlacementStatus(document, event.container);
+  let retried = false;
+  const retryOnce = () => {
+    if (retried) return;
+
+    retried = true;
+    retry();
+  };
+
+  if (ui.renderError)
+    return removeStatusAfter(status, ui.renderError(status, event, retryOnce));
+
+  status.append(
+    createPlacementAlert({ document, name: event.manifest.name, retryOnce }),
+  );
+
+  return removeStatusAfter(status);
+}
+
+function isMountErrorEvent(
+  event: AtlasHostMountEvent,
+): event is AtlasHostMountErrorEvent {
+  return event.state === 'error' && event.error !== undefined;
+}
+
+function createPlacementStatus(
+  document: Document,
+  container: HTMLElement,
+): HTMLElement {
+  const status = document.createElement('div');
+  status.dataset.atlasPlacementStatus = '';
+  status.style.display = 'contents';
+
+  container.prepend(status);
+
+  return status;
+}
+
+function removeStatusAfter(
+  status: HTMLElement,
+  dispose?: DisposeRenderer,
+): DisposeRenderer {
+  return () => {
+    dispose?.();
+    status.remove();
+  };
+}
+
+function createPlacementAlert(input: {
+  document: Document;
+  name: string;
+  retryOnce: RetryPlacementMount;
+}): HTMLElement {
+  const { document, name, retryOnce } = input;
+  const alert = document.createElement('div');
+  alert.dataset.atlasStatus = '';
+
+  alert.setAttribute('role', 'alert');
+
   const message = document.createElement('span');
-  message.textContent = `Unable to load ${event.manifest.name}. `;
+  message.textContent = `Unable to load ${name}. `;
 
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = 'Retry';
 
-  button.addEventListener('click', retry);
-  status.append(message, button);
-}
+  button.addEventListener('click', retryOnce);
+  alert.append(message, button);
 
-function findOrCreatePlacementStatusElement(input: {
-  document: Document;
-  container: HTMLElement;
-  existingStatus: HTMLElement | null;
-  role: PlacementStatusRole;
-}): HTMLElement {
-  const { document, container, existingStatus, role } = input;
-  const status = existingStatus ?? document.createElement('div');
-  status.dataset.atlasStatus = '';
-  status.dataset.atlasPlacementStatus = '';
-
-  status.setAttribute('role', role);
-  status.replaceChildren();
-
-  if (!existingStatus) container.prepend(status);
-
-  return status;
+  return alert;
 }

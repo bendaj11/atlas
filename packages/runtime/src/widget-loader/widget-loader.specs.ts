@@ -240,6 +240,13 @@ describe('createWidgetLoader', () => {
         expect(driver.get.requests()).toHaveLength(2);
       });
 
+      it('should mount the entry again once when retried twice after the failure', async () => {
+        await driver.when.retried();
+        await driver.when.retried();
+
+        expect(driver.get.requests()).toHaveLength(2);
+      });
+
       it('should not unmount the entry again when the failed widget is unmounted', async () => {
         await driver.when.unmounted();
 

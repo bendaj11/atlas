@@ -22,11 +22,6 @@ describe('createDomHostSdk', () => {
     'federation',
     'observe',
     'onNavigationChange',
-    'renderError',
-    'renderHostError',
-    'renderLoading',
-    'renderWidgetError',
-    'renderWidgetLoading',
     'runtimeConfig',
   ])(
     'should not expose the runtime option %s on the sdk when created',

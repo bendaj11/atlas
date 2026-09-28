@@ -100,6 +100,44 @@ describe('AtlasHostProvider', () => {
     });
   });
 
+  describe('when a host with components is rendered', () => {
+    const region = faker.location.countryCode();
+
+    beforeEach(async () => {
+      await driver.given
+        .region(region)
+        .given.hostComponents(true)
+        .when.hostRendered();
+    });
+
+    it('should render the loading component with the sdk host data into the status element when the runtime shows loading', async () => {
+      await driver.when.loadingShown();
+
+      expect(driver.get.status().textContent).toBe(region);
+    });
+
+    it('should pass the error to the error component when the runtime shows an error', async () => {
+      const error = new Error(faker.lorem.sentence());
+
+      await driver.when.errorShown(error);
+
+      expect(driver.get.status().textContent).toBe(error.message);
+    });
+
+    it('should call retry when the error component retry is clicked', async () => {
+      await driver.when.errorShown(new Error(faker.lorem.sentence()));
+      await driver.when.statusRetryClicked();
+
+      expect(driver.get.retryMock()).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should start the dom host without ui renderers when no components are given', async () => {
+    await driver.given.hostComponents(false).when.hostRendered();
+
+    expect(driver.get.startedServices().ui).toStrictEqual({});
+  });
+
   describe('when a host with a not-found component activates its layout', () => {
     beforeEach(async () => {
       await driver.given.notFound(true).when.hostRendered();
@@ -352,6 +390,20 @@ describe('defineReactHost', () => {
     await driver.when.routeNotFoundSet(true);
 
     expect(driver.get.hostNotFoundPresent()).toBe(true);
+  });
+
+  it('should render the router link of the loading component with the host router href when the loading status is shown', async () => {
+    const path = `/${faker.word.noun()}`;
+
+    await driver.given
+      .hostComponents(true)
+      .given.linkPath(path)
+      .given.legacyReactDom(false)
+      .when.reactHostMounted();
+
+    await driver.when.loadingShown();
+
+    expect(driver.get.statusLinkHref()).toBe(path);
   });
 
   describe('when mounted through legacy react dom', () => {

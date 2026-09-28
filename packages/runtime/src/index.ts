@@ -97,9 +97,6 @@ export type {
   DomHostOptions,
   DomHostServices,
   DomRuntimeOptions,
-  RenderHostError,
-  RenderPlacementError,
-  RenderPlacementLoading,
   ReportNavigationItems,
 } from './dom-host/dom-host.types.js';
 export { emitRuntimeEvent } from './observability/observability.js';

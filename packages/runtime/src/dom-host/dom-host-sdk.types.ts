@@ -6,6 +6,7 @@ import type { AtlasRemoteTrustPolicy } from '../loader/trust/trust-policy.types.
 import type {
   AtlasWidgetImporter,
   AtlasWidgetResolver,
+  AtlasWidgetUiOptions,
 } from '../widget-loader/widget-loader.types.js';
 import type { DomHostOptions } from './dom-host.types.js';
 
@@ -19,6 +20,7 @@ export interface SdkProviderInput<THostSdk extends object> {
   hostId: string;
   navigation: AtlasNavigation;
   manifests: AtlasManifest[];
+  ui: AtlasWidgetUiOptions;
   importWidget: AtlasWidgetImporter;
   resolveWidget?: AtlasWidgetResolver;
   trustPolicy?: AtlasRemoteTrustPolicy;

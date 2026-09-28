@@ -168,6 +168,19 @@ describe('startDomHost', () => {
     });
   });
 
+  it('should call the ui host error renderer with the error when the catalog belongs to another host', async () => {
+    await driver.given
+      .customHostError(true)
+      .given.catalogForOtherHost()
+      .when.started();
+
+    expect(driver.get.renderHostErrorMock()).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      driver.get.error(),
+      expect.any(Function),
+    );
+  });
+
   it('should show a single host status when the retry fails again with a status anchor registered', async () => {
     await driver.given
       .statusAnchor()

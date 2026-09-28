@@ -7,16 +7,22 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useAtlasSdk, type RouterNavigate } from '@atlas/sdk/react';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import type { AtlasAppMountResult } from '@atlas/sdk/lifecycle';
-import { aHostRuntimeConfig } from '@atlas/testkit';
+import {
+  aHostRuntimeConfig,
+  anAppManifest,
+  aRoutePlacement,
+} from '@atlas/testkit';
 import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
 import type {
   DomHostOptions,
   DomHostServices,
+  RetryPlacementMount,
 } from './dom-host/dom-host.types.js';
 import { publishAtlasNavigationItems } from './dom-host/host-navigation.js';
 import { aNavigationItem } from './dom-host/host-navigation.testkit.js';
 import { aFederationAdapter } from './loader/native-federation.testkit.js';
 import { installWebPlatformGlobals } from './shared/web-platform.testkit.js';
+import type { AtlasErrorProps } from './react.types.js';
 
 interface HostSdk {
   readonly hostData: { readonly region: string };
@@ -32,6 +38,8 @@ const startDomHost = jest.fn<StartDomHostForHostSdk>();
 jest.unstable_mockModule('./dom-host/dom-host.js', () => ({ startDomHost }));
 
 installWebPlatformGlobals();
+
+const { Link } = await import('react-router-dom');
 
 const {
   AtlasDefaultHostLayout,
@@ -78,6 +86,26 @@ function HostProviders(props: { children?: ReactNode }) {
   );
 }
 
+function HostLoading() {
+  const sdk = useAtlasSdk<HostSdk>();
+
+  return createElement('output', null, sdk.hostData.region);
+}
+
+function HostError(props: AtlasErrorProps) {
+  return createElement(
+    'button',
+    { type: 'button', onClick: props.retry },
+    props.error.message,
+  );
+}
+
+function routerLinkLoading(path: string) {
+  return function RouterLinkLoading() {
+    return createElement(Link, { to: path }, path);
+  };
+}
+
 function NavigationItemsConsumer() {
   const items = useAtlasNavigationItems();
 
@@ -108,6 +136,10 @@ export class ReactAdapterDriver {
   private legacyReactDom = faker.datatype.boolean();
   private hostProviders = faker.datatype.boolean();
   private notFound = faker.datatype.boolean();
+  private hostComponents = faker.datatype.boolean();
+  private linkPath = `/${faker.word.noun()}`;
+  private readonly status = document.createElement('div');
+  private readonly retry = jest.fn<RetryPlacementMount>();
   private readonly routerNavigate = jest.fn<RouterNavigate>();
   private readonly legacyRender =
     jest.fn<(element: ReactElement, container: Element) => void>();
@@ -191,6 +223,16 @@ export class ReactAdapterDriver {
     },
     notFound: (notFound: boolean) => {
       this.notFound = notFound;
+
+      return this;
+    },
+    hostComponents: (hostComponents: boolean) => {
+      this.hostComponents = hostComponents;
+
+      return this;
+    },
+    linkPath: (linkPath: string) => {
+      this.linkPath = linkPath;
 
       return this;
     },
@@ -283,6 +325,9 @@ export class ReactAdapterDriver {
             ? { providers: HostProviders }
             : {}),
         ...(this.notFound ? { notFound: HostNotFound } : {}),
+        ...(this.hostComponents
+          ? { loading: routerLinkLoading(this.linkPath) }
+          : {}),
         reactDom: this.legacyReactDom
           ? {
               render: this.legacyRender,
@@ -307,6 +352,29 @@ export class ReactAdapterDriver {
     readyReported: () =>
       act(async () => {
         startDomHost.mock.calls.at(-1)![1].onReady!();
+      }),
+    loadingShown: () =>
+      act(async () => {
+        document.body.append(this.status);
+
+        this.get.startedServices().ui!.renderLoading!(this.status, {
+          ...this.mountEvent(),
+          state: 'loading',
+        });
+      }),
+    errorShown: (error: Error) =>
+      act(async () => {
+        document.body.append(this.status);
+
+        this.get.startedServices().ui!.renderError!(
+          this.status,
+          { ...this.mountEvent(), state: 'error', error },
+          this.retry,
+        );
+      }),
+    statusRetryClicked: () =>
+      act(async () => {
+        this.status.querySelector('button')!.click();
       }),
     reactHostUnmounted: () =>
       act(async () => {
@@ -360,10 +428,22 @@ export class ReactAdapterDriver {
         await startDomHost.mock.calls.at(-1)![1].createNavigation()
       ).getCurrentLocation().pathname,
     routerPathname: () => this.routerPathname,
+    status: () => this.status,
+    retryMock: () => this.retry,
+    statusLinkHref: () =>
+      this.status.querySelector('a')?.getAttribute('href'),
     headerText: () =>
       this.rendered!.container.querySelector('header strong')?.textContent ??
       null,
   };
+
+  private mountEvent() {
+    return {
+      manifest: anAppManifest(),
+      placement: aRoutePlacement(),
+      container: document.createElement('div'),
+    };
+  }
 
   private anchors() {
     return this.get.startedOptions().anchors!;
@@ -399,6 +479,7 @@ export class ReactAdapterDriver {
         },
       },
       ...(this.notFound ? { notFound: HostNotFound } : {}),
+      ...(this.hostComponents ? { loading: HostLoading, error: HostError } : {}),
       onReady: this.onReady,
       children,
     });

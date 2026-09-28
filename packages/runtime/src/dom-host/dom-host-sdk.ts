@@ -41,11 +41,6 @@ const RUNTIME_ONLY_OPTIONS: Record<RuntimeOnlyOptionName, true> = {
   navigation: true,
   observe: true,
   onNavigationChange: true,
-  renderError: true,
-  renderHostError: true,
-  renderLoading: true,
-  renderWidgetError: true,
-  renderWidgetLoading: true,
   router: true,
   runtimeConfig: true,
   sdk: true,
@@ -65,7 +60,7 @@ export function createSdkProviders<THostSdk extends object>(
     importWidget: input.importWidget,
     ...(input.resolveWidget ? { resolveWidget: input.resolveWidget } : {}),
     ...(input.trustPolicy ? { trustPolicy: input.trustPolicy } : {}),
-    ...pickWidgetUiOptionsFrom(input.options),
+    ...pickWidgetUiOptionsFrom(input.ui),
   };
   const widgetLoader = createWidgetLoader({
     manifests: input.manifests,

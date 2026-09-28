@@ -13,7 +13,10 @@ import { aFederationAdapter } from '../loader/native-federation.testkit.js';
 import type { LoadRemoteModule } from '../loader/native-federation.types.js';
 import type { AtlasRuntimeObserver } from '../observability/observability.types.js';
 import { startDomHost } from './dom-host.js';
-import type { CreateHostNavigation } from './dom-host.types.js';
+import type {
+  CreateHostNavigation,
+  RenderHostError,
+} from './dom-host.types.js';
 import { AtlasHostAnchorRegistry } from './host-anchors.js';
 
 export class DomHostDriver {
@@ -31,6 +34,8 @@ export class DomHostDriver {
     .fn<CreateHostNavigation>()
     .mockImplementation(() => createMemoryNavigation());
   private readonly onReady = jest.fn<() => void>();
+  private readonly renderHostError = jest.fn<RenderHostError>();
+  private customHostError = false;
   private readonly loadRemoteModule = jest.fn<LoadRemoteModule>();
   private catalogHostId = this.hostId;
   private catalogApps: AtlasManifest[] = [];
@@ -63,6 +68,11 @@ export class DomHostDriver {
     },
     remoteModuleLoad: (load: ReturnType<LoadRemoteModule>) => {
       this.loadRemoteModule.mockReturnValue(load);
+
+      return this;
+    },
+    customHostError: (customHostError: boolean) => {
+      this.customHostError = customHostError;
 
       return this;
     },
@@ -116,6 +126,7 @@ export class DomHostDriver {
     hostStatuses: () =>
       this.status.querySelectorAll('[data-atlas-host-status]'),
     onReadyMock: () => this.onReady,
+    renderHostErrorMock: () => this.renderHostError,
     createNavigationMock: () => this.createNavigation,
     eventTypes: () => this.observe.mock.calls.map(([event]) => event.type),
     consoleErrorMock: () => this.consoleError,
@@ -140,7 +151,13 @@ export class DomHostDriver {
         }),
         observe: this.observe,
       },
-      { createNavigation: this.createNavigation, onReady: this.onReady },
+      {
+        createNavigation: this.createNavigation,
+        onReady: this.onReady,
+        ...(this.customHostError
+          ? { ui: { renderHostError: this.renderHostError } }
+          : {}),
+      },
     );
   }
 }

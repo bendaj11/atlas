@@ -39,8 +39,7 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
       unsubscribeAnchors = options.anchors.subscribe(() => place(element));
 
       if (options.renderHostError)
-        disposeRenderer =
-          options.renderHostError(element, error, retry) || undefined;
+        disposeRenderer = options.renderHostError(element, error, retry);
       else renderDefaultError(options.document, element, retry);
     },
     clear,

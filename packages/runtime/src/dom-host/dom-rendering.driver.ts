@@ -1,9 +1,15 @@
 import { jest } from '@jest/globals';
+import { faker } from '@faker-js/faker';
 import type { AtlasPlacement } from '@atlas/schema';
 import { anAppManifest, aRoutePlacement } from '@atlas/testkit';
 import type { AtlasHostMountState } from '../host-runtime/host-runtime.types.js';
-import { renderHostMountState, renderHostNavigation } from './dom-rendering.js';
+import type { DisposeRenderer } from '../widget-loader/widget-loader.types.js';
+import {
+  createHostMountStateRenderer,
+  renderHostNavigation,
+} from './dom-rendering.js';
 import type {
+  RenderHostMountState,
   RenderPlacementError,
   RenderPlacementLoading,
   RetryPlacementMount,
@@ -21,14 +27,25 @@ export class DomRenderingDriver {
     placements: [aRoutePlacement()],
   });
   private placement: AtlasPlacement = this.manifest.placements[0]!;
+  private readonly error = new Error(faker.lorem.sentence());
   private readonly retry = jest.fn<RetryPlacementMount>();
   private readonly renderLoading = jest.fn<RenderPlacementLoading>();
   private readonly renderError = jest.fn<RenderPlacementError>();
+  private readonly disposeStatus = jest.fn<DisposeRenderer>();
   private useCustomRenderers = false;
+  private renderMountState: RenderHostMountState | undefined;
 
   readonly given = {
     customRenderers: () => {
       this.useCustomRenderers = true;
+
+      this.renderLoading.mockReturnValue(this.disposeStatus);
+      this.renderError.mockReturnValue(this.disposeStatus);
+
+      return this;
+    },
+    containerChild: () => {
+      this.container.append(document.createElement('article'));
 
       return this;
     },
@@ -52,20 +69,23 @@ export class DomRenderingDriver {
 
   readonly when = {
     stateRendered: (state: AtlasHostMountState) => {
-      renderHostMountState({
+      this.renderMountState ??= createHostMountStateRenderer({
         document,
-        event: {
+        ui: this.useCustomRenderers
+          ? { renderLoading: this.renderLoading, renderError: this.renderError }
+          : {},
+      });
+
+      this.renderMountState(
+        {
           manifest: this.manifest,
           placement: this.placement,
           container: this.container,
           state,
-          ...(state === 'error' ? { error: new Error('boom') } : {}),
+          ...(state === 'error' ? { error: this.error } : {}),
         },
-        retry: this.retry,
-        options: this.useCustomRenderers
-          ? { renderLoading: this.renderLoading, renderError: this.renderError }
-          : {},
-      });
+        this.retry,
+      );
     },
     navigationRendered: (items: readonly AtlasHostNavigationItem[]) =>
       renderHostNavigation({ document, nav: this.nav, items }),
@@ -77,6 +97,7 @@ export class DomRenderingDriver {
           '[data-atlas-placement-status] button',
         )!
         .click(),
+    customRetryCalled: () => this.renderError.mock.calls.at(-1)![2](),
   };
 
   readonly get = {
@@ -84,16 +105,24 @@ export class DomRenderingDriver {
     containerState: () => this.container.dataset.atlasState,
     containerAppId: () => this.container.dataset.atlasAppId,
     containerBusy: () => this.container.getAttribute('aria-busy'),
-    placementStatusLabel: () =>
+    firstChild: () => this.container.firstElementChild,
+    placementStatus: () =>
+      this.container.querySelector<HTMLElement>(
+        ':scope > [data-atlas-placement-status]',
+      ),
+    placementStatusCount: () =>
+      this.container.querySelectorAll('[data-atlas-placement-status]').length,
+    loaderLabel: () =>
       this.container
-        .querySelector('[data-atlas-placement-status]')
+        .querySelector('[data-atlas-placement-status] [data-atlas-loader]')
         ?.getAttribute('aria-label'),
-    placementStatusPadding: () =>
-      this.container.querySelector<HTMLElement>('[data-atlas-placement-status]')
-        ?.style.padding,
-    placementStatusRole: () =>
+    loaderPadding: () =>
+      this.container.querySelector<HTMLElement>(
+        '[data-atlas-placement-status] [data-atlas-loader]',
+      )?.style.padding,
+    alertRole: () =>
       this.container
-        .querySelector('[data-atlas-placement-status]')
+        .querySelector('[data-atlas-placement-status] [data-atlas-status]')
         ?.getAttribute('role'),
     nestedStatusCount: () =>
       this.container.querySelectorAll('section [data-atlas-status]').length,
@@ -102,5 +131,7 @@ export class DomRenderingDriver {
     retryMock: () => this.retry,
     renderLoadingMock: () => this.renderLoading,
     renderErrorMock: () => this.renderError,
+    disposeStatusMock: () => this.disposeStatus,
+    error: () => this.error,
   };
 }

@@ -19,24 +19,34 @@ export type ReportNavigationItems = (
   items: readonly AtlasHostNavigationItem[],
 ) => void;
 
+export interface AtlasHostMountErrorEvent extends AtlasHostMountEvent {
+  error: Error;
+}
+
 export type RenderPlacementLoading = (
-  container: HTMLElement,
+  status: HTMLElement,
   event: AtlasHostMountEvent,
-) => void;
+) => DisposeRenderer;
 
 export type RenderPlacementError = (
-  container: HTMLElement,
-  event: AtlasHostMountEvent,
+  status: HTMLElement,
+  event: AtlasHostMountErrorEvent,
   retry: RetryPlacementMount,
-) => void;
+) => DisposeRenderer;
 
 export type RenderHostError = (
-  container: HTMLElement,
+  status: HTMLElement,
   error: Error,
   retry: RetryHostStart,
-) => void | DisposeRenderer;
+) => DisposeRenderer;
 
-export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
+export interface DomHostUiRenderers extends AtlasWidgetUiOptions {
+  renderLoading?: RenderPlacementLoading;
+  renderError?: RenderPlacementError;
+  renderHostError?: RenderHostError;
+}
+
+export interface DomRuntimeOptions {
   federation: AtlasFederationAdapter;
   runtimeConfig: AtlasHostRuntimeConfig;
   /** Already-resolved catalog supplied by the stable Atlas loader. */
@@ -46,9 +56,6 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   anchors?: AtlasHostAnchorRegistry;
   hostContainer?: HTMLElement;
   onNavigationChange?: ReportNavigationItems;
-  renderLoading?: RenderPlacementLoading;
-  renderError?: RenderPlacementError;
-  renderHostError?: RenderHostError;
   /** Receives provider-neutral runtime diagnostics. Observer errors are ignored. */
   observe?: AtlasRuntimeObserver;
 }
@@ -92,6 +99,7 @@ export interface DomHostServices<THostSdk extends object = {}> {
   beforeNavigation?: PrepareNavigation;
   onSdkCreated?: ReportSdkCreated<THostSdk>;
   onReady?: () => void;
+  ui?: DomHostUiRenderers;
 }
 
 export interface DomHostRuntimeInput<THostSdk extends object> {
@@ -102,17 +110,15 @@ export interface DomHostRuntimeInput<THostSdk extends object> {
   onPlacementStateChange?: () => void;
 }
 
-export type MountStateRenderingOptions = Pick<
-  DomRuntimeOptions,
-  'renderError' | 'renderLoading'
->;
-
-export interface HostMountStateRenderInput {
+export interface HostMountStateRendererInput {
   document: Document;
-  event: AtlasHostMountEvent;
-  retry: RetryPlacementMount;
-  options: MountStateRenderingOptions;
+  ui: DomHostUiRenderers;
 }
+
+export type RenderHostMountState = (
+  event: AtlasHostMountEvent,
+  retry: RetryPlacementMount,
+) => void;
 
 export interface HostNavigationRenderInput {
   document: Document;

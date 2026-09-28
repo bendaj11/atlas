@@ -3,9 +3,11 @@ import type { AtlasHostConfig } from '@atlas/schema';
 import type { AtlasHostMountRequest } from '@atlas/sdk/lifecycle';
 import type { RouterLike } from '@atlas/sdk/react';
 import type { createBrowserRouter } from 'react-router-dom';
+import type { AtlasHostUiStore } from './adapters/react-host-ui.types.js';
 import type {
   DomHostCustomizationOptions,
   DomHostOptions,
+  DomHostUiRenderers,
   DomSdkOptions,
 } from './dom-host/dom-host.types.js';
 import type { DomHostSdk } from './dom-host/dom-host-sdk.types.js';
@@ -40,17 +42,34 @@ export interface LegacyReactDom {
 
 export type ReactDomRenderer = ReactDomClient | LegacyReactDom;
 
-export interface ReactHostDefinition<THostSdk extends object = {}> {
+export interface AtlasErrorProps {
+  error: Error;
+  retry: () => void;
+}
+
+export interface AtlasHostComponents {
+  notFound?: ComponentType;
+  loading?: ComponentType;
+  error?: ComponentType<AtlasErrorProps>;
+  widgetLoading?: ComponentType;
+  widgetError?: ComponentType<AtlasErrorProps>;
+  hostError?: ComponentType<AtlasErrorProps>;
+}
+
+export interface ReactHostDefinition<THostSdk extends object = {}>
+  extends AtlasHostComponents {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   layout: ComponentType;
-  notFound?: ComponentType;
   reactDom: ReactDomRenderer;
   providers?: ComponentType<{ children?: ReactNode }>;
   useSdkOptions: () => HostSdkOptions<THostSdk>;
 }
 
 export interface ReactHostApplicationProps<THostSdk extends object> {
-  definition: ReactHostDefinition<THostSdk>;
+  config: Pick<AtlasHostConfig, 'id' | 'name'>;
+  layout: ComponentType;
+  useSdkOptions: () => HostSdkOptions<THostSdk>;
+  components: AtlasHostComponents;
   request: AtlasHostMountRequest;
   router: ReturnType<typeof createBrowserRouter>;
   onReady: () => void;
@@ -65,12 +84,13 @@ export interface RenderReactHostOptions {
 
 export interface ReactHostStartServices {
   onReady?: () => void;
+  ui?: DomHostUiRenderers;
 }
 
-export interface AtlasHostProviderProps<THostSdk extends object = {}> {
+export interface AtlasHostProviderProps<THostSdk extends object = {}>
+  extends AtlasHostComponents {
   children: ReactNode;
   hostId: string;
-  notFound?: ComponentType;
   options: HostOptions<THostSdk>;
   onReady?: () => void;
 }
@@ -79,6 +99,7 @@ export interface HostProviderState<THostSdk extends object> {
   options: HostOptions<THostSdk>;
   sdk: DomHostSdk<THostSdk>;
   anchors: AtlasHostAnchorRegistry;
+  store: AtlasHostUiStore;
   services: ReactHostStartServices;
 }
 

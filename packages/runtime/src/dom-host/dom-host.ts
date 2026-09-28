@@ -53,8 +53,8 @@ export async function startDomHost<THostSdk extends object = {}>(
     ...(options.hostContainer
       ? { fallbackContainer: options.hostContainer }
       : {}),
-    ...(options.renderHostError
-      ? { renderHostError: options.renderHostError }
+    ...(services.ui?.renderHostError
+      ? { renderHostError: services.ui.renderHostError }
       : {}),
   });
 

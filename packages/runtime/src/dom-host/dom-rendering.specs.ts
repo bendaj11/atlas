@@ -6,7 +6,7 @@ import { DomRenderingDriver } from './dom-rendering.driver.js';
 import { aNavigationItem } from './host-navigation.testkit.js';
 import type { NavigateToItem } from './host-navigation.types.js';
 
-describe('renderHostMountState', () => {
+describe('createHostMountStateRenderer', () => {
   let driver: DomRenderingDriver;
 
   beforeEach(() => {
@@ -25,52 +25,30 @@ describe('renderHostMountState', () => {
     expect(driver.get.containerState()).toBe('mounting');
   });
 
-  it('should label the loading status with the app name when the loading state is rendered', () => {
-    driver.when.stateRendered('loading');
+  it('should remove the app id when the unmounted state follows the mounted state', () => {
+    driver.when.stateRendered('mounted');
 
-    expect(driver.get.placementStatusLabel()).toBe(
-      `Loading ${driver.get.manifest().name}`,
-    );
+    driver.when.stateRendered('unmounted');
+
+    expect(driver.get.containerAppId()).toBeUndefined();
   });
 
   it.each([
     ['slot', aSlotPlacement(), '0.25rem'],
     ['route', aRoutePlacement(), '2rem'],
   ])(
-    'should pad the loading status for a %s placement when the loading state is rendered',
+    'should pad the default loader for a %s placement when the loading state is rendered',
     (_kind, placement, padding) => {
       driver.given.placement(placement).when.stateRendered('loading');
 
-      expect(driver.get.placementStatusPadding()).toBe(padding);
+      expect(driver.get.loaderPadding()).toBe(padding);
     },
   );
 
-  it('should mark the container busy when the loading state is rendered', () => {
-    driver.when.stateRendered('loading');
+  it('should render the placement status as the first child of the container when the container has children', () => {
+    driver.given.containerChild().when.stateRendered('loading');
 
-    expect(driver.get.containerBusy()).toBe('true');
-  });
-
-  it('should render an alert with a retry button when the error state is rendered', () => {
-    driver.when.stateRendered('error');
-
-    expect(driver.get.placementStatusRole()).toBe('alert');
-  });
-
-  it('should call retry when the error retry button is clicked', () => {
-    driver.when.stateRendered('error');
-
-    driver.when.retryClicked();
-
-    expect(driver.get.retryMock()).toHaveBeenCalledTimes(1);
-  });
-
-  it('should remove the placement status when the mounted state follows the loading state', () => {
-    driver.when.stateRendered('loading');
-
-    driver.when.stateRendered('mounted');
-
-    expect(driver.get.placementStatusLabel()).toBeUndefined();
+    expect(driver.get.firstChild()).toBe(driver.get.placementStatus());
   });
 
   it('should keep a nested widget status when the mounted state is rendered', () => {
@@ -85,31 +63,103 @@ describe('renderHostMountState', () => {
     expect(driver.get.childCount()).toBe(0);
   });
 
-  it('should remove the app id when the unmounted state is rendered', () => {
-    driver.when.stateRendered('mounted');
+  describe('when the default loading status is rendered', () => {
+    beforeEach(() => {
+      driver.when.stateRendered('loading');
+    });
 
-    driver.when.stateRendered('unmounted');
+    it('should label the default loader with the app name when rendered', () => {
+      expect(driver.get.loaderLabel()).toBe(
+        `Loading ${driver.get.manifest().name}`,
+      );
+    });
 
-    expect(driver.get.containerAppId()).toBeUndefined();
+    it('should mark the container busy when rendered', () => {
+      expect(driver.get.containerBusy()).toBe('true');
+    });
+
+    it('should remove the placement status when the mounted state follows', () => {
+      driver.when.stateRendered('mounted');
+
+      expect(driver.get.placementStatusCount()).toBe(0);
+    });
+
+    it('should render one placement status when the error state follows', () => {
+      driver.when.stateRendered('error');
+
+      expect(driver.get.placementStatusCount()).toBe(1);
+    });
   });
 
-  it('should call the custom loading renderer when the loading state is rendered', () => {
-    driver.given.customRenderers().when.stateRendered('loading');
+  describe('when the default error status is rendered', () => {
+    beforeEach(() => {
+      driver.when.stateRendered('error');
+    });
 
-    expect(driver.get.renderLoadingMock()).toHaveBeenCalledWith(
-      expect.any(HTMLElement),
-      expect.objectContaining({ state: 'loading' }),
-    );
+    it('should render the default error as an alert when rendered', () => {
+      expect(driver.get.alertRole()).toBe('alert');
+    });
+
+    it('should call retry once when the default retry button is clicked twice', () => {
+      driver.when.retryClicked();
+      driver.when.retryClicked();
+
+      expect(driver.get.retryMock()).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should call the custom error renderer with retry when the error state is rendered', () => {
-    driver.given.customRenderers().when.stateRendered('error');
+  describe('when the custom loading status is rendered', () => {
+    beforeEach(() => {
+      driver.given.customRenderers().when.stateRendered('loading');
+    });
 
-    expect(driver.get.renderErrorMock()).toHaveBeenCalledWith(
-      expect.any(HTMLElement),
-      expect.objectContaining({ state: 'error' }),
-      driver.get.retryMock(),
-    );
+    it('should call the custom loading renderer with the atlas status element when rendered', () => {
+      expect(driver.get.renderLoadingMock()).toHaveBeenCalledWith(
+        driver.get.placementStatus(),
+        expect.objectContaining({ state: 'loading' }),
+      );
+    });
+
+    it('should dispose the loading status before the error renderer runs when the error state follows', () => {
+      driver.when.stateRendered('error');
+
+      expect(
+        driver.get.disposeStatusMock().mock.invocationCallOrder[0],
+      ).toBeLessThan(driver.get.renderErrorMock().mock.invocationCallOrder[0]!);
+    });
+
+    it('should remove the placement status when the mounted state follows', () => {
+      driver.when.stateRendered('mounted');
+
+      expect(driver.get.placementStatusCount()).toBe(0);
+    });
+
+    it('should dispose the status when the unmounted state follows', () => {
+      driver.when.stateRendered('unmounted');
+
+      expect(driver.get.disposeStatusMock()).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when the custom error status is rendered', () => {
+    beforeEach(() => {
+      driver.given.customRenderers().when.stateRendered('error');
+    });
+
+    it('should call the custom error renderer with the atlas status element and the error when rendered', () => {
+      expect(driver.get.renderErrorMock()).toHaveBeenCalledWith(
+        driver.get.placementStatus(),
+        expect.objectContaining({ error: driver.get.error() }),
+        expect.any(Function),
+      );
+    });
+
+    it('should call retry once when the custom error retry is called twice', () => {
+      driver.when.customRetryCalled();
+      driver.when.customRetryCalled();
+
+      expect(driver.get.retryMock()).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

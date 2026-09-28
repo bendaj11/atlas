@@ -70,6 +70,17 @@ describe('startDomHostRuntime', () => {
       expect(driver.get.onPlacementStateChangeMock()).toHaveBeenCalledTimes(2);
     });
 
+    it('should call the ui loading renderer with the loading event when the slot app mounts', async () => {
+      driver.given.slotAnchor(slot);
+
+      await driver.when.started();
+
+      expect(driver.get.renderLoadingMock()).toHaveBeenCalledWith(
+        expect.any(HTMLElement),
+        expect.objectContaining({ state: 'loading' }),
+      );
+    });
+
     it('should log the root load error code and cause message when the remote module fails to load', async () => {
       driver.given
         .slotAnchor(slot)

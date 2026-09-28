@@ -11,7 +11,10 @@ import type { AtlasHostRuntime } from '../host-runtime/host-runtime.types.js';
 import type { LoadRemoteModule } from '../loader/native-federation.types.js';
 import type { AtlasRuntimeObserver } from '../observability/observability.types.js';
 import { startDomHostRuntime } from './dom-host-runtime.js';
-import type { ReportNavigationItems } from './dom-host.types.js';
+import type {
+  RenderPlacementLoading,
+  ReportNavigationItems,
+} from './dom-host.types.js';
 import { AtlasHostAnchorRegistry } from './host-anchors.js';
 
 export class DomHostRuntimeDriver {
@@ -31,6 +34,7 @@ export class DomHostRuntimeDriver {
   private readonly onNavigationChange = jest.fn<ReportNavigationItems>();
   private readonly onInfrastructureReady = jest.fn<() => void>();
   private readonly onPlacementStateChange = jest.fn<() => void>();
+  private readonly renderLoading = jest.fn<RenderPlacementLoading>();
   private readonly consoleError = jest
     .spyOn(console, 'error')
     .mockImplementation(() => undefined);
@@ -84,7 +88,10 @@ export class DomHostRuntimeDriver {
             observe: this.observe,
             onNavigationChange: this.onNavigationChange,
           },
-          services: { createNavigation: () => this.navigation },
+          services: {
+            createNavigation: () => this.navigation,
+            ui: { renderLoading: this.renderLoading },
+          },
           document: this.document,
           onInfrastructureReady: this.onInfrastructureReady,
           onPlacementStateChange: this.onPlacementStateChange,
@@ -123,6 +130,7 @@ export class DomHostRuntimeDriver {
     onNavigationChangeMock: () => this.onNavigationChange,
     onInfrastructureReadyMock: () => this.onInfrastructureReady,
     onPlacementStateChangeMock: () => this.onPlacementStateChange,
+    renderLoadingMock: () => this.renderLoading,
     consoleErrorMock: () => this.consoleError,
     navigationLinkLabels: () =>
       [...this.anchors.get('navigation')!.querySelectorAll('a')].map(

@@ -14,7 +14,10 @@ import { emitMountState } from './dom-host-events.js';
 import { createSdkProviders } from './dom-host-sdk.js';
 import { AtlasAppLoadError } from './dom-host.errors.js';
 import type { DomHostRuntimeInput } from './dom-host.types.js';
-import { renderHostMountState, renderHostNavigation } from './dom-rendering.js';
+import {
+  createHostMountStateRenderer,
+  renderHostNavigation,
+} from './dom-rendering.js';
 import { AtlasHostAnchorRegistry } from './host-anchors.js';
 import {
   createHostNavigationItems,
@@ -32,6 +35,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     onPlacementStateChange,
   } = input;
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
+  const ui = services.ui ?? {};
   const config = options.runtimeConfig;
   const requestPolicy = createRetryPolicy(config, options.observe);
   const catalog =
@@ -80,6 +84,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     hostId: config.hostId,
     navigation,
     manifests,
+    ui,
     importWidget: federation.importWidget,
     resolveWidget: createRegistryWidgetResolver({ catalog: resolvedCatalog }),
     trustPolicy,
@@ -126,6 +131,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
 
   onInfrastructureReady();
 
+  const renderMountState = createHostMountStateRenderer({ document, ui });
   let runtime: AtlasHostRuntime<THostSdk> | undefined;
   runtime = await startAtlasHostRuntime({
     hostId: config.hostId,
@@ -161,13 +167,8 @@ export async function startDomHostRuntime<THostSdk extends object>(
 
       onPlacementStateChange?.();
 
-      renderHostMountState({
-        document,
-        event,
-        retry: () => {
-          void runtime?.retry(event.manifest.id);
-        },
-        options,
+      renderMountState(event, () => {
+        void runtime?.retry(event.manifest.id);
       });
 
       emitMountState(options.observe, config.hostId, event);

@@ -275,9 +275,14 @@ async function attemptWidgetMount<TProps extends object>(
 
     state.current = pendingWidget;
 
+    let retried = false;
+
     card.showError({
       error,
       retry: () => {
+        if (retried) return;
+
+        retried = true;
         card.remove();
 
         if (!state.disposed) void attemptWidgetMount(input, state);
