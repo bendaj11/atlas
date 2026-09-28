@@ -1,4 +1,5 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
+import { forEachConcurrently } from '../../shared/concurrency/concurrency.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import type {
   AtlasPublicationLease,
@@ -13,9 +14,17 @@ export async function pruneUnreferencedPreviewGenerations(options: {
   lease: AtlasPublicationLease;
   registry: AtlasStaticRegistry;
   previewStates: readonly AtlasArtifactPreviewState[];
+  concurrency: number;
   now?: number;
 }): Promise<number> {
-  const { storage, lease, registry, previewStates, now = Date.now() } = options;
+  const {
+    storage,
+    lease,
+    registry,
+    previewStates,
+    concurrency,
+    now = Date.now(),
+  } = options;
   const referenced = new Set(
     [...Object.values(registry.apps), ...Object.values(registry.hosts)]
       .flatMap((artifact) => Object.values(artifact.previews))
@@ -34,10 +43,12 @@ export async function pruneUnreferencedPreviewGenerations(options: {
 
       if (!isExpiredGeneration(entries, now)) continue;
 
-      for (const { path } of entries) {
-        await lease.assertHeld();
-        await storage.remove(path);
-      }
+      await lease.assertHeld();
+      await forEachConcurrently({
+        items: entries,
+        concurrency,
+        operation: ({ path }) => storage.remove(path),
+      });
       removed += 1;
     }
   }

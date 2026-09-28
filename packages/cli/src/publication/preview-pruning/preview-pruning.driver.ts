@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
@@ -14,6 +15,7 @@ export class PreviewPruningDriver {
   };
   private registry: AtlasStaticRegistry = createEmptyStaticRegistry();
   private readonly now = Date.now();
+  private readonly concurrency = faker.number.int({ min: 1, max: 16 });
 
   readonly given = {
     registry: (registry: AtlasStaticRegistry) => {
@@ -37,11 +39,13 @@ export class PreviewPruningDriver {
         lease: this.lease,
         registry: this.registry,
         previewStates,
+        concurrency: this.concurrency,
         now: this.now,
       }),
   };
 
   readonly get = {
     removedPaths: () => this.storage.removed,
+    assertHeld: () => this.lease.assertHeld,
   };
 }

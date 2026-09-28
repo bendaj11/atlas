@@ -64,6 +64,18 @@ describe('pruneUnreferencedPreviewGenerations', () => {
     ).toBe(1);
   });
 
+  it('should assert the lease once per removed generation when pruned', async () => {
+    driver.given
+      .object(`${generation}/manifest.json`, 2 * DAY_MS)
+      .given.object(`${generation}/main.js`, 2 * DAY_MS);
+
+    await driver.when.pruned([
+      { kind: 'app', id: appId, openPreviews: new Set() },
+    ]);
+
+    expect(driver.get.assertHeld()).toHaveBeenCalledTimes(1);
+  });
+
   it('should keep a generation the registry still references when pruned', async () => {
     driver.given
       .registry(isRegistryReferencing(appId, generation))
