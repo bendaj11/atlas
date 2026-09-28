@@ -56,7 +56,7 @@ Set `ATLAS_STORAGE_API_URL`, `ATLAS_ARTIFACTORY_REPOSITORY`,
 `ATLAS_ARTIFACTORY_LOCK_RESOURCE`. The key prefix defaults to `atlas`.
 Run the whole command inside your shared Jenkins lock, which supplies
 `ATLAS_PUBLICATION_LOCK`; manually setting this marker does not acquire a lock.
-See the [copyable Jenkins setup](../../docs/artifactory.md) for configuration,
+See the [copyable Jenkins setup](../../docs/deploy/artifactory.md) for configuration,
 self-hosted requirements, and delivery policy.
 
 For separate source and target registries:
@@ -67,5 +67,5 @@ npx atlas deploy <uuid> --to production --version rc \
   --registry-url https://prod.example.com/atlas
 ```
 
-See [production deployment](../../docs/production-deployment.md) and
-[registry reference](../../docs/registry.md).
+See [production deployment](../../docs/deploy/production-deployment.md) and
+[registry reference](../../docs/reference/registry.md).

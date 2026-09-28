@@ -21,10 +21,10 @@ supported.
 
 New to Atlas? Follow one path, in order:
 
-1. [Understand Atlas](docs/overview.md) — vocabulary and ownership boundaries.
-2. [Get started](docs/getting-started.md) — install Atlas and generate first
+1. [Understand Atlas](docs/introduction/overview.md) — vocabulary and ownership boundaries.
+2. [Get started](docs/get-started/tutorial.md) — install Atlas and generate first
    host and app.
-3. Choose [Atlas Host](docs/host.md) or [Atlas App](docs/app.md) for your role.
+3. Choose [Atlas Host](docs/concepts/hosts.md) or [Atlas App](docs/concepts/apps.md) for your role.
 4. Use the [documentation map](docs/README.md) for operations and reference.
 
 Do not begin with package or API reference unless you already know which Atlas
@@ -50,7 +50,7 @@ are immutable UI artifacts published independently to public object storage or a
 CDN. An active host manifest selects which host-client and app releases run
 together in one environment.
 
-Read [Architecture](docs/architecture.md) for the complete loading and release
+Read [Architecture](docs/introduction/architecture.md) for the complete loading and release
 model.
 
 ## First Local System
@@ -87,8 +87,8 @@ Before starting the app, set its development host page in `orders/package.json`:
 
 This proves local composition only. Production needs a public registry,
 publication adapter, deployed static bootstrap, verification, and rollback plan.
-Continue with [Get Started](docs/getting-started.md), then choose [Atlas Host](docs/host.md)
-or [Atlas App](docs/app.md).
+Continue with [Get Started](docs/get-started/tutorial.md), then choose [Atlas Host](docs/concepts/hosts.md)
+or [Atlas App](docs/concepts/apps.md).
 
 ## Packages
 
@@ -112,7 +112,7 @@ pnpm test
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository checks and
-[documentation guidelines](docs/documentation-guide.md) for documentation
+[documentation guidelines](contributing/documentation-guide.md) for documentation
 structure and maintenance rules.
 
 Atlas is available under the [MIT License](LICENSE).

@@ -11,8 +11,8 @@ Most Atlas problems become simpler when you first identify the domain:
 
 Pick the framework page for concrete fixes:
 
-- [Angular troubleshooting](angular/troubleshooting.md)
-- [React troubleshooting](react/troubleshooting.md)
+- [Angular troubleshooting](guides/angular/troubleshooting.md)
+- [React troubleshooting](guides/react/troubleshooting.md)
 
 Always run deployment verification before debugging browser symptoms in a
 production-like environment:

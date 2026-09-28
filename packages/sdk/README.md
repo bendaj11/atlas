@@ -19,7 +19,7 @@ Hosts define product-specific APIs, clients, and services in their typed SDK
 extension. Atlas does not prescribe an HTTP client contract.
 
 Apps should not create their own host SDK. Read it with `useAtlasSdk()` or
-`injectAtlasSdk()`. Continue with [SDK guide](https://github.com/bendaj11/atlas/blob/main/docs/sdk.md).
+`injectAtlasSdk()`. Continue with [SDK guide](https://github.com/bendaj11/atlas/blob/main/docs/reference/sdk.md).
 
 ## Package layout
 
@@ -46,5 +46,5 @@ stable `code` and `suggestedActions`:
 | `AtlasEventListenerError` | An event listener throws; reported asynchronously, never swallowed    |
 | `FederationConfigError`   | Build-time federation config failure (`@atlas/sdk/federation-config`) |
 
-See [error handling](https://github.com/bendaj11/atlas/blob/main/docs/error-handling.md)
+See [error handling](https://github.com/bendaj11/atlas/blob/main/contributing/error-handling.md)
 for the full contract.

@@ -2,8 +2,8 @@
 
 Examples are organized by framework:
 
-- [Angular examples](angular/examples.md)
-- [React examples](react/examples.md)
+- [Angular examples](guides/angular/examples.md)
+- [React examples](guides/react/examples.md)
 
 Both frameworks are also exercised together in the repository's cross-framework
 browser tests:

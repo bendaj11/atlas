@@ -7,7 +7,7 @@ Most applications should install `@atlas/cli` rather than invoke this package di
 Audience: Atlas maintainers extending scaffolds. Generated project users should
 run `atlas g host`, `atlas g app`, or `atlas g widget` through CLI. Generator
 owns lifecycle/federation wiring; product teams own components, routes, styles,
-tests, and `atlas.config.ts`. See [Generators](https://github.com/bendaj11/atlas/blob/main/docs/generators.md).
+tests, and `atlas.config.ts`. See [Generators](https://github.com/bendaj11/atlas/blob/main/docs/reference/cli.md).
 
 Host generation returns framework host files through `generateHostFiles`.
 Static deployment files belong to Atlas CLI and `@atlas/bootstrap`.

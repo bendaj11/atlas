@@ -60,8 +60,8 @@ ignored and must not be committed.
 
 ## Documentation
 
-Follow [`docs/documentation-guide.md`](docs/documentation-guide.md). Keep
-[`docs/getting-started.md`](docs/getting-started.md) as the only end-to-end
+Follow [`docs/documentation-guide.md`](contributing/documentation-guide.md). Keep
+[`docs/getting-started.md`](docs/get-started/tutorial.md) as the only end-to-end
 tutorial; framework and subject guides should link to it instead of repeating
 the release sequence. Update documentation in the same pull request as user-visible
 behavior.
@@ -69,5 +69,5 @@ behavior.
 ## Releases
 
 Atlas publishes verified package tarballs from GitHub Actions. Follow
-[`docs/releasing.md`](docs/releasing.md); do not publish a workspace package
+[`docs/releasing.md`](contributing/releasing.md); do not publish a workspace package
 directly from a local checkout.

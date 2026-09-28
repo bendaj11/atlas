@@ -16,4 +16,4 @@ Use `mockAtlasEnvironment` for app unit tests, with
 `provideMockAtlasEnvironment` from `@atlas/testkit/angular` or
 `MockAtlasEnvironmentProvider` from `@atlas/testkit/react`. Use `anAppManifest`
 for host mount tests. These replace host/runtime boundary, not framework component test
-tools. See [Consumer testing](https://github.com/bendaj11/atlas/blob/main/docs/consumer-testing.md).
+tools. See [Consumer testing](https://github.com/bendaj11/atlas/blob/main/docs/guides/testing-apps-and-hosts.md).

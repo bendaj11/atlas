@@ -17,6 +17,6 @@ Framework adapters are available from `@atlas/runtime/react` and `@atlas/runtime
 Generated hosts export `mount` from `defineAngularHost()` or `defineReactHost()`,
 which call `startHost` through those adapters. Runtime reads already
 validated catalog/runtime input, enforces trust/integrity, mounts selected apps,
-and isolates loading failures. Start with [Architecture](https://github.com/bendaj11/atlas/blob/main/docs/architecture.md);
-use [Public API](https://github.com/bendaj11/atlas/blob/main/docs/api.md) only
+and isolates loading failures. Start with [Architecture](https://github.com/bendaj11/atlas/blob/main/docs/introduction/architecture.md);
+use [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md) only
 when customizing generated infrastructure.
