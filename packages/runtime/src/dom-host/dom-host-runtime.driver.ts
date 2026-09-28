@@ -130,6 +130,7 @@ export class DomHostRuntimeDriver {
       ),
     lastNavigationItems: () => this.onNavigationChange.mock.calls.at(-1)![0],
     error: () => this.error,
+    routeNotFound: () => this.anchors.isRouteNotFound(),
   };
 
   private createAnchorElement(tagName: string): HTMLElement {

@@ -146,6 +146,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
       }),
     subscribeAnchors: (listener) => anchors.subscribe(listener),
     setActiveLayout: (layoutId) => anchors.setActiveLayout(layoutId),
+    setRouteNotFound: (routeNotFound) => anchors.setRouteNotFound(routeNotFound),
     ...(config.resourcesTimeoutMs
       ? { resourcesTimeoutMs: config.resourcesTimeoutMs }
       : {}),

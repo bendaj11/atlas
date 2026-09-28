@@ -168,6 +168,35 @@ describe('startAtlasHostRuntime', () => {
     });
   });
 
+  describe('when a production app declares a route for the host', () => {
+    beforeEach(async () => {
+      driver.given.manifests([
+        anAppManifest({
+          channel: 'production',
+          placements: [
+            aRoutePlacement({
+              hostId: driver.hostId,
+              route: { path: '/orders' },
+            }),
+          ],
+        }),
+      ]);
+      await driver.when.started();
+    });
+
+    it('should publish route not found when navigated to a path no route matches', async () => {
+      await driver.when.navigatedTo(`/${faker.string.uuid()}`);
+
+      expect(driver.get.setRouteNotFoundMock()).toHaveBeenLastCalledWith(true);
+    });
+
+    it('should clear route not found when navigated to the route path', async () => {
+      await driver.when.navigatedTo('/orders');
+
+      expect(driver.get.setRouteNotFoundMock()).toHaveBeenLastCalledWith(false);
+    });
+  });
+
   it('should activate the layout of the matching route when navigated to a parameterized path', async () => {
     driver.given.manifests([
       anAppManifest({

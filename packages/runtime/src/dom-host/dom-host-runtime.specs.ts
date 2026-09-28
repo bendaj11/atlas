@@ -131,6 +131,20 @@ describe('startDomHostRuntime', () => {
       ).toEqual([label]);
     });
 
+    it('should mark the route as not found when started on a path no route matches', async () => {
+      await driver.when.started();
+
+      expect(driver.get.routeNotFound()).toBe(true);
+    });
+
+    it('should clear the not found route when navigation moves to the route path', async () => {
+      await driver.when.started();
+
+      await driver.when.navigatedTo('/orders');
+
+      expect(driver.get.routeNotFound()).toBe(false);
+    });
+
     it('should report the route item as active when navigation moves to its path', async () => {
       await driver.when.started();
 

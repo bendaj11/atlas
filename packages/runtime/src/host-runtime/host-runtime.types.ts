@@ -39,6 +39,8 @@ export type SubscribeToAnchors = (
 
 export type PublishActiveLayout = (layoutId: string | undefined) => void;
 
+export type PublishRouteNotFound = (routeNotFound: boolean) => void;
+
 export type ReportMountStateChange = (event: AtlasHostMountEvent) => void;
 
 export interface AtlasHostRuntimeOptions<
@@ -55,6 +57,7 @@ export interface AtlasHostRuntimeOptions<
   subscribeAnchors?: SubscribeToAnchors;
   /** Publishes the layout selected by the currently active route. */
   setActiveLayout?: PublishActiveLayout;
+  setRouteNotFound?: PublishRouteNotFound;
   onMountStateChange?: ReportMountStateChange;
   resourcesTimeoutMs?: number;
   trustPolicy?: AtlasRemoteTrustPolicy;

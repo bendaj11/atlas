@@ -112,6 +112,8 @@ export class AtlasRuntimeController {
         : (selected?.placement.route?.layoutId ?? 'default'),
     );
 
+    this.options.setRouteNotFound?.(!selected);
+
     const nextKey = selected
       ? createPlacementKey(selected.manifest, selected.placement)
       : undefined;

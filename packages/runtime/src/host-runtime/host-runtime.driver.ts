@@ -10,6 +10,7 @@ import type {
   AtlasHostMountEvent,
   AtlasHostRuntime,
   PublishActiveLayout,
+  PublishRouteNotFound,
 } from './host-runtime.types.js';
 
 type EntryBehavior = (request: AtlasAppMountRequest) => void | Promise<void>;
@@ -29,6 +30,7 @@ export class HostRuntimeDriver {
   private readonly unmounts = jest.fn<(appId: string) => void>();
   private readonly imports = jest.fn<(appId: string) => void>();
   private readonly setActiveLayout = jest.fn<PublishActiveLayout>();
+  private readonly setRouteNotFound = jest.fn<PublishRouteNotFound>();
   private readonly consoleError = jest
     .spyOn(console, 'error')
     .mockImplementation(() => undefined);
@@ -121,6 +123,7 @@ export class HostRuntimeDriver {
           this.anchors.get('slot', placement.slot!),
         subscribeAnchors: (listener) => this.anchors.subscribe(listener),
         setActiveLayout: this.setActiveLayout,
+        setRouteNotFound: this.setRouteNotFound,
         onMountStateChange: (event) => this.events.push(event),
         importRemote: (manifest) => this.importRemote(manifest),
         ...(this.resourcesTimeoutMs !== undefined
@@ -171,6 +174,7 @@ export class HostRuntimeDriver {
     importsMock: () => this.imports,
     unmountsMock: () => this.unmounts,
     setActiveLayoutMock: () => this.setActiveLayout,
+    setRouteNotFoundMock: () => this.setRouteNotFound,
     consoleErrorMock: () => this.consoleError,
     currentPathname: () =>
       getAtlasNavigation(this.sdk).getCurrentLocation().pathname,
