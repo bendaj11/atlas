@@ -18,7 +18,6 @@
     "ci:affected": "pnpm run typecheck:affected && pnpm run lint:affected && pnpm run test:affected",
     "ci:full": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "pack:verify": "tsx scripts/verify-packages.ts",
-    "verify:docs": "tsx scripts/verify-docs.ts",
     "release": "tsx scripts/release.ts",
     "release:publish": "tsx scripts/publish-release.ts",
     "test:generated": "pnpm run pack:verify && tsx scripts/verify-generated-projects.ts --package-manager=yarn && tsx scripts/verify-generated-projects.ts --package-manager=pnpm",

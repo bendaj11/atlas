@@ -44,7 +44,7 @@ When public behavior changes, update the following in the same pull request:
 2. The feature guide, including a scenario, a working example, an expected result, and a short API table for the APIs it introduces.
 3. The canonical reference page for the CLI, configuration, types, or schema, as listed in [the documentation guide](documentation-guide.md#keep-one-source-of-truth).
 4. The documentation home and this inventory when the change adds a new surface.
-5. Links and commands, checked with `pnpm verify:docs` and against the source or `npx atlas <command> --help`.
+5. Links and commands, checked against the source or `npx atlas <command> --help`.
 
 > **Warning:** Do not ship a public feature that only has reference documentation. A reader needs a discoverable task page and a working example before they need an exhaustive lookup table.
 

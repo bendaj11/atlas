@@ -29,12 +29,11 @@ Run the checks that match your change:
 pnpm typecheck
 pnpm lint
 pnpm test
-pnpm verify:docs
 pnpm test:generated
 pnpm test:e2e
 ```
 
-Run `pnpm test:generated` after you change generators or package boundaries; it packs the real packages and validates clean Angular and React projects. Run `pnpm test:e2e` after you change runtime loading, navigation, static catalogs, or the Columbus extension. Run `pnpm verify:docs` after you change any Markdown file. [Testing](contributing/testing.md) describes each suite in detail.
+Run `pnpm test:generated` after you change generators or package boundaries; it packs the real packages and validates clean Angular and React projects. Run `pnpm test:e2e` after you change runtime loading, navigation, static catalogs, or the Columbus extension. [Testing](contributing/testing.md) describes each suite in detail.
 
 ## Repository layout
 

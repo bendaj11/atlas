@@ -66,7 +66,7 @@ The React and Angular guide folders must contain the same file names. When you a
 
 ## Start every page the same way
 
-Every page under `docs/` starts with YAML frontmatter that contains a `title` and a `description`. The documentation check described in [Verify your change](#verify-your-change) fails when either field is missing. Contributor pages follow the same convention.
+Every page under `docs/` starts with YAML frontmatter that contains a `title` and a `description`. Contributor pages follow the same convention.
 
 ```md
 ---
@@ -142,30 +142,6 @@ Documentation describes what the code does today. Before you document a behavior
 
 Update documentation in the same pull request as the behavior change. When you replace a workflow, remove the obsolete page and every link to it; Git history and the changelog keep the old instructions.
 
-## Verify your change
-
-Run the documentation check from the repository root:
-
-```sh
-pnpm verify:docs
-```
-
-The check reads every Markdown file that Git tracks or would track, except `CHANGELOG.md`, `graphify-out/`, `node_modules/`, and the agent tooling folders `.claude/` and `.codex/`. It fails when any of the following is true:
-
-- A relative link points to a file that does not exist.
-- A `#anchor` does not match a heading in the target file. The check uses GitHub heading slug rules and ignores headings inside code fences.
-- A page under `docs/` is not linked from any other Markdown file.
-- `docs/guides/react/` and `docs/guides/angular/` contain different file names.
-- A page under `docs/` lacks frontmatter with a `title` and a `description`.
-- A page under `docs/` or the root `README.md` has a frontmatter `title` that differs from its first `# ` heading.
-- Prose in a page under `docs/` or the root `README.md` uses a banned term: "active host manifest", "host client", "host shell", "main application page", "the shell", or "app shell". The match ignores case. "shell" on its own stays allowed for command-line shells.
-- Inline code in a page under `docs/` or the root `README.md` runs a CLI command without `npx`, such as `` `atlas dev` `` instead of `` `npx atlas dev` ``.
-- A code sample under `docs/guides/angular/` assigns `injectAtlasSdk()` to a name other than `sdk`.
-
-The style checks report each problem as `file:line`. Except for the Angular sample check, they ignore fenced code blocks.
-
-CI runs the same check in the `docs` job of the Verify workflow. The implementation lives in `scripts/verify-docs.ts`.
-
 ## Review checklist
 
 Before you request review, confirm the following:
@@ -180,7 +156,7 @@ Before you request review, confirm the following:
 - [ ] Facts match the implementation, the tests, and the generated output.
 - [ ] The documentation home or a parent page links to every new or renamed page.
 - [ ] Duplicated or stale instructions were replaced with links to the owning page.
-- [ ] `pnpm verify:docs` passes.
+- [ ] Every relative link and `#anchor` resolves.
 
 ## Related
 

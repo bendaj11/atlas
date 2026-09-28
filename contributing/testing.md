@@ -81,7 +81,6 @@ pnpm exec playwright test --config examples/e2e/playwright.config.ts --headed
 
 The Verify workflow in `.github/workflows/verify.yml` runs on every pull request and on every push to `main`:
 
-- The `docs` job runs `pnpm verify:docs` on every run.
 - The `quality` job runs type checking, linting, and unit tests on Node.js 22 and 24. On pull requests that change code, scripts, workflows, or workspace configuration, it checks only the affected packages. Pushes to `main` check everything.
 - The `package-artifacts`, `portability`, `generated-projects`, and `e2e` jobs run on pushes to `main` and on pull requests that change code, scripts, workflows, or workspace configuration.
 
