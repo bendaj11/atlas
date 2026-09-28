@@ -1,17 +1,30 @@
+import { NgComponentOutlet } from '@angular/common';
 import {
   Component,
   Directive,
   ElementRef,
   inject,
+  InjectionToken,
   Input,
   Injectable,
   OnDestroy,
   OnInit,
+  signal,
   TemplateRef,
+  Type,
+  ViewChild,
   ViewContainerRef,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AtlasHostAnchorRegistry } from '../dom-host/host-anchors.js';
-import type { AtlasHostAnchorKind } from '../dom-host/host-anchors.types.js';
+import type {
+  AtlasHostAnchorKind,
+  UnsubscribeAnchorListener,
+} from '../dom-host/host-anchors.types.js';
+
+export const ATLAS_NOT_FOUND_COMPONENT = new InjectionToken<Type<unknown>>(
+  'ATLAS_NOT_FOUND_COMPONENT',
+);
 
 @Injectable({ providedIn: 'root' })
 export class AtlasAngularHostAnchors extends AtlasHostAnchorRegistry {}
@@ -27,10 +40,14 @@ abstract class AtlasAnchorComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
+  protected anchorElement(): HTMLElement {
+    return this.element.nativeElement;
+  }
+
   ngOnInit(): void {
     this.release = this.anchors.register(
       this.kind,
-      this.element.nativeElement,
+      this.anchorElement(),
       this.anchorName(),
     );
   }
@@ -50,9 +67,57 @@ export class AtlasNavigation extends AtlasAnchorComponent {
   protected readonly kind = 'navigation' as const;
 }
 
-@Component({ selector: 'atlas-route-outlet', standalone: true, template: '' })
+@Component({
+  selector: 'atlas-default-not-found',
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+    <section data-atlas-not-found>
+      <h1>Page not found</h1>
+      <a routerLink="/">Go to the home page</a>
+    </section>
+  `,
+})
+export class AtlasDefaultNotFound {}
+
+@Component({
+  selector: 'atlas-route-outlet',
+  standalone: true,
+  imports: [NgComponentOutlet],
+  template: `
+    <div #mount style="display: contents"></div>
+    @if (routeNotFound()) {
+      <ng-container *ngComponentOutlet="notFoundComponent" />
+    }
+  `,
+})
 export class AtlasRouteOutlet extends AtlasAnchorComponent {
   protected readonly kind = 'route-outlet' as const;
+  protected readonly notFoundComponent =
+    inject(ATLAS_NOT_FOUND_COMPONENT, { optional: true }) ??
+    AtlasDefaultNotFound;
+  protected readonly routeNotFound = signal(this.anchors.isRouteNotFound());
+  @ViewChild('mount', { static: true })
+  private readonly mount!: ElementRef<HTMLElement>;
+  private unsubscribeRouteNotFound: UnsubscribeAnchorListener | undefined;
+
+  override ngOnInit(): void {
+    super.ngOnInit();
+
+    this.unsubscribeRouteNotFound = this.anchors.subscribeRouteNotFound(() =>
+      this.routeNotFound.set(this.anchors.isRouteNotFound()),
+    );
+  }
+
+  override ngOnDestroy(): void {
+    this.unsubscribeRouteNotFound?.();
+
+    super.ngOnDestroy();
+  }
+
+  protected override anchorElement(): HTMLElement {
+    return this.mount.nativeElement;
+  }
 }
 
 /** Structural layout boundary. Inactive layouts create no Atlas anchors. */

@@ -21,7 +21,10 @@ import type { AtlasEventMap, AtlasSdk } from '@atlas/sdk';
 import { initFederation, loadRemoteModule } from '@atlas/sdk/federation';
 import type { AtlasHostDataOf } from '@atlas/sdk/host';
 import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
-import { AtlasAngularHostAnchors } from './adapters/angular-anchors.js';
+import {
+  ATLAS_NOT_FOUND_COMPONENT,
+  AtlasAngularHostAnchors,
+} from './adapters/angular-anchors.js';
 import { AtlasSdkNotReadyError } from './adapters/adapter.errors.js';
 import { startDomHost } from './dom-host/dom-host.js';
 import type { DomHostOptions } from './dom-host/dom-host.types.js';
@@ -41,7 +44,9 @@ import type {
 } from './angular.types.js';
 
 export {
+  ATLAS_NOT_FOUND_COMPONENT,
   AtlasAngularHostAnchors,
+  AtlasDefaultNotFound,
   AtlasHostLayout,
   AtlasHostStatus,
   AtlasNavigation,
@@ -81,6 +86,14 @@ export function defineAngularHost<THostSdk extends object = {}>(
         providers: [
           ...(appConfig?.providers ?? []),
           provideRouter(ATLAS_HOST_ROUTES),
+          ...(definition.notFoundComponent
+            ? [
+                {
+                  provide: ATLAS_NOT_FOUND_COMPONENT,
+                  useValue: definition.notFoundComponent,
+                },
+              ]
+            : []),
         ],
       },
       createHostOptions: (injector) => {

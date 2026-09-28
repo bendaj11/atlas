@@ -2,7 +2,7 @@
 
 import { faker } from '@faker-js/faker';
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
-import { AngularAdapterDriver } from './angular.driver.js';
+import { AngularAdapterDriver, HostNotFound } from './angular.driver.js';
 
 describe('startHost', () => {
   let driver: AngularAdapterDriver;
@@ -210,6 +210,14 @@ describe('defineAngularHost', () => {
     await driver.given.browserUrl(url).when.angularHostMounted();
 
     expect(await driver.get.startedNavigationPathname()).toBe(url);
+  });
+
+  it('should provide the definition not-found component when mounted', async () => {
+    await driver.given
+      .notFoundComponent(HostNotFound)
+      .when.angularHostMounted();
+
+    expect(driver.get.notFoundComponent()).toBe(HostNotFound);
   });
 });
 

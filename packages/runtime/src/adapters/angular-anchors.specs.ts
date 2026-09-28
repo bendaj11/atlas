@@ -41,7 +41,7 @@ describe('AtlasAngularHostAnchors', () => {
         ]);
       });
 
-      it.each(['navigation', 'route-outlet'] as const)(
+      it.each(['navigation'] as const)(
         'should register the %s anchor when activated',
         (kind) => {
           expect(driver.get.anchorTag(kind)).toBe(
@@ -49,6 +49,10 @@ describe('AtlasAngularHostAnchors', () => {
           );
         },
       );
+
+      it('should register the mount element inside atlas-route-outlet as the route-outlet anchor when activated', () => {
+        expect(driver.get.routeOutletParentTag()).toBe('ATLAS-ROUTE-OUTLET');
+      });
 
       it('should register the slot anchor by slot id when activated', () => {
         expect(driver.get.slotTag()).toBe('ATLAS-SLOT');
@@ -65,6 +69,41 @@ describe('AtlasAngularHostAnchors', () => {
 
         expect(driver.get.slotTag()).toBeUndefined();
       });
+    });
+  });
+
+  describe('when a host with a not-found component activates its layout', () => {
+    beforeEach(async () => {
+      await driver.given.notFoundComponent(true).when.bootstrapped();
+
+      driver.when.layoutActivated();
+    });
+
+    it('should render the host not-found component when the route is not found', () => {
+      driver.when.routeNotFoundSet(true);
+
+      expect(driver.get.hostNotFoundPresent()).toBe(true);
+    });
+
+    it('should remove the host not-found component when the route is found again', () => {
+      driver.when.routeNotFoundSet(true);
+      driver.when.routeNotFoundSet(false);
+
+      expect(driver.get.hostNotFoundPresent()).toBe(false);
+    });
+  });
+
+  describe('when a host without a not-found component activates its layout', () => {
+    beforeEach(async () => {
+      await driver.given.notFoundComponent(false).when.bootstrapped();
+
+      driver.when.layoutActivated();
+    });
+
+    it('should render the default not-found page when the route is not found', () => {
+      driver.when.routeNotFoundSet(true);
+
+      expect(driver.get.defaultNotFoundPresent()).toBe(true);
     });
   });
 });

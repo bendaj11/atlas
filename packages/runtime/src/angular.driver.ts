@@ -2,10 +2,13 @@ import '@angular/compiler';
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import {
+  ApplicationRef,
   Component,
+  inject,
+  provideAppInitializer,
   provideZonelessChangeDetection,
   signal,
-  type ApplicationRef,
+  type Type,
   type WritableSignal,
 } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
@@ -37,6 +40,7 @@ const startDomHost = jest.fn<StartDomHostForHostSdk>();
 jest.unstable_mockModule('./dom-host/dom-host.js', () => ({ startDomHost }));
 
 const {
+  ATLAS_NOT_FOUND_COMPONENT,
   AtlasNavigationItemsService,
   bootstrapAngularHost,
   defineAngularHost,
@@ -49,6 +53,13 @@ interface HostSdk {
 
 @Component({ selector: 'atlas-host-root', standalone: true, template: '' })
 class HostRoot {}
+
+@Component({
+  selector: 'atlas-test-not-found',
+  standalone: true,
+  template: '<p data-testid="host-not-found"></p>',
+})
+export class HostNotFound {}
 
 @Component({ selector: 'atlas-host-root', standalone: true, template: '' })
 class EagerSdkHostRoot {
@@ -79,6 +90,7 @@ export class AngularAdapterDriver {
   private hostName: string | undefined = faker.company.name();
   private runtimeConfig = aHostRuntimeConfig({ hostId: this.hostId });
   private catalog: AtlasHostCatalog | undefined;
+  private notFoundComponent: Type<unknown> | undefined;
   private root: HTMLElement | null = null;
   private eagerSdkComponent = false;
   private readonly container = document.createElement('div');
@@ -138,6 +150,11 @@ export class AngularAdapterDriver {
     },
     catalog: (catalog: AtlasHostCatalog) => {
       this.catalog = catalog;
+
+      return this;
+    },
+    notFoundComponent: (notFoundComponent: Type<unknown>) => {
+      this.notFoundComponent = notFoundComponent;
 
       return this;
     },
@@ -205,7 +222,17 @@ export class AngularAdapterDriver {
           ...(this.hostName ? { name: this.hostName } : {}),
         },
         component: HostRoot,
-        appConfig: { providers: [provideZonelessChangeDetection()] },
+        appConfig: {
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAppInitializer(() => {
+              this.app = inject(ApplicationRef);
+            }),
+          ],
+        },
+        ...(this.notFoundComponent
+          ? { notFoundComponent: this.notFoundComponent }
+          : {}),
         sdkOptions: () => ({
           hostData: { region: this.region },
           renderHostLoading: this.renderHostLoading,
@@ -245,6 +272,8 @@ export class AngularAdapterDriver {
     rootConnected: () => this.root?.isConnected ?? false,
     requestContainer: () => this.container,
     error: () => this.error,
+    notFoundComponent: () =>
+      this.app!.injector.get(ATLAS_NOT_FOUND_COMPONENT, null),
     navigationItemLabels: () =>
       this.app!.injector.get(AtlasNavigationItemsService)
         .items()

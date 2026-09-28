@@ -56,6 +56,7 @@ export interface AngularHostDefinition<THostSdk extends object = {}> {
   config: Pick<AtlasHostConfig, 'id' | 'name'>;
   component: Type<unknown>;
   appConfig?: ApplicationConfig;
+  notFoundComponent?: Type<unknown>;
   sdkOptions: CreateAngularHostSdkOptions<THostSdk>;
 }
 
