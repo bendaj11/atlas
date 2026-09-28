@@ -81,6 +81,8 @@ export class AngularAdapterDriver {
   private catalog: AtlasHostCatalog | undefined;
   private root: HTMLElement | null = null;
   private eagerSdkComponent = false;
+  private readonly container = document.createElement('div');
+  private placeholder: Node | undefined;
   private error: unknown;
 
   constructor() {
@@ -104,6 +106,11 @@ export class AngularAdapterDriver {
   }
 
   readonly given = {
+    placeholder: (placeholder: Node) => {
+      this.placeholder = placeholder;
+
+      return this;
+    },
     eagerSdkComponent: () => {
       this.eagerSdkComponent = true;
 
@@ -162,7 +169,9 @@ export class AngularAdapterDriver {
     },
     runtimeStopped: () => this.runtime!.stop(),
     angularHostBootstrapped: async () => {
-      const container = document.createElement('div');
+      const container = this.container;
+
+      if (this.placeholder) container.append(this.placeholder);
 
       document.body.replaceChildren(container);
 
@@ -186,7 +195,7 @@ export class AngularAdapterDriver {
       }
     },
     angularHostMounted: async () => {
-      const container = document.createElement('div');
+      const container = this.container;
 
       document.body.replaceChildren(container);
 
@@ -234,6 +243,7 @@ export class AngularAdapterDriver {
     onSdkCreatedMock: () => this.onSdkCreated,
     renderHostLoadingMock: () => this.renderHostLoading,
     rootConnected: () => this.root?.isConnected ?? false,
+    requestContainer: () => this.container,
     error: () => this.error,
     navigationItemLabels: () =>
       this.app!.injector.get(AtlasNavigationItemsService)

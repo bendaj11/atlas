@@ -85,6 +85,7 @@ function renderPlacementLoadingState(input: {
   const loader = createLoaderElement({
     document,
     label: `Loading ${event.manifest.name}`,
+    compact: event.placement.kind === 'slot',
   });
   loader.setAttribute('data-atlas-placement-status', '');
 

@@ -80,6 +80,16 @@ export class MountAppDriver {
 
       return this;
     },
+    entryBehavior: (behavior: (request: AtlasAppMountRequest) => void) => {
+      this.importRemote.mockResolvedValue({
+        mount: (request) => {
+          this.requests.push(request);
+          behavior(request);
+        },
+      });
+
+      return this;
+    },
     entrySettingTabTitle: (title: string) => {
       this.importRemote.mockResolvedValue({
         mount: (request) => {
@@ -116,6 +126,9 @@ export class MountAppDriver {
   readonly get = {
     lastRequest: () => this.requests.at(-1)!,
     container: () => this.container,
+    boundaryDisplay: () =>
+      this.container.querySelector<HTMLElement>('[data-atlas-app]')?.style
+        .display,
     headLinks: () => [...this.document.head.querySelectorAll('link')],
     documentTitle: () => this.document.title,
     importRemoteMock: () => this.importRemote,

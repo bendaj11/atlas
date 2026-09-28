@@ -46,7 +46,7 @@ describe('startAtlasHostRuntime', () => {
     it('should mount the app of the matching route when navigated to its path', async () => {
       await driver.when.navigatedTo('/catalog');
 
-      expect(driver.get.states('catalog')).toEqual(['mounting', 'mounted']);
+      expect(driver.get.states('catalog')).toEqual(['loading', 'mounted']);
     });
 
     it('should unmount the previous app when navigated to the longer route', async () => {
@@ -110,7 +110,7 @@ describe('startAtlasHostRuntime', () => {
     });
 
     it('should mount the latest app when navigated away from the pending route', () => {
-      expect(driver.get.states('latest')).toEqual(['mounting', 'mounted']);
+      expect(driver.get.states('latest')).toEqual(['loading', 'mounted']);
     });
 
     it('should unmount the slow app when its mount completes after being superseded', async () => {
@@ -253,22 +253,22 @@ describe('startAtlasHostRuntime', () => {
         .given.slotAnchor(slot);
     });
 
-    it('should report mounting then mounted when started', async () => {
+    it('should report loading then mounted when started', async () => {
       await driver.when.started();
 
-      expect(driver.get.states('widget')).toEqual(['mounting', 'mounted']);
+      expect(driver.get.states('widget')).toEqual(['loading', 'mounted']);
     });
 
-    it('should report a loading state when the app shows loading during mount', async () => {
+    it('should report a mounting state when the app hides loading during mount', async () => {
       driver.given.entryBehavior('widget', ({ context }) =>
-        context.loading.show(),
+        context.loading.hide(),
       );
 
       await driver.when.started();
 
       expect(driver.get.states('widget')).toEqual([
-        'mounting',
         'loading',
+        'mounting',
         'mounted',
       ]);
     });
@@ -280,8 +280,8 @@ describe('startAtlasHostRuntime', () => {
         await driver.when.started();
       });
 
-      it('should report mounting then error when started', () => {
-        expect(driver.get.states('widget')).toEqual(['mounting', 'error']);
+      it('should report loading then error when started', () => {
+        expect(driver.get.states('widget')).toEqual(['loading', 'error']);
       });
 
       it('should report a browser ATLAS_APP_MOUNT_FAILED error carrying the cause message when started', () => {
@@ -310,12 +310,8 @@ describe('startAtlasHostRuntime', () => {
         await driver.when.started();
       });
 
-      it('should report mounting, loading, then error when the readiness timeout elapses', () => {
-        expect(driver.get.states('widget')).toEqual([
-          'mounting',
-          'loading',
-          'error',
-        ]);
+      it('should report loading then error when the readiness timeout elapses', () => {
+        expect(driver.get.states('widget')).toEqual(['loading', 'error']);
       });
 
       it('should report ATLAS_APP_MOUNT_TIMEOUT naming readiness when the readiness timeout elapses', () => {
@@ -358,7 +354,7 @@ describe('startAtlasHostRuntime', () => {
 
     await driver.when.slotAnchorRegistered(slot);
 
-    expect(driver.get.states('widget')).toEqual(['mounting', 'mounted']);
+    expect(driver.get.states('widget')).toEqual(['loading', 'mounted']);
   });
 
   it('should keep the slot app mounted when navigation changes after its anchor is registered', async () => {

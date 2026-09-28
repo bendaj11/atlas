@@ -19,7 +19,7 @@ describe('startDomHost', () => {
     });
 
     it('should clear the status anchor when started', () => {
-      expect(driver.get.statusText()).toBe('');
+      expect(driver.get.statusState()).toBeUndefined();
     });
 
     it('should emit host.start then host.ready when started', () => {
@@ -80,7 +80,7 @@ describe('startDomHost', () => {
     it('should clear the status anchor when retry succeeds', async () => {
       await driver.when.retryClicked();
 
-      expect(driver.get.statusText()).toBe('');
+      expect(driver.get.statusState()).toBeUndefined();
     });
 
     it('should emit host.ready when retry succeeds', async () => {

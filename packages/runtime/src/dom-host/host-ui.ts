@@ -13,16 +13,55 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
   let state: HostUiState | undefined;
   let error: Error | undefined;
   let retry: RetryHostStart | undefined;
+  let fallbackOutlet: HTMLElement | undefined;
+  let renderedContainer: HTMLElement | undefined;
+  let clearOnHostAnchor = false;
+  let disposed = false;
 
-  const render = () => {
-    const container = options.anchors.get('status');
+  const removeFallbackOutlet = () => {
+    fallbackOutlet?.remove();
+    fallbackOutlet = undefined;
+  };
+  const resolveContainer = () => {
+    const anchor = options.anchors.get('status');
 
-    if (!container || !state) return;
+    if (anchor) {
+      removeFallbackOutlet();
 
+      return anchor;
+    }
+
+    if (!options.fallbackContainer) return undefined;
+
+    if (!fallbackOutlet) {
+      fallbackOutlet = options.document.createElement('div');
+      fallbackOutlet.dataset.atlasHostStatusFallback = '';
+
+      options.fallbackContainer.prepend(fallbackOutlet);
+    }
+
+    return fallbackOutlet;
+  };
+  const resetRenderedContainer = () => {
     disposeRenderer?.();
     disposeRenderer = undefined;
 
-    container.replaceChildren();
+    renderedContainer?.replaceChildren();
+    renderedContainer?.removeAttribute('data-atlas-state');
+    renderedContainer?.removeAttribute('aria-busy');
+    renderedContainer = undefined;
+  };
+  const render = () => {
+    if (!state) return;
+
+    const container = resolveContainer();
+
+    resetRenderedContainer();
+
+    if (!container) return;
+
+    renderedContainer = container;
+
     applyHostStateToContainer(container, state);
 
     if (state === 'loading') {
@@ -55,20 +94,30 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
 
     renderDefaultError(options.document, container, currentRetry);
   };
-  const unsubscribeAnchors = options.anchors.subscribe(render);
   const clear = () => {
-    disposeRenderer?.();
-    disposeRenderer = undefined;
     state = undefined;
     error = undefined;
     retry = undefined;
+    clearOnHostAnchor = false;
 
-    const container = options.anchors.get('status');
+    resetRenderedContainer();
+    removeFallbackOutlet();
 
-    container?.replaceChildren();
-    container?.removeAttribute('data-atlas-state');
-    container?.removeAttribute('aria-busy');
+    if (disposed) unsubscribeAnchors();
   };
+  const hasHostAnchor = () =>
+    Boolean(
+      options.anchors.get('route-outlet') ?? options.anchors.get('status'),
+    );
+  const unsubscribeAnchors = options.anchors.subscribe(() => {
+    if (clearOnHostAnchor && hasHostAnchor()) {
+      clear();
+
+      return;
+    }
+
+    render();
+  });
 
   return {
     showLoading() {
@@ -88,11 +137,37 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
       render();
     },
     clear,
+    clearWhenHostAnchorRenders() {
+      if (hasHostAnchor()) {
+        clear();
+
+        return;
+      }
+
+      clearOnHostAnchor = true;
+    },
     dispose() {
-      clear();
-      unsubscribeAnchors();
+      disposed = true;
+
+      if (!clearOnHostAnchor) {
+        clear();
+
+        return;
+      }
+
+      runAfterNextRender(() => {
+        if (clearOnHostAnchor) clear();
+      });
     },
   };
+}
+
+function runAfterNextRender(callback: () => void): void {
+  const requestFrame =
+    globalThis.requestAnimationFrame ??
+    ((frameCallback: () => void) => setTimeout(frameCallback, 0));
+
+  requestFrame(() => setTimeout(callback, 0));
 }
 
 function applyHostStateToContainer(

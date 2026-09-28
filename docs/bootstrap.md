@@ -59,6 +59,11 @@ Use `--template` to customize `index.html`. Template must retain
    payloads.
 6. Host runtime mounts slot apps and the current route app at the same time.
 
+The page shows a loader at every step. The bootstrap placeholder inside
+`atlas-host-root` stays until the host renders. The host status outlet then
+shows while Atlas loads the catalog and Native Federation. Each app and widget
+then shows its own loader until it has mounted.
+
 The loader always revalidates `atlas.runtime.json` and the environment host
 manifest. It lets the browser HTTP cache serve content it verifies itself:
 artifact manifests (checked against their registry digest) and host remote

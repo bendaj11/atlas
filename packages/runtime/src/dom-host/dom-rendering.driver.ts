@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import type { AtlasPlacement } from '@atlas/schema';
 import { anAppManifest, aRoutePlacement } from '@atlas/testkit';
 import type { AtlasHostMountState } from '../host-runtime/host-runtime.types.js';
 import { renderHostMountState, renderHostNavigation } from './dom-rendering.js';
@@ -19,6 +20,7 @@ export class DomRenderingDriver {
   private readonly manifest = anAppManifest({
     placements: [aRoutePlacement()],
   });
+  private placement: AtlasPlacement = this.manifest.placements[0]!;
   private readonly retry = jest.fn<RetryPlacementMount>();
   private readonly renderLoading = jest.fn<RenderPlacementLoading>();
   private readonly renderError = jest.fn<RenderPlacementError>();
@@ -27,6 +29,11 @@ export class DomRenderingDriver {
   readonly given = {
     customRenderers: () => {
       this.useCustomRenderers = true;
+
+      return this;
+    },
+    placement: (placement: AtlasPlacement) => {
+      this.placement = placement;
 
       return this;
     },
@@ -49,7 +56,7 @@ export class DomRenderingDriver {
         document,
         event: {
           manifest: this.manifest,
-          placement: this.manifest.placements[0]!,
+          placement: this.placement,
           container: this.container,
           state,
           ...(state === 'error' ? { error: new Error('boom') } : {}),
@@ -81,6 +88,9 @@ export class DomRenderingDriver {
       this.container
         .querySelector('[data-atlas-placement-status]')
         ?.getAttribute('aria-label'),
+    placementStatusPadding: () =>
+      this.container.querySelector<HTMLElement>('[data-atlas-placement-status]')
+        ?.style.padding,
     placementStatusRole: () =>
       this.container
         .querySelector('[data-atlas-placement-status]')

@@ -132,4 +132,79 @@ describe('createHostUi', () => {
       expect(driver.get.statusLabel()).toBeNull();
     });
   });
+
+  describe('when a fallback container is given and loading is shown before any anchor renders', () => {
+    beforeEach(() => {
+      driver.given.fallbackContainer().when.created();
+
+      driver.when.loadingShown();
+    });
+
+    it('should render the default loading status in the fallback container when loading is shown', () => {
+      expect(driver.get.hostContainerStatusLabel()).toBe('Loading application');
+    });
+
+    it('should remove the fallback loading status when the status anchor is registered', () => {
+      driver.when.statusAnchorRegistered();
+
+      expect(driver.get.hostContainerStatusLabel()).toBeNull();
+    });
+
+    it('should keep the loading status when clear is requested until a host anchor renders', () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      expect(driver.get.hostContainerStatusLabel()).toBe('Loading application');
+    });
+
+    it('should keep the loading status when disposed while waiting for a host anchor', () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      driver.when.disposed();
+
+      expect(driver.get.hostContainerStatusLabel()).toBe('Loading application');
+    });
+
+    it('should remove the loading status when the route outlet renders after clear was requested', () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      driver.when.routeOutletRegistered();
+
+      expect(driver.get.hostContainerStatusLabel()).toBeNull();
+    });
+
+    it('should clear the status anchor when it renders after clear was requested', () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      driver.when.statusAnchorRegistered();
+
+      expect(driver.get.containerState()).toBeUndefined();
+    });
+
+    it('should remove the loading status when the route outlet renders after dispose while waiting', () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      driver.when.disposed();
+      driver.when.routeOutletRegistered();
+
+      expect(driver.get.hostContainerStatusLabel()).toBeNull();
+    });
+
+    it('should remove the loading status when no host anchor renders by the next render after dispose', async () => {
+      driver.when.clearRequestedUntilHostAnchorRenders();
+
+      driver.when.disposed();
+      await driver.when.nextRenderElapsed();
+
+      expect(driver.get.hostContainerStatusLabel()).toBeNull();
+    });
+  });
+
+  it('should remove the loading status when clear is requested after the route outlet rendered', () => {
+    driver.given.fallbackContainer().given.routeOutlet().when.created();
+
+    driver.when.loadingShown();
+    driver.when.clearRequestedUntilHostAnchorRenders();
+
+    expect(driver.get.hostContainerStatusLabel()).toBeNull();
+  });
 });

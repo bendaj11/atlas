@@ -59,6 +59,9 @@ export async function mountApp(
     releaseStyles();
   };
   let result: void | AtlasAppMountResult;
+  let readinessRequested = false;
+
+  boundary.setHidden(true);
 
   try {
     const entry = await importAppEntryFromRemote(options);
@@ -96,12 +99,29 @@ export async function mountApp(
           setTabTitle: titleController.set,
         }),
         loading: {
-          show: () => options.onLoadingChange?.(true),
-          hide: () => options.onLoadingChange?.(false),
-          waitUntilReady: () =>
-            options.onReadyRequested?.() ??
-            options.onReady ??
-            (() => undefined),
+          show: () => {
+            boundary.setHidden(true);
+            options.onLoadingChange?.(true);
+          },
+          hide: () => {
+            boundary.setHidden(false);
+            options.onLoadingChange?.(false);
+          },
+          waitUntilReady: () => {
+            readinessRequested = true;
+
+            boundary.setHidden(true);
+
+            const markReady =
+              options.onReadyRequested?.() ??
+              options.onReady ??
+              (() => undefined);
+
+            return () => {
+              boundary.setHidden(false);
+              markReady();
+            };
+          },
         },
       },
     });
@@ -110,6 +130,8 @@ export async function mountApp(
 
     throw error;
   }
+
+  if (!readinessRequested) boundary.setHidden(false);
 
   return {
     manifest: options.manifest,

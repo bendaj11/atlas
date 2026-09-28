@@ -80,3 +80,17 @@ export class AtlasWidgetMountError extends AtlasBrowserError {
     this.name = 'AtlasWidgetMountError';
   }
 }
+
+export class AtlasWidgetReadinessTimeoutError extends AtlasRuntimeError {
+  constructor(input: { widgetId: string; timeoutMs: number }) {
+    super(
+      `Atlas widget "${input.widgetId}" did not mark itself ready within ${input.timeoutMs}ms.`,
+      {
+        code: 'ATLAS_WIDGET_READINESS_TIMEOUT',
+        suggestedActions:
+          'Call the callback returned by waitUntilReady once the widget has rendered, or raise resourcesTimeoutMs in the host runtime configuration.',
+      },
+    );
+    this.name = 'AtlasWidgetReadinessTimeoutError';
+  }
+}

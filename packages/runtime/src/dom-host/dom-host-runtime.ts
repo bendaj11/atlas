@@ -24,7 +24,13 @@ import {
 export async function startDomHostRuntime<THostSdk extends object>(
   input: DomHostRuntimeInput<THostSdk>,
 ): Promise<AtlasHostRuntime<THostSdk>> {
-  const { options, services, document, onInfrastructureReady } = input;
+  const {
+    options,
+    services,
+    document,
+    onInfrastructureReady,
+    onPlacementStateChange,
+  } = input;
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
   const config = options.runtimeConfig;
   const requestPolicy = createRetryPolicy(config, options.observe);
@@ -150,6 +156,8 @@ export async function startDomHostRuntime<THostSdk extends object>(
           new AtlasAppLoadError(event.manifest.id, event.error),
         );
       }
+
+      onPlacementStateChange?.();
 
       renderHostMountState({
         document,

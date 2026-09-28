@@ -53,14 +53,12 @@ test('should preserve native inner routing when React host mounts Angular app', 
 
   expect({
     heading: await heading.isVisible(),
-    loadingCount: await page
-      .getByText('Loading product…', { exact: true })
-      .count(),
+    loaderCount: await page.locator('[data-atlas-loader]').count(),
     details: await details.isVisible(),
     url: page.url(),
   }).toStrictEqual({
     heading: true,
-    loadingCount: 0,
+    loaderCount: 0,
     details: true,
     url: `${reactHostOrigin}/angular-orders/orders/42`,
   });
@@ -83,9 +81,7 @@ test('should preserve styles and inner routing when Angular host mounts React ap
 
   expect({
     heading: await heading.isVisible(),
-    loadingCount: await page
-      .getByText('Loading product…', { exact: true })
-      .count(),
+    loaderCount: await page.locator('[data-atlas-loader]').count(),
     stylesheetHrefMatches: new RegExp(
       `^${escapeRegex(cdnOrigin)}/apps/${CATALOG_REACT_ID}/0\\.2\\.0/.+\\.css$`,
     ).test((await stylesheet.getAttribute('href')) ?? ''),
@@ -96,7 +92,7 @@ test('should preserve styles and inner routing when Angular host mounts React ap
     url: page.url(),
   }).toStrictEqual({
     heading: true,
-    loadingCount: 0,
+    loaderCount: 0,
     stylesheetHrefMatches: true,
     stylesheetIntegrityMatches: true,
     product: 'Product 42',

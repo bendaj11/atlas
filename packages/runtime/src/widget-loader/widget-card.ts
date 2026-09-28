@@ -26,40 +26,53 @@ export function createWidgetCard(input: WidgetCardInput): WidgetCard {
   input.parent.append(element);
 
   let disposeStatus: DisposeRenderer | undefined;
+  let statusElement: HTMLElement | undefined;
+  let loading = false;
   const clearStatus = () => {
     disposeStatus?.();
     disposeStatus = undefined;
+    loading = false;
 
-    element.replaceChildren();
+    statusElement?.remove();
+    statusElement = undefined;
+  };
+  const createStatusOutlet = () => {
+    clearStatus();
+
+    statusElement = document.createElement('div');
+    statusElement.style.display = 'contents';
+
+    element.prepend(statusElement);
+
+    return statusElement;
   };
 
   return {
     element,
     clearStatus,
     showLoading() {
-      clearStatus();
+      if (loading) return;
+
+      const outlet = createStatusOutlet();
+      loading = true;
 
       if (input.renderLoading) {
-        disposeStatus = input.renderLoading(element) || undefined;
+        disposeStatus = input.renderLoading(outlet) || undefined;
 
         return;
       }
 
       if (input.options.renderWidgetLoading) {
         disposeStatus =
-          input.options.renderWidgetLoading(element, input.context) ||
-          undefined;
+          input.options.renderWidgetLoading(outlet, input.context) || undefined;
 
         return;
       }
 
-      element.append(
-        createLoaderElement({ document, label: 'Loading widget' }),
-      );
+      outlet.append(createLoaderElement({ document, label: 'Loading widget' }));
     },
     showError({ error, retry, resolved }) {
-      clearStatus();
-
+      const outlet = createStatusOutlet();
       const context = {
         ...createWidgetRenderContext(input.context.widgetId, resolved),
         error,
@@ -67,7 +80,7 @@ export function createWidgetCard(input: WidgetCardInput): WidgetCard {
 
       if (input.options.renderWidgetError) {
         disposeStatus =
-          input.options.renderWidgetError(element, context, retry) || undefined;
+          input.options.renderWidgetError(outlet, context, retry) || undefined;
 
         return;
       }
@@ -83,7 +96,7 @@ export function createWidgetCard(input: WidgetCardInput): WidgetCard {
 
       button.addEventListener('click', retry, { once: true });
       status.append(button);
-      element.append(status);
+      outlet.append(status);
     },
     remove() {
       clearStatus();

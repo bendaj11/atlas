@@ -30,6 +30,7 @@ export class DomHostRuntimeDriver {
   private readonly observe = jest.fn<AtlasRuntimeObserver>();
   private readonly onNavigationChange = jest.fn<ReportNavigationItems>();
   private readonly onInfrastructureReady = jest.fn<() => void>();
+  private readonly onPlacementStateChange = jest.fn<() => void>();
   private readonly consoleError = jest
     .spyOn(console, 'error')
     .mockImplementation(() => undefined);
@@ -86,6 +87,7 @@ export class DomHostRuntimeDriver {
           services: { createNavigation: () => this.navigation },
           document: this.document,
           onInfrastructureReady: this.onInfrastructureReady,
+          onPlacementStateChange: this.onPlacementStateChange,
         });
       } catch (error) {
         this.error = error;
@@ -120,6 +122,7 @@ export class DomHostRuntimeDriver {
         .flatMap((event) => (event.type === 'app.state' ? [event.state] : [])),
     onNavigationChangeMock: () => this.onNavigationChange,
     onInfrastructureReadyMock: () => this.onInfrastructureReady,
+    onPlacementStateChangeMock: () => this.onPlacementStateChange,
     consoleErrorMock: () => this.consoleError,
     navigationLinkLabels: () =>
       [...this.anchors.get('navigation')!.querySelectorAll('a')].map(

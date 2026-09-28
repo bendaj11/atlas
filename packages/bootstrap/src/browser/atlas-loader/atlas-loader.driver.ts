@@ -104,6 +104,23 @@ export class AtlasLoaderDriver {
 
       return this;
     },
+    placeholder: (text: string) => {
+      this.hostRoot.textContent = text;
+
+      return this;
+    },
+    pendingMount: () => {
+      this.mount.mockReturnValue(new Promise(() => undefined));
+
+      return this;
+    },
+    hostContent: (content: HTMLElement) => {
+      this.mount.mockImplementation(async ({ container }) => {
+        container.append(content);
+      });
+
+      return this;
+    },
     hostRootPresent: (present: boolean) => {
       if (!present) this.hostRoot.remove();
 

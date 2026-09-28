@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { faker } from '@faker-js/faker';
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
 import { AtlasLoaderDriver } from './atlas-loader.driver.js';
 
@@ -79,7 +80,7 @@ describe('startAtlasLoader', () => {
         });
       });
 
-      it('should clear the host root before mounting when started', () => {
+      it('should remove the placeholder from the host root when the host has mounted', () => {
         expect(driver.get.hostRootChildCount()).toBe(0);
       });
 
@@ -90,6 +91,26 @@ describe('startAtlasLoader', () => {
           catalog,
         });
       });
+    });
+
+    it('should keep the placeholder in the host root when the host mount is pending', async () => {
+      const placeholder = faker.lorem.sentence();
+      driver.given.placeholder(placeholder).given.pendingMount();
+
+      await driver.when.startRequested();
+
+      expect(driver.get.hostRoot().textContent).toBe(placeholder);
+    });
+
+    it('should keep only the host content in the host root when the host has mounted', async () => {
+      const content = document.createElement('main');
+      driver.given.hostContent(content);
+
+      await driver.when.started();
+
+      expect(Array.from(driver.get.hostRoot().childNodes)).toStrictEqual([
+        content,
+      ]);
     });
 
     it('should apply overrides without a session when the startup has none', async () => {

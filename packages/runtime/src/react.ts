@@ -113,6 +113,7 @@ function AtlasReactHostApplication<THostSdk extends object>(
         name: config.name ?? config.id,
       },
       runtimeConfig: request.runtimeConfig,
+      hostContainer: request.container,
       ...(request.catalog ? { catalog: request.catalog } : {}),
     },
     children: createElement(RouterProvider, { router }),

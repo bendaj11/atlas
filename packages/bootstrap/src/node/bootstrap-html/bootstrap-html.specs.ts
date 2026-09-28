@@ -17,18 +17,28 @@ describe('createBootstrapHtml', () => {
     expect(driver.get.html()).toContain('<title>Atlas</title>');
   });
 
-  it('should use the default loading content when no loading html is given', () => {
+  it('should indent the default loading content when no loading html is given', () => {
     driver.when.htmlCreated();
 
     expect(driver.get.html()).toContain(
-      '<div id="atlas-host-root"><div data-atlas-status data-atlas-loader role="status" aria-label="Loading"',
+      '    <div id="atlas-host-root">\n      <div data-atlas-status data-atlas-loader role="status" aria-label="Loading"',
     );
   });
 
-  it('should load the versioned loader script when created', () => {
+  it('should close the indented loading content before the host root closes when no loading html is given', () => {
     driver.when.htmlCreated();
 
-    expect(driver.get.html()).toMatch(VERSIONED_LOADER_SCRIPT);
+    expect(driver.get.html()).toContain(
+      '        </svg>\n      </div>\n    </div>\n',
+    );
+  });
+
+  it('should load the unversioned loader script when created', () => {
+    driver.when.htmlCreated();
+
+    expect(driver.get.html()).toContain(
+      '<script type="module" src="/atlas.loader.js"></script>',
+    );
   });
 
   it('should escape the title when a title is given', () => {
@@ -44,7 +54,7 @@ describe('createBootstrapHtml', () => {
     driver.given.loadingHtml(loadingHtml).when.htmlCreated();
 
     expect(driver.get.html()).toContain(
-      `<div id="atlas-host-root">${loadingHtml}</div>`,
+      `<div id="atlas-host-root">\n${loadingHtml}\n    </div>`,
     );
   });
 });

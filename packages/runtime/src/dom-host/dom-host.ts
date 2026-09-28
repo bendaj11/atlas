@@ -27,6 +27,9 @@ export async function startDomHost<THostSdk extends object = {}>(
   const hostUi = createHostUi({
     document,
     anchors,
+    ...(options.hostContainer
+      ? { fallbackContainer: options.hostContainer }
+      : {}),
     ...(options.renderHostLoading
       ? { renderHostLoading: options.renderHostLoading }
       : {}),
@@ -42,7 +45,8 @@ export async function startDomHost<THostSdk extends object = {}>(
       options: runtimeOptions,
       services,
       document,
-      onInfrastructureReady: hostUi.clear,
+      onInfrastructureReady: hostUi.clearWhenHostAnchorRenders,
+      onPlacementStateChange: hostUi.clear,
     });
 
     hostUi.dispose();

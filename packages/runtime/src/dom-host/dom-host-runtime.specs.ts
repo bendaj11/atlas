@@ -59,7 +59,15 @@ describe('startDomHostRuntime', () => {
 
       await driver.when.started();
 
-      expect(driver.get.appStates()).toEqual(['mounting', 'mounted']);
+      expect(driver.get.appStates()).toEqual(['loading', 'mounted']);
+    });
+
+    it('should call onPlacementStateChange for each slot app state when the slot app mounts', async () => {
+      driver.given.slotAnchor(slot);
+
+      await driver.when.started();
+
+      expect(driver.get.onPlacementStateChangeMock()).toHaveBeenCalledTimes(2);
     });
 
     it('should log the root load error code and cause message when the remote module fails to load', async () => {

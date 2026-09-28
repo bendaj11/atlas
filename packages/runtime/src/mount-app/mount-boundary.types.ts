@@ -5,6 +5,7 @@ export type MountBoundaryKind = 'app' | 'widget';
 export interface MountBoundary {
   container: HTMLElement;
   styleTarget: Node & ParentNode;
+  setHidden(hidden: boolean): void;
   remove(): void;
 }
 

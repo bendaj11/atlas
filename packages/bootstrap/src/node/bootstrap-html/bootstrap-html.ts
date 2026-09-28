@@ -16,8 +16,10 @@ export function createBootstrapHtml(
     <title>${escapeHtml(options.title ?? DEFAULT_TITLE)}</title>
   </head>
   <body>
-    <div id="atlas-host-root">${options.loadingHtml ?? ATLAS_LOADER_HTML}</div>
-    <script type="module" src="${VERSIONED_LOADER_SOURCE}"></script>
+    <div id="atlas-host-root">
+${options.loadingHtml ?? indentMarkup({ html: ATLAS_LOADER_HTML, depth: 3 })}
+    </div>
+    <script type="module" src="/atlas.loader.js"></script>
   </body>
 </html>`;
 }
@@ -45,6 +47,25 @@ export function validateBootstrapHtml(html: string): void {
       'Atlas bootstrap template must load /atlas.loader.js with a script element.',
     );
   }
+}
+
+function indentMarkup(input: { html: string; depth: number }): string {
+  let depth = input.depth;
+
+  return (input.html.match(/<[^>]+>/g) ?? [])
+    .map((tag) => {
+      const isClosing = tag.startsWith('</');
+      const isSelfClosing = tag.endsWith('/>');
+
+      if (isClosing) depth -= 1;
+
+      const line = `${'  '.repeat(depth)}${tag}`;
+
+      if (!isClosing && !isSelfClosing) depth += 1;
+
+      return line;
+    })
+    .join('\n');
 }
 
 function escapeHtml(value: string): string {

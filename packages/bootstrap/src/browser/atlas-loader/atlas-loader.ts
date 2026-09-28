@@ -47,9 +47,11 @@ export async function startAtlasLoader(
     );
   }
 
-  root.replaceChildren();
+  const placeholder = Array.from(root.childNodes);
 
   await entry.mount({ container: root, runtimeConfig: runtime, catalog });
+
+  for (const node of placeholder) if (node.parentNode === root) node.remove();
 }
 
 async function resolveHostCatalog(

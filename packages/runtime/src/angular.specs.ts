@@ -119,6 +119,15 @@ describe('bootstrapAngularHost', () => {
     driver = new AngularAdapterDriver();
   });
 
+  it('should remove the bootstrap placeholder from the request container when bootstrapped', async () => {
+    const placeholder = document.createElement('p');
+    driver.given.placeholder(placeholder);
+
+    await driver.when.angularHostBootstrapped();
+
+    expect(placeholder.isConnected).toBe(false);
+  });
+
   it('should reject with ATLAS_SDK_NOT_READY when the root component injects the sdk during bootstrap', async () => {
     driver.given.eagerSdkComponent();
 
@@ -161,6 +170,12 @@ describe('defineAngularHost', () => {
     it('should forward renderHostLoading from the custom sdk options when mounted', () => {
       expect(driver.get.startedOptions().renderHostLoading).toBe(
         driver.get.renderHostLoadingMock(),
+      );
+    });
+
+    it('should forward the request container as host container when mounted', () => {
+      expect(driver.get.startedOptions().hostContainer).toBe(
+        driver.get.requestContainer(),
       );
     });
 

@@ -98,6 +98,7 @@ export function defineAngularHost<THostSdk extends object = {}>(
             name: config.name ?? config.id,
           },
           runtimeConfig: request.runtimeConfig,
+          hostContainer: request.container,
           ...(request.catalog ? { catalog: request.catalog } : {}),
         };
       },
@@ -119,6 +120,10 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
     options.component,
     appendAtlasSdkProvider(options.appConfig, sdkReference),
   );
+
+  if (root && options.request)
+    removeSiblingsOfRoot({ container: options.request.container, root });
+
   const runtime = await startHost(
     {
       ...options.createHostOptions(app.injector),
@@ -172,6 +177,14 @@ export async function startHost<THostSdk extends object = {}>(
       await runtime.stop();
     },
   };
+}
+
+function removeSiblingsOfRoot(input: {
+  container: HTMLElement;
+  root: HTMLElement;
+}): void {
+  for (const node of Array.from(input.container.childNodes))
+    if (node !== input.root) node.remove();
 }
 
 class AngularHostSdkReference<THostSdk extends object> {

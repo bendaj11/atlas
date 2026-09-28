@@ -13,6 +13,11 @@ export class HostUiDriver {
   private readonly container = document.body.appendChild(
     document.createElement('div'),
   );
+  private readonly hostContainer = document.body.appendChild(
+    document.createElement('div'),
+  );
+  private readonly routeOutlet = document.createElement('div');
+  private useFallbackContainer = false;
   private readonly disposeLoading = jest.fn<() => void>();
   private readonly renderHostLoading = jest
     .fn<RenderHostLoading>()
@@ -33,6 +38,16 @@ export class HostUiDriver {
 
       return this;
     },
+    fallbackContainer: () => {
+      this.useFallbackContainer = true;
+
+      return this;
+    },
+    routeOutlet: () => {
+      this.anchors.register('route-outlet', this.routeOutlet);
+
+      return this;
+    },
   };
 
   readonly when = {
@@ -40,6 +55,9 @@ export class HostUiDriver {
       this.ui = createHostUi({
         document,
         anchors: this.anchors,
+        ...(this.useFallbackContainer
+          ? { fallbackContainer: this.hostContainer }
+          : {}),
         ...(this.useCustomRenderers
           ? {
               renderHostLoading: this.renderHostLoading,
@@ -53,7 +71,18 @@ export class HostUiDriver {
     statusAnchorRegistered: () => {
       this.anchors.register('status', this.container);
     },
+    routeOutletRegistered: () => {
+      this.anchors.register('route-outlet', this.routeOutlet);
+    },
+    nextRenderElapsed: () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() =>
+          setTimeout(() => setTimeout(resolve, 0), 0),
+        ),
+      ),
     cleared: () => this.ui!.clear(),
+    clearRequestedUntilHostAnchorRenders: () =>
+      this.ui!.clearWhenHostAnchorRenders(),
     disposed: () => this.ui!.dispose(),
     retryClicked: () => this.container.querySelector('button')!.click(),
   };
@@ -64,6 +93,10 @@ export class HostUiDriver {
     containerBusy: () => this.container.getAttribute('aria-busy'),
     statusLabel: () =>
       this.container.firstElementChild?.getAttribute('aria-label') ?? null,
+    hostContainerStatusLabel: () =>
+      this.hostContainer
+        .querySelector('[data-atlas-loader]')
+        ?.getAttribute('aria-label') ?? null,
     statusRole: () =>
       this.container.firstElementChild?.getAttribute('role') ?? null,
     renderHostLoadingMock: () => this.renderHostLoading,

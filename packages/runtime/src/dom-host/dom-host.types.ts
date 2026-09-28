@@ -48,6 +48,7 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   document?: Document;
   /** Native Angular or React anchors used as Atlas render targets. */
   anchors?: AtlasHostAnchorRegistry;
+  hostContainer?: HTMLElement;
   onNavigationChange?: ReportNavigationItems;
   renderLoading?: RenderPlacementLoading;
   renderError?: RenderPlacementError;
@@ -58,7 +59,12 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
 }
 
 export type AtlasOwnedRuntimeOption =
-  'federation' | 'runtimeConfig' | 'catalog' | 'document' | 'anchors';
+  | 'federation'
+  | 'runtimeConfig'
+  | 'catalog'
+  | 'document'
+  | 'anchors'
+  | 'hostContainer';
 
 export type DomHostCustomizationOptions = Omit<
   DomRuntimeOptions,
@@ -97,6 +103,7 @@ export interface DomHostRuntimeInput<THostSdk extends object> {
   services: DomHostServices<THostSdk>;
   document: Document;
   onInfrastructureReady: () => void;
+  onPlacementStateChange?: () => void;
 }
 
 export type MountStateRenderingOptions = Pick<

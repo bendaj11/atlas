@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import { jest } from '@jest/globals';
+import { aRoutePlacement, aSlotPlacement } from '@atlas/testkit';
 import { DomRenderingDriver } from './dom-rendering.driver.js';
 import { aNavigationItem } from './host-navigation.testkit.js';
 import type { NavigateToItem } from './host-navigation.types.js';
@@ -31,6 +32,18 @@ describe('renderHostMountState', () => {
       `Loading ${driver.get.manifest().name}`,
     );
   });
+
+  it.each([
+    ['slot', aSlotPlacement(), '0.25rem'],
+    ['route', aRoutePlacement(), '2rem'],
+  ])(
+    'should pad the loading status for a %s placement when the loading state is rendered',
+    (_kind, placement, padding) => {
+      driver.given.placement(placement).when.stateRendered('loading');
+
+      expect(driver.get.placementStatusPadding()).toBe(padding);
+    },
+  );
 
   it('should mark the container busy when the loading state is rendered', () => {
     driver.when.stateRendered('loading');

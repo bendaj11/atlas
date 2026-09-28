@@ -242,13 +242,14 @@ export class AtlasRuntimeController {
     mount: PlacementMountRecord,
     isCurrent: IsMountCurrent,
   ): Promise<void> {
-    this.emitMountState(mount, 'mounting');
-
     const readiness = createAppReadiness();
     const loading = createLoadingStateEmitter(
       (state) => this.emitMountState(mount, state),
       isCurrent,
     );
+
+    loading.set(true);
+
     const mounting = mountApp({
       hostId: this.options.hostId,
       sdk: this.options.sdk,

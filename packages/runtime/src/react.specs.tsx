@@ -162,6 +162,12 @@ describe('defineReactHost', () => {
       );
     });
 
+    it('should forward the request container as host container when mounted', () => {
+      expect(driver.get.startedOptions().hostContainer).toBe(
+        driver.get.container(),
+      );
+    });
+
     it('should omit the catalog when the request has no catalog', () => {
       expect('catalog' in driver.get.startedOptions()).toBe(false);
     });

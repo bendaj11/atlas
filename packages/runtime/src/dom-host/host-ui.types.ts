@@ -8,6 +8,7 @@ import type {
 export interface AtlasHostUiOptions {
   document: Document;
   anchors: AtlasHostAnchorRegistry;
+  fallbackContainer?: HTMLElement;
   renderHostLoading?: RenderHostLoading;
   renderHostError?: RenderHostError;
 }
@@ -16,6 +17,7 @@ export interface AtlasHostUi {
   showLoading(): void;
   showError(error: Error, retry: RetryHostStart): void;
   clear(): void;
+  clearWhenHostAnchorRenders(): void;
   dispose(): void;
 }
 

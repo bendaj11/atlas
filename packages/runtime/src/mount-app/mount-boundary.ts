@@ -13,11 +13,16 @@ export function createMountBoundary(input: MountBoundaryInput): MountBoundary {
     return {
       container: parent,
       styleTarget: requireStyleTarget(document?.head, id),
+      setHidden() {},
       remove() {},
     };
   }
 
   element.dataset[kind === 'app' ? 'atlasApp' : 'atlasWidget'] = id;
+
+  const setHidden = (hidden: boolean) => {
+    element.style.display = hidden ? 'none' : '';
+  };
 
   parent.append(element);
 
@@ -28,13 +33,19 @@ export function createMountBoundary(input: MountBoundaryInput): MountBoundary {
 
     root.append(container);
 
-    return { container, styleTarget: root, remove: () => element.remove() };
+    return {
+      container,
+      styleTarget: root,
+      setHidden,
+      remove: () => element.remove(),
+    };
   }
 
   try {
     return {
       container: element,
       styleTarget: requireStyleTarget(element.ownerDocument.head, id),
+      setHidden,
       remove: () => element.remove(),
     };
   } catch (error) {

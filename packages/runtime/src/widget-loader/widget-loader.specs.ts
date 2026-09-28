@@ -104,6 +104,102 @@ describe('createWidgetLoader', () => {
       });
     });
 
+    describe('when the loader is created and the entry records the loader while mounting', () => {
+      let loaderDuringMount: Element | null = null;
+
+      beforeEach(async () => {
+        driver.given
+          .entryBehavior(() => {
+            loaderDuringMount = driver.get.loader();
+          })
+          .when.created();
+
+        await driver.when.mounted(widget.id);
+      });
+
+      it('should show the default loader in the widget card when the entry mounts', () => {
+        expect(loaderDuringMount).not.toBeNull();
+      });
+
+      it('should remove the default loader when the entry has mounted', () => {
+        expect(driver.get.loader()).toBeNull();
+      });
+    });
+
+    describe('when the loader is created and the entry defers readiness', () => {
+      let markReady: () => void = () => undefined;
+
+      beforeEach(async () => {
+        driver.given
+          .entryBehavior(({ context }) => {
+            markReady = context.loading.waitUntilReady();
+          })
+          .when.created();
+
+        await driver.when.mounted(widget.id);
+      });
+
+      it('should keep the default loader when the entry has mounted', () => {
+        expect(driver.get.loader()).not.toBeNull();
+      });
+
+      it('should remove the default loader when the widget marks itself ready', () => {
+        markReady();
+
+        expect(driver.get.loader()).toBeNull();
+      });
+
+      it('should keep the entry container attached when the widget marks itself ready', () => {
+        markReady();
+
+        expect(driver.get.lastRequest().container.isConnected).toBe(true);
+      });
+
+      it('should hide the widget boundary when the entry has mounted', () => {
+        expect(driver.get.boundaryDisplay()).toBe('none');
+      });
+
+      it('should show the widget boundary when the widget marks itself ready', () => {
+        markReady();
+
+        expect(driver.get.boundaryDisplay()).toBe('');
+      });
+    });
+
+    describe('when the loader is created with a short readiness timeout and the entry never becomes ready', () => {
+      let markReady: () => void = () => undefined;
+
+      beforeEach(async () => {
+        driver.given
+          .readinessTimeoutMs(1)
+          .given.entryBehavior(({ context }) => {
+            markReady = context.loading.waitUntilReady();
+          })
+          .when.created();
+
+        await driver.when.mounted(widget.id);
+        await driver.when.timeElapsed(10);
+      });
+
+      it('should render the default error status when the readiness timeout elapses', () => {
+        expect(driver.get.alert()).not.toBeNull();
+      });
+
+      it('should remove the default loader when the readiness timeout elapses', () => {
+        expect(driver.get.loader()).toBeNull();
+      });
+
+      it('should unmount the entry when the readiness timeout elapses', () => {
+        expect(driver.get.entryUnmountMock()).toHaveBeenCalledTimes(1);
+      });
+
+      it('should keep the default error status when the widget marks itself ready after the timeout', () => {
+        markReady();
+
+        expect(driver.get.alert()).not.toBeNull();
+      });
+    });
+
     it('should import the widget module once when two mounts run concurrently', async () => {
       driver.given.importDelayed().when.created();
 

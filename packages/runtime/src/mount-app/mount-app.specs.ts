@@ -61,6 +61,50 @@ describe('mountApp', () => {
     });
   });
 
+  describe('when a scoped manifest is mounted by an entry that records the boundary display', () => {
+    const manifest = anAppManifest({ isolation: 'scoped' });
+    let displayDuringMount: string | undefined;
+
+    beforeEach(async () => {
+      driver.given.entryBehavior(() => {
+        displayDuringMount = driver.get.boundaryDisplay();
+      });
+
+      await driver.when.mounted(manifest);
+    });
+
+    it('should hide the boundary when the entry mounts', () => {
+      expect(displayDuringMount).toBe('none');
+    });
+
+    it('should show the boundary when the entry has mounted', () => {
+      expect(driver.get.boundaryDisplay()).toBe('');
+    });
+  });
+
+  describe('when a scoped manifest is mounted by an entry that defers readiness', () => {
+    const manifest = anAppManifest({ isolation: 'scoped' });
+    let markReady: () => void = () => undefined;
+
+    beforeEach(async () => {
+      driver.given.entryBehavior(({ context }) => {
+        markReady = context.loading.waitUntilReady();
+      });
+
+      await driver.when.mounted(manifest);
+    });
+
+    it('should keep the boundary hidden when the entry has mounted', () => {
+      expect(driver.get.boundaryDisplay()).toBe('none');
+    });
+
+    it('should show the boundary when the app marks itself ready', () => {
+      markReady();
+
+      expect(driver.get.boundaryDisplay()).toBe('');
+    });
+  });
+
   it('should scope the context path to the first route placement when the manifest declares routes', async () => {
     const path = `/${faker.word.noun()}`;
     await driver.when.mounted(

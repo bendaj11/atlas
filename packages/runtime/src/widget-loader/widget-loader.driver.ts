@@ -50,11 +50,14 @@ export class WidgetLoaderDriver {
     .mockImplementation(() => undefined);
   private useHostLoadingRenderer = false;
   private useHostErrorRenderer = false;
+  private readinessTimeoutMs: number | undefined;
   private loader: AtlasWidgetLoader | undefined;
   private mounted: AtlasMountedWidget<WidgetProps> | undefined;
   private mountedHandle: AtlasMountedWidgetHandle<WidgetProps> | undefined;
   private container: HTMLElement | undefined;
   private retry: RetryWidgetMount | undefined;
+  private entryBehavior: (request: AtlasExportedWidgetMountRequest) => void =
+    () => undefined;
 
   constructor() {
     this.warn.mockClear();
@@ -99,6 +102,18 @@ export class WidgetLoaderDriver {
 
       return this;
     },
+    readinessTimeoutMs: (timeoutMs: number) => {
+      this.readinessTimeoutMs = timeoutMs;
+
+      return this;
+    },
+    entryBehavior: (
+      behavior: (request: AtlasExportedWidgetMountRequest) => void,
+    ) => {
+      this.entryBehavior = behavior;
+
+      return this;
+    },
   };
 
   readonly when = {
@@ -109,6 +124,9 @@ export class WidgetLoaderDriver {
         options: {
           importWidget: this.importWidget,
           ...(this.resolveWidget ? { resolveWidget: this.resolveWidget } : {}),
+          ...(this.readinessTimeoutMs !== undefined
+            ? { readinessTimeoutMs: this.readinessTimeoutMs }
+            : {}),
           ...(this.useHostLoadingRenderer
             ? { renderWidgetLoading: this.renderWidgetLoading }
             : {}),
@@ -146,6 +164,8 @@ export class WidgetLoaderDriver {
       }).mount(this.container, {});
     },
     inputsSet: (inputs: WidgetProps) => this.mounted!.setInputs?.(inputs),
+    timeElapsed: (milliseconds: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
     retried: async () => {
       this.retry!();
 
@@ -161,6 +181,11 @@ export class WidgetLoaderDriver {
     lastRequest: () => this.requests.at(-1)!,
     requests: () => this.requests,
     container: () => this.container!,
+    loader: () => this.container!.querySelector('[data-atlas-loader]'),
+    alert: () => this.container!.querySelector('[role="alert"]'),
+    boundaryDisplay: () =>
+      this.container!.querySelector<HTMLElement>('[data-atlas-widget]')?.style
+        .display,
     importWidgetMock: () => this.importWidget,
     setInputsMock: () => this.setInputs,
     entryUnmountMock: () => this.entryUnmount,
@@ -175,6 +200,7 @@ export class WidgetLoaderDriver {
     return {
       mount: (request) => {
         this.requests.push(request);
+        this.entryBehavior(request);
 
         return { setInputs: this.setInputs, unmount: this.entryUnmount };
       },

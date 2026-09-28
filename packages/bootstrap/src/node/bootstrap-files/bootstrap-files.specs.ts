@@ -43,7 +43,7 @@ describe('createAtlasBootstrapFiles', () => {
     driver.given.options({ loadingHtml }).when.created();
 
     expect(driver.get.contents('index.html')).toContain(
-      `<div id="atlas-host-root">${loadingHtml}</div>`,
+      `<div id="atlas-host-root">\n${loadingHtml}\n    </div>`,
     );
   });
 
