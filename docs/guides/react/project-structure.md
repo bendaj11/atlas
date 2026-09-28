@@ -1,56 +1,80 @@
-# React Project Guide
+---
+title: React project structure
+description: Learn which files Atlas generates in a React Host and a React App, what each one does, and which ones you edit.
+---
 
-Audience: React host and app developers who completed
-[Get Started](../../get-started/tutorial.md). This guide identifies generated React
-boundaries and routes each task to its detailed guide.
+# React project structure
 
-## Choose Your Role
+This page lists the files in a generated React Host and React App and tells you which ones
+you normally edit. Use it as a map after you finish the [tutorial](../../get-started/tutorial.md).
 
-- Host team: [Build a React host client](host.md)
-- App team: [Build a React app](app.md)
+## Choose your role
 
-Both roles use normal React components, hooks, React Router, styles, and tests.
-Atlas owns cross-application discovery and mount lifecycle.
+- If your team owns the page shell, read [Build a React host](host.md).
+- If your team owns a feature, read [Build a React app](app.md).
 
-## Host Files
+Both kinds of project are normal Vite and React projects. Atlas adds configuration, a
+lifecycle entry, and Native Federation setup.
 
-| File                | Responsibility                                                   | Edit normally?                    |
-| ------------------- | ---------------------------------------------------------------- | --------------------------------- |
-| `src/main.tsx`      | Normal Vite/React preview entry                                  | Yes                               |
-| `src/bootstrap.tsx` | Atlas `mount` function exported as `./host` and main page layout | Rarely                            |
-| `vite.config.ts`    | Federation expose and build wiring                               | Preserve generated Atlas sections |
-| `dist/bootstrap/`   | Generated static product-domain entry                            | Regenerate through CLI            |
+## Host files
 
-Host client receives selected catalog in its mount request. Do not fetch or
-choose catalog versions from React code.
+| File                   | Responsibility                                                                                 | Edit normally?                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `atlas.config.ts`      | Host ID, display name, and framework.                                                          | Name only. Never change the ID.                |
+| `atlas.bootstrap.html` | Template for the static entry page that `atlas bootstrap` builds.                              | Yes                                            |
+| `src/host-layout.tsx`  | `HostLayout`: page layout with host anchors (`AtlasRouteOutlet`, `AtlasSlot`, and others).     | Yes                                            |
+| `src/host.config.tsx`  | SDK type, `HostProviders`, and `useCustomHostSdkOptions()`.                                    | Yes                                            |
+| `src/bootstrap.tsx`    | Exports `mount` from `defineReactHost()`. Native Federation exposes it as `./host`.            | Rarely                                         |
+| `src/main.tsx`         | Stub for the Vite page; prints a message to use `atlas dev`.                                   | No                                             |
+| `src/styles.css`       | Global Host styles.                                                                            | Yes                                            |
+| `vite.config.ts`       | Vite configuration merged with `createReactHostViteConfig`.                                    | Yes; keep the `createReactHostViteConfig` call |
+| `package.json`         | Scripts (`dev`, `build`, `atlas:config`, `atlas:publish`, `atlas:bootstrap`) and dependencies. | Yes                                            |
+| `dist/bootstrap/`      | Output of `atlas bootstrap`.                                                                   | No; regenerate it with the CLI                 |
 
-## App Files
+The Host receives the selected Apps from the loader when it mounts. Do not fetch or choose
+App versions in React code.
 
-| File                    | Responsibility                                               | Edit normally?            |
-| ----------------------- | ------------------------------------------------------------ | ------------------------- |
-| `src/bootstrap.tsx`     | Atlas `mount` lifecycle exported as `./entry`                | Rarely                    |
-| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas path          | Yes                       |
-| `src/`                  | Feature components and hooks                                 | Yes                       |
-| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes                       |
-| `atlas.config.ts`       | App identity, routes, slots, external app dependencies       | When contract changes     |
-| `package.json`          | Development `atlas.previews` host pages                      | When local targets change |
+## App files
 
-Apps obtain host services with `useAtlasSdk()`. They must not import host source
-or assume host implementation details.
+| File                           | Responsibility                                                                      | Edit normally?                                |
+| ------------------------------ | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| `atlas.config.ts`              | App ID, name, framework, routes, and slots.                                         | When the App's placement changes              |
+| `src/App.tsx`                  | Root component.                                                                     | Yes                                           |
+| `src/routes.tsx`               | Inner React Router routes, relative to the App's path. Only in routed Apps.         | Yes                                           |
+| `src/home/`, `src/details/`    | Sample screens. Only in routed Apps.                                                | Yes; replace them                             |
+| `src/bootstrap.tsx`            | App lifecycle from `createRoutedApp()` or `defineApp()`. Exposed as `./entry`.      | Rarely                                        |
+| `src/index.css`                | App styles.                                                                         | Yes                                           |
+| `src/exported-widgets/<name>/` | One Widget per folder: `atlas.config.ts` (ID and name) and `index.tsx` (component). | Yes                                           |
+| `vite.config.ts`               | Vite configuration merged with `createReactAppViteConfig`.                          | Yes; keep the `createReactAppViteConfig` call |
+| `package.json`                 | Scripts, dependencies, and `atlas.previews` for `atlas dev`.                        | Yes                                           |
 
-## Task Guides
+Apps get Host services from `useAtlasSdk()`. They never import Host source code.
 
-| Task                                                  | Guide                                                   |
-| ----------------------------------------------------- | ------------------------------------------------------- |
-| Configure top-level and inner routes                  | [React routing](routing.md)                             |
-| Use HTTP, events, navigation, overlays, and host data | [React SDK](sdk.md)                                     |
-| Package images, fonts, and CSS                        | [React assets and styles](assets-and-styles.md)         |
-| Generate projects or widgets                          | [React generators](generators.md)                       |
-| Inspect working projects                              | [React examples](examples.md)                           |
-| Build and release React artifacts                     | [React production deployment](production-deployment.md) |
-| Diagnose loading or routing failure                   | [React troubleshooting](troubleshooting.md)             |
+> **Note:** Projects created by older Atlas versions may use `src/main.tsx` (Host) or
+> `src/entry.tsx` (App) instead of `src/bootstrap.tsx`. Atlas uses `src/bootstrap.tsx` when it
+> exists and falls back to those names otherwise.
 
-Use [React production deployment](production-deployment.md) for framework build
-output and checkpoints. It links to canonical
-[Production deployment](../../deploy/production-deployment.md) for storage, CI,
-verification, and rollback.
+## Generated helper files
+
+Whenever Vite loads the configuration, `createReactHostViteConfig` and
+`createReactAppViteConfig` write helper files to `.atlas/` in the project, such as one entry
+per Widget in `.atlas/widgets/`. Atlas recreates them on each run, so do not edit them. You
+can exclude `.atlas/` from version control.
+
+## Task guides
+
+| Task                                                   | Guide                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------- |
+| Configure routes, slots, layouts, and navigation       | [React routing](routing.md)                             |
+| Use host data, navigation, events, Widgets, and assets | [React SDK](sdk.md)                                     |
+| Package images, fonts, and CSS                         | [React assets and styles](assets-and-styles.md)         |
+| Generate projects or Widgets                           | [React generators](generators.md)                       |
+| Study working projects                                 | [React examples](examples.md)                           |
+| Build, publish, and verify React artifacts             | [React production deployment](production-deployment.md) |
+| Fix React-specific problems                            | [React troubleshooting](troubleshooting.md)             |
+
+## Next steps
+
+- [Build a React host](host.md) or [Build a React app](app.md).
+- [Architecture](../../introduction/architecture.md) for how the loader, runtime, and
+  registries fit together.

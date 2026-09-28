@@ -2,117 +2,105 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Atlas is a TypeScript-first platform for products made from independently
-released frontend applications. It provides:
+Atlas is a micro-frontend platform for Angular and React. It lets several
+teams build parts of one web product as separate projects, release each part on
+its own schedule, and combine them into one page in the browser.
 
-- generated static bootstrap for product-domain HTML, loader, and discovery entrypoint;
-- a versioned host client for layout, routing, authentication integration, and
-  shared services;
-- versioned Angular and React apps loaded through Native Federation;
-- a static registry with immutable releases and explicit environment
-  deployments;
-- a typed SDK for communication between apps and their host.
+A **Host** is the page your users open: the layout, the navigation, and shared
+services such as sign-in. An **App** is a feature, such as Orders or Billing,
+that appears inside a Host. Each App is published as an immutable version, and
+a deployment chooses which versions each environment shows. Rolling back an App
+means deploying its previous version; nothing is rebuilt.
 
-Angular hosts can load React apps, and React hosts can load Angular apps. Atlas
-currently supports client-side rendering; Vue and server-side rendering are not
-supported.
+Atlas supports client-side rendering with Angular and React. An Angular Host
+can show React Apps and a React Host can show Angular Apps.
 
-## Start Here
+Read [Why Atlas](docs/introduction/why-atlas.md) to see how Atlas compares with
+Native Federation, single-spa, iframes, and build-time composition, and when it
+is not the right fit.
 
-New to Atlas? Follow one path, in order:
+## Quickstart
 
-1. [Understand Atlas](docs/introduction/overview.md) — vocabulary and ownership boundaries.
-2. [Get started](docs/get-started/tutorial.md) — install Atlas and generate first
-   host and app.
-3. Choose [Atlas Host](docs/concepts/hosts.md) or [Atlas App](docs/concepts/apps.md) for your role.
-4. Use the [documentation map](docs/README.md) for operations and reference.
+You need Node.js `^22.12.0 || ^24.0.0` and access to the npm registry that
+hosts the `@atlas` packages. The packages are not on the public npm registry;
+see the [Tutorial](docs/get-started/tutorial.md#before-you-start).
 
-Do not begin with package or API reference unless you already know which Atlas
-contract you need.
+1. Create a project and install the CLI:
 
-## How Atlas Fits Together
+   ```sh
+   mkdir atlas-tutorial && cd atlas-tutorial
+   npm init -y
+   npm install --save-dev --save-exact @atlas/cli
+   ```
 
-```mermaid
-flowchart LR
-  Browser["Browser"] --> Bootstrap["Static bootstrap on Nginx/CDN"]
-  Bootstrap --> Loader["Atlas loader"]
-  Loader --> Discovery["Atlas host discovery"]
-  Discovery --> Deployment["Active host manifest"]
-  Deployment --> Host["Versioned host client"]
-  Host --> Apps["Versioned apps"]
-  Host --> SDK["Host-owned SDK services"]
-  SDK --> Apps
-```
+2. Generate a Host, then copy the `id` UUID from
+   `apps/customer-host/atlas.config.ts`:
 
-Static Nginx/CDN hosting serves HTML, browser loader, bootstrap metadata,
-security headers, health, and SPA fallback. Host client and apps
-are immutable UI artifacts published independently to public object storage or a
-CDN. An active host manifest selects which host-client and app releases run
-together in one environment.
+   ```sh
+   npx atlas g host customer-host --framework=react
+   ```
 
-Read [Architecture](docs/introduction/architecture.md) for the complete loading and release
-model.
+3. Generate an App for that Host. Replace the UUID with your host ID:
 
-## First Local System
+   ```sh
+   npx atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506 --routing
+   ```
 
-Requirements: Node.js `^22.12.0 || ^24.0.0`, plus npm, pnpm, or Yarn.
+4. Tell the App which Host page to open during development. In
+   `apps/orders/package.json`, set:
 
-```sh
-npm install --save-dev --save-exact @atlas/cli
+   ```json
+   {
+     "atlas": {
+       "previews": ["http://localhost:4200"]
+     }
+   }
+   ```
 
-npx atlas g host customer-host --framework=react
-npx atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
-```
+5. Start the Host and the App in two terminals:
 
-Use `--framework=angular` for Angular. Start the generated host and app from the
-directory containing both projects:
+   ```sh
+   # Terminal 1
+   npx atlas dev customer-host
+   ```
 
-```sh
-# Terminal 1
-npx atlas dev customer-host
+   ```sh
+   # Terminal 2
+   npx atlas dev orders
+   ```
 
-# Terminal 2
-npx atlas dev orders
-```
+Your browser opens `http://localhost:4200/orders` and shows the Orders App
+inside the Host. The [Tutorial](docs/get-started/tutorial.md) explains each
+step and shows the expected output.
 
-Before starting the app, set its development host page in `orders/package.json`:
+## Documentation
 
-```json
-{
-  "atlas": {
-    "previews": ["http://localhost:4200/orders"]
-  }
-}
-```
-
-This proves local composition only. Production needs a public registry,
-publication adapter, deployed static bootstrap, verification, and rollback plan.
-Continue with [Get Started](docs/get-started/tutorial.md), then choose [Atlas Host](docs/concepts/hosts.md)
-or [Atlas App](docs/concepts/apps.md).
+- [Documentation home](docs/README.md): the learning path and full index.
+- [Overview](docs/introduction/overview.md): the parts of Atlas and who owns
+  them.
+- [Architecture](docs/introduction/architecture.md): how pages load and how
+  releases work.
+- [Production deployment](docs/deploy/production-deployment.md): publish and
+  deploy to real environments.
+- [CLI reference](docs/reference/cli.md) and
+  [FAQ](docs/faq.md).
 
 ## Packages
 
-| Package             | Responsibility                                                                  |
-| ------------------- | ------------------------------------------------------------------------------- |
-| `@atlas/cli`        | Generation, local development, build, publication, deployment, and verification |
-| `@atlas/bootstrap`  | Static HTML, browser loader, discovery entrypoint, Nginx policy, and recovery   |
-| `@atlas/runtime`    | Deployment-manifest discovery, trust checks, federation loading, and lifecycle  |
-| `@atlas/sdk`        | Typed app-to-host contracts and framework adapters                              |
-| `@atlas/schema`     | Configuration, manifest, registry, and deployment contracts                     |
-| `@atlas/generators` | Generator implementation used by the CLI                                        |
-| `@atlas/testkit`    | Fixtures and in-memory host utilities for consumer tests                        |
+| Package             | Purpose                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `@atlas/cli`        | Generate projects, run local development, build, publish, deploy, and verify. |
+| `@atlas/runtime`    | Run inside a Host: load, verify, and mount Apps into routes and slots.        |
+| `@atlas/sdk`        | Give Apps typed access to Host services, with Angular and React adapters.     |
+| `@atlas/bootstrap`  | Generate the static bootstrap page and the browser loader that starts a Host. |
+| `@atlas/schema`     | Types and validation for configuration, manifests, and the registry.          |
+| `@atlas/generators` | Project templates used by the CLI.                                            |
+| `@atlas/testkit`    | Test helpers and fixtures for App and Host tests.                             |
+
+See [Packages](docs/reference/packages.md) for details on each package.
 
 ## Contributing
 
-```sh
-pnpm install --frozen-lockfile
-pnpm build
-pnpm typecheck
-pnpm test
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for repository checks and
-[documentation guidelines](contributing/documentation-guide.md) for documentation
-structure and maintenance rules.
+To build and test Atlas itself, read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Atlas is available under the [MIT License](LICENSE).

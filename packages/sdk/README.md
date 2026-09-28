@@ -1,50 +1,40 @@
 # @atlas/sdk
 
-Typed host capabilities and framework adapters for Atlas apps.
+The Atlas SDK. Apps and exported widgets use it to read host data, send events, navigate to other apps, and render widgets. It also contains the React and Angular app adapters and the build-time federation config.
 
-Audience: app developers consuming host services and host developers providing
-them. Choose `@atlas/sdk/react` or `@atlas/sdk/angular`; generated entries show
-framework setup.
+## Install
+
+The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first. Generated hosts and apps already depend on this package; to add it by hand:
 
 ```sh
-# Choose one:
 npm install @atlas/sdk
-pnpm add @atlas/sdk
-yarn add @atlas/sdk
 ```
 
-Use `@atlas/sdk/react` or `@atlas/sdk/angular` for framework integration.
+## Example
 
-Hosts define product-specific APIs, clients, and services in their typed SDK
-extension. Atlas does not prescribe an HTTP client contract.
+```tsx
+import { useAtlasSdk } from '@atlas/sdk/react';
 
-Apps should not create their own host SDK. Read it with `useAtlasSdk()` or
-`injectAtlasSdk()`. Continue with [SDK guide](https://github.com/bendaj11/atlas/blob/main/docs/reference/sdk.md).
+interface ShopHostSdk {
+  readonly hostData: { readonly locale: string };
+}
 
-## Package layout
+export function Locale() {
+  const sdk = useAtlasSdk<ShopHostSdk>();
 
-| Subpath                        | Contents                                                               |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| `@atlas/sdk`                   | Host SDK factory, events, host data, lifecycle contracts, navigation   |
-| `@atlas/sdk/host`              | `createAtlasSdk`, event bus, host-data updates (host-only)             |
-| `@atlas/sdk/lifecycle`         | Mount contracts for hosts, apps, and exported widgets                  |
-| `@atlas/sdk/navigation`        | Browser, scoped, and route-context navigation primitives               |
-| `@atlas/sdk/react`             | `useAtlasSdk`, `defineApp`, `createRoutedApp`, widget components       |
-| `@atlas/sdk/angular`           | `injectAtlasSdk`, `provideAtlasApp`, `WidgetOutlet`, location strategy |
-| `@atlas/sdk/federation`        | Native Federation runtime re-export                                    |
-| `@atlas/sdk/federation-config` | Typed Vite and Native Federation config factories for builds           |
+  return <p>{sdk.hostData.locale}</p>;
+}
+```
 
-## Errors
+Angular apps use `injectAtlasSdk()` from `@atlas/sdk/angular` instead.
 
-Every public failure is thrown as a class that extends `AtlasError`, carrying a
-stable `code` and `suggestedActions`:
+## Entry points
 
-| Class                     | Thrown when                                                           |
-| ------------------------- | --------------------------------------------------------------------- |
-| `AtlasSdkError`           | SDK misuse or a capability the host has not connected yet             |
-| `AtlasWidgetMountError`   | A React widget fails to mount; catch it with an error boundary        |
-| `AtlasEventListenerError` | An event listener throws; reported asynchronously, never swallowed    |
-| `FederationConfigError`   | Build-time federation config failure (`@atlas/sdk/federation-config`) |
+`@atlas/sdk`, `@atlas/sdk/host`, `@atlas/sdk/lifecycle`, `@atlas/sdk/navigation`, `@atlas/sdk/react`, `@atlas/sdk/angular`, `@atlas/sdk/federation`, and `@atlas/sdk/federation-config`.
 
-See [error handling](https://github.com/bendaj11/atlas/blob/main/contributing/error-handling.md)
-for the full contract.
+## Documentation
+
+- [SDK reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/sdk.md)
+- [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md)
+- [Share host data](https://github.com/bendaj11/atlas/blob/main/docs/guides/host-data.md)
+- [Errors](https://github.com/bendaj11/atlas/blob/main/docs/reference/errors.md)

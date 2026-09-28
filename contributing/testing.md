@@ -1,64 +1,93 @@
-# Testing The Atlas Repository
+---
+title: Testing the Atlas repository
+description: Learn which test suites the Atlas repository has, when to run each one, and how to iterate on browser tests.
+---
 
-This page documents development of the Atlas source repository, which uses
-pnpm. Generated consumer projects are verified with both Yarn and pnpm, and
-Atlas also supports npm workspaces.
+# Testing the Atlas repository
 
-For host and app teams testing generated products, read
-[Consumer testing](../docs/guides/testing-apps-and-hosts.md) instead.
+This page explains how to test changes to the Atlas source repository. It is for contributors who work on the packages, Columbus, the examples, or the scripts. If you build Hosts or Apps with Atlas and want to test them, read [Testing apps and hosts](../docs/guides/testing-apps-and-hosts.md) instead.
 
-Atlas has two test layers. `pnpm test` runs fast contract, SDK, runtime, generator, CLI, and Columbus extension tests. `pnpm test:e2e` runs the runtime browser suite and proves that production-built applications work together in a browser. The deployment suite lives in the `examples/e2e` workspace (`@atlas-example/e2e`).
+The repository uses pnpm. Generated consumer projects are verified with both Yarn and pnpm.
 
-`pnpm test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and apps with both package managers.
+## Test suites
 
-## Deployment E2E
+Atlas has three test commands. Run them from the repository root.
 
-Install the pinned browser once:
+| Command               | What it runs                                                                                                                                                                          | Run it when you change                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `pnpm test`           | The Jest unit and integration specs of every `@atlas/*` workspace package, including Columbus, followed by the specs in `scripts/`                                                    | Anything                                           |
+| `pnpm test:generated` | `pnpm pack:verify`, then packs every public package, installs the tarballs in isolated Yarn and pnpm projects, and production-builds newly generated Angular and React hosts and apps | Generators or package boundaries                   |
+| `pnpm test:e2e`       | The end-to-end suites of the CLI, SDK, and runtime packages, then the browser deployment suite in `examples/e2e` (`@atlas-example/e2e`)                                               | Runtime loading, navigation, catalogs, or Columbus |
+
+While you iterate on one spec, run only that file instead of the full suite:
 
 ```sh
-pnpm exec playwright install chromium
+node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --testPathPattern=path/to/file.specs.ts
 ```
 
-Run the complete workflow:
+> **Note:** `jest.config.json` limits Jest to `maxWorkers: 50%` and `workerIdleMemoryLimit: 512MB`. Do not override `--maxWorkers` locally.
 
-```sh
-pnpm test:e2e
-```
+Columbus has its own Jest configuration. Pass `--config apps/columbus/jest.config.cjs` when you run a single Columbus spec.
 
-The command performs the following work without requiring a real cloud account:
+## Run the deployment end-to-end suite
 
-1. Builds Atlas packages.
-2. Builds the Angular and React example hosts and apps.
-3. Publishes their immutable releases and canonical manifests into one temporary
-   static registry.
-4. Deploys host and app selections to environment-qualified active host manifests.
-5. Starts separate CDN, React-host, and Angular-host origins.
-6. Runs Playwright against the deployed output.
-7. Deploys older and newer immutable app releases and proves the same prebuilt
-   host loads each selected release.
+The deployment suite proves that production-built Hosts and Apps work together in a real browser, without a cloud account.
 
-The suite verifies Angular apps in React hosts, React apps in Angular hosts, framework-native inner routing, cross-framework widgets, popups, opt-in loading UI, failed-remote fallback UI, CORS, and mutable versus immutable cache headers.
+1. Install the pinned Chromium build once:
 
-It also loads the built Columbus extension into Playwright's bundled Chromium. The extension scenarios cover PR/MR previews, other releases, and local versions; all-tabs and current-tab scope; current-deployment reset; invalid manifests; and non-Atlas pages. The E2E harness grants localhost access only to a temporary copy because headless Chromium does not expose the toolbar popup's temporary `activeTab` permission reliably. A separate build test guarantees that the extension users install has no permanent host permissions.
+   ```sh
+   pnpm exec playwright install chromium
+   ```
+
+2. Run the complete workflow:
+
+   ```sh
+   pnpm test:e2e
+   ```
+
+   The command builds the Atlas packages and runs the package end-to-end suites. The deployment suite then performs the following work:
+   1. It builds the Angular and React example hosts and apps.
+   2. It publishes their immutable releases and manifests into one temporary static registry.
+   3. It deploys host and app selections to environment-specific host manifests.
+   4. It starts separate CDN, React host, and Angular host origins.
+   5. It runs Playwright against the deployed output.
+   6. It deploys older and newer immutable app releases and proves that the same prebuilt host loads each selected release.
+
+   > **Expected result:** Playwright reports every scenario as passed.
+
+The suite covers Angular apps in React hosts, React apps in Angular hosts, framework-native inner routing, cross-framework widgets, popups, opt-in loading UI, the fallback UI for a failed remote, CORS, and mutable versus immutable cache headers.
+
+It also loads the built Columbus extension into the Chromium build that Playwright bundles. The extension scenarios cover PR and MR previews, other releases, and local versions; all-tabs and current-tab scope; resetting to the current deployment; invalid manifests; and pages that do not use Atlas. The harness grants localhost access only to a temporary copy of the extension, because headless Chromium does not reliably expose the temporary `activeTab` permission of the toolbar popup. A separate build test guarantees that the extension users install has no permanent host permissions.
 
 Generated deployment files live under `examples/e2e/.artifacts` and are not committed.
 
-## Faster Browser Iteration
+## Iterate faster on browser tests
 
-Prepare production files once, then rerun only Playwright:
+Prepare the production files once, and then rerun only Playwright:
 
 ```sh
 pnpm --filter @atlas-example/e2e run fixtures
 pnpm exec playwright test --config examples/e2e/playwright.config.ts
 ```
 
-Use Playwright's normal filtering and debugging flags when working on one scenario:
+Use the normal Playwright filtering and debugging flags when you work on one scenario:
 
 ```sh
 pnpm exec playwright test --config examples/e2e/playwright.config.ts -g "Angular host mounts a React app"
 pnpm exec playwright test --config examples/e2e/playwright.config.ts --headed
 ```
 
-## CI
+## Continuous integration
 
-The repository workflow installs Chromium and runs type checking, unit/integration tests, and the complete deployment E2E suite. A failure retains Playwright traces and screenshots in the workflow artifacts.
+The Verify workflow in `.github/workflows/verify.yml` runs on every pull request and on every push to `main`:
+
+- The `docs` job runs `pnpm verify:docs` on every run.
+- The `quality` job runs type checking, linting, and unit tests on Node.js 22 and 24. On pull requests that change code, scripts, workflows, or workspace configuration, it checks only the affected packages. Pushes to `main` check everything.
+- The `package-artifacts`, `portability`, `generated-projects`, and `e2e` jobs run on pushes to `main` and on pull requests that change code, scripts, workflows, or workspace configuration.
+
+When the browser suite fails, the workflow keeps the Playwright report and test results as workflow artifacts.
+
+## Related
+
+- [Releasing](releasing.md)
+- [Documentation guide](documentation-guide.md)

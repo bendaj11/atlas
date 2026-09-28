@@ -1,11 +1,24 @@
+---
+title: Publish with Artifactory
+description: Configure JFrog Artifactory as Atlas registry storage and run publish and deploy safely from Jenkins.
+---
+
 # Publish with Artifactory
 
-Artifactory is a built-in storage provider, like S3. Select it with
-`ATLAS_STORAGE=artifactory` or `--storage artifactory`. **No `atlas.registry.ts`
-or adapter code is required.** Use a CLI build containing this support; these
-snippets do not upgrade an older installed CLI.
+This page is the canonical setup guide for using JFrog Artifactory as Atlas registry storage. It is for platform engineers who run Atlas from Jenkins. Other pages link here instead of repeating these steps.
 
-## 1. Add publishing to Jenkins
+Artifactory is a built-in storage provider, like S3. Select it with `ATLAS_STORAGE=artifactory` or `--storage artifactory`. You do not need an `atlas.registry.ts` file or adapter code.
+
+## Understand the tradeoff first
+
+Artifactory's documented API has no atomic conditional write, so Atlas cannot lock the registry inside Artifactory the way it does on S3. Instead, **every** Atlas writer must run inside one shared Jenkins `lock` block. The cost is operational:
+
+- Writes to one repository and prefix are fully serialized, so parallel publish and deploy jobs queue behind each other.
+- When a command fails, Atlas cannot always tell whether its last write reached Artifactory. The pipeline below therefore **pauses on a manual Jenkins `input` step while still holding the lock**, so an operator can confirm that no request is still running and reconcile the stored state before other writers continue. Until someone answers that prompt, every other Atlas job for this repository waits.
+
+If your team cannot staff that manual step, use S3-compatible storage instead.
+
+## Add publishing to Jenkins
 
 Install dependencies and build your app and host using your existing workspace
 scripts first. Atlas publishes existing build output; `publish` does not rebuild.
@@ -32,10 +45,10 @@ withEnv([
           set +x
           set -eu
 
-          pnpm exec atlas publish MY_APP --version "$RELEASE_VERSION"
-          pnpm exec atlas publish MY_HOST --version "$RELEASE_VERSION"
-          pnpm exec atlas deploy MY_HOST --to test --version "$RELEASE_VERSION"
-          pnpm exec atlas deploy MY_APP --to test --version "$RELEASE_VERSION"
+          npx atlas publish MY_APP --version "$RELEASE_VERSION"
+          npx atlas publish MY_HOST --version "$RELEASE_VERSION"
+          npx atlas deploy MY_HOST --to test --version "$RELEASE_VERSION"
+          npx atlas deploy MY_APP --to test --version "$RELEASE_VERSION"
         '''
       } catch (failure) {
         input(
@@ -55,7 +68,7 @@ names an existing **local Generic repository**. `ATLAS_REGISTRY_URL` is the
 browser-readable root mapping to that repository's `atlas/` directory. The
 publishing bearer token is never sent to this public root.
 
-## 2. Use one shared writer lock
+## Use one shared writer lock
 
 Use the same named resource on the same Jenkins controller for **every** publish,
 deploy, rollback, and preview-cleanup job writing this repository/prefix. If your
@@ -80,9 +93,10 @@ still be running. A client timeout does not prove that Artifactory stopped the
 write. Agent/controller loss and administrator overrides still require your
 organization's recovery procedure; an environment marker cannot fence writes.
 
-## 3. Connect browser delivery
+## Connect browser delivery
 
-Keep your existing Atlas bootstrap/host server and point its registry root at
+Keep your existing Atlas host server and set `artifactRegistryUrl` in each
+host's [`atlas.runtime.json`](bootstrap.md#runtime-config) to the same URL as
 `ATLAS_REGISTRY_URL`. Artifactory stores releases; this provider does not configure
 a host website. A CI token is not browser authentication. Provide a browser-readable
 asset root inside your approved network, or an authorized delivery gateway
@@ -130,18 +144,18 @@ Flags override their corresponding environment variables. Secrets have no CLI
 flags. An explicit `storage` in `atlas.registry.ts` takes precedence over native
 provider settings; a config containing only hooks does not disable native storage.
 
-| Environment variable | CLI flag | Artifactory meaning |
-| --- | --- | --- |
-| `ATLAS_STORAGE` | `--storage` | Set to `artifactory` |
-| `ATLAS_STORAGE_API_URL` | `--storage-api-url` | Required private API root |
-| `ATLAS_ARTIFACTORY_REPOSITORY` | `--repository` | Required local Generic repository |
-| `ATLAS_STORAGE_KEY_PREFIX` | `--key-prefix` | Namespace; defaults to `atlas` |
-| `ATLAS_REGISTRY_URL` | `--registry-url` | Required browser delivery root |
-| `ATLAS_ARTIFACTORY_ACCESS_TOKEN` | None | Required private publishing token |
-| `ATLAS_ARTIFACTORY_LOCK_RESOURCE` | `--lock-resource` | Required shared external lock name |
-| `ATLAS_PUBLICATION_LOCK` | None | Held resource name supplied by the lock block |
-| `ATLAS_ARTIFACTORY_REQUEST_TIMEOUT_MS` | None | Positive integer; default `60000` |
-| `ATLAS_ARTIFACTORY_MAX_BUFFERED_BYTES` | None | Positive integer; default `268435456` |
+| Environment variable                   | CLI flag            | Artifactory meaning                           |
+| -------------------------------------- | ------------------- | --------------------------------------------- |
+| `ATLAS_STORAGE`                        | `--storage`         | Set to `artifactory`                          |
+| `ATLAS_STORAGE_API_URL`                | `--storage-api-url` | Required private API root                     |
+| `ATLAS_ARTIFACTORY_REPOSITORY`         | `--repository`      | Required local Generic repository             |
+| `ATLAS_STORAGE_KEY_PREFIX`             | `--key-prefix`      | Namespace; defaults to `atlas`                |
+| `ATLAS_REGISTRY_URL`                   | `--registry-url`    | Required browser delivery root                |
+| `ATLAS_ARTIFACTORY_ACCESS_TOKEN`       | None                | Required private publishing token             |
+| `ATLAS_ARTIFACTORY_LOCK_RESOURCE`      | `--lock-resource`   | Required shared external lock name            |
+| `ATLAS_PUBLICATION_LOCK`               | None                | Held resource name supplied by the lock block |
+| `ATLAS_ARTIFACTORY_REQUEST_TIMEOUT_MS` | None                | Positive integer; default `60000`             |
+| `ATLAS_ARTIFACTORY_MAX_BUFFERED_BYTES` | None                | Positive integer; default `268435456`         |
 
 For separate-registry deployment, use `--source-registry-url` and
 `--target-registry-url` (or `ATLAS_SOURCE_REGISTRY_URL` and
@@ -160,18 +174,22 @@ Only use `atlas.registry.ts` when you need a custom coordinator or other hooks.
 The exported provider remains available:
 
 ```ts
-import { ArtifactoryPublicationStorage, defineAtlasRegistryConfig } from '@atlas/cli';
+import {
+  ArtifactoryPublicationStorage,
+  defineAtlasRegistryConfig,
+} from '@atlas/cli';
 import { assertPublicationLockHeld } from './ci/publication-lock.js';
 
 export default defineAtlasRegistryConfig({
-  storage: () => new ArtifactoryPublicationStorage({
-    url: 'https://artifactory.example.invalid/artifactory',
-    repository: 'atlas-local',
-    prefix: 'atlas',
-    accessToken: process.env.ATLAS_ARTIFACTORY_ACCESS_TOKEN ?? '',
-    publicUrl: 'https://assets.example.invalid/atlas',
-    assertExclusivePublishing: assertPublicationLockHeld,
-  }),
+  storage: () =>
+    new ArtifactoryPublicationStorage({
+      url: 'https://artifactory.example.invalid/artifactory',
+      repository: 'atlas-local',
+      prefix: 'atlas',
+      accessToken: process.env.ATLAS_ARTIFACTORY_ACCESS_TOKEN ?? '',
+      publicUrl: 'https://assets.example.invalid/atlas',
+      assertExclusivePublishing: assertPublicationLockHeld,
+    }),
 });
 ```
 
@@ -211,9 +229,9 @@ command. Jenkins users can use the native setup instead.
   Use a dedicated Atlas-managed prefix; the provider does not guess metadata
   for manually uploaded files.
 
-## Decision and verification
+## Design decision and test coverage
 
-We compared consumer-owned REST code, an Atlas provider, and JFrog CLI bulk
+The Atlas team compared consumer-owned REST code, an Atlas provider, and JFrog CLI bulk
 uploads. Atlas owns the reusable provider so consumers do not duplicate integrity,
 immutable-release, metadata, and mutation handling. Consumers own organization
 credentials, external coordination, network, and delivery policy.
@@ -236,3 +254,9 @@ Primary references:
 - [Self-hosted reverse proxy configuration](https://docs.jfrog.com/installation/docs/http-settings)
 - [Jenkins locks](https://plugins.jenkins.io/lockable-resources/)
 - [Jenkins credential binding](https://www.jenkins.io/doc/pipeline/steps/credentials-binding/)
+
+## Next steps
+
+- [Production deployment](production-deployment.md): the publish, deploy, and rollback workflow.
+- [Host bootstrap](bootstrap.md): serve the host and configure CORS and caching.
+- [Security](security.md): publication controls and the trust model.

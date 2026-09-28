@@ -1,142 +1,46 @@
-# Local development and Columbus
+---
+title: Local development
+description: Run a host and its apps on your machine with atlas dev, configure preview URLs, and, when you need it, run local code inside a deployed page.
+---
 
-Columbus applies host-client and app overrides to one effective catalog before the Atlas loader starts. Product code does not need override logic.
+# Local development
 
-## Run a local host client
+`npx atlas dev` runs a host or an app on your machine with live reload, inside a
+real host page. This page covers the everyday workflow first: a local host with
+local apps. The [advanced section](#advanced-develop-against-deployed-pages)
+covers deployed pages, published versions, and API proxying.
 
-Host previews are optional. Empty or missing `atlas.previews` starts the host on
-localhost. Add deployed host pages when local host code should run inside one:
+## How `atlas dev` works
 
-```json
-{
-  "atlas": {
-    "previews": ["http://localhost:4200", "https://customer.example"]
-  }
-}
-```
+`npx atlas dev <project>` starts three things:
 
-```sh
-atlas dev customer-host
-```
+- **The framework development server** for the project, such as Vite or the
+  Angular dev server. It serves the project's federation entry,
+  `remoteEntry.json`.
+- **The Atlas development server** on port 4400. It tells the browser which local
+  builds to load. Every `atlas dev` process on your machine shares this one
+  server, so a local host and several local apps work together.
+- **A local host page**, only when you run a host and its preview is a
+  `localhost` URL. It serves the same bootstrap page that production uses.
 
-Atlas starts:
+When the page loads, the Atlas loader asks the development server for the local
+builds and loads them in place of deployed versions. The host and the apps need
+no special development code.
 
-- the browser-facing static bootstrap on a dedicated host port, normally 4200;
-- the internal host-client framework server on a separate port.
-- the local Atlas control/catalog server, normally port 4400;
+## Before you begin
 
-Atlas selects one configured preview. A loopback preview starts the local static
-bootstrap. A deployed preview keeps that page and applies the local host client
-as an override. Multiple previews are selected interactively. Framework server
-exposes `./host`; its internal port is implementation detail.
+- Generate a host and an app. See
+  [Generate a host](../get-started/generate-host.md) and
+  [Generate an app](../get-started/generate-app.md).
+- Run all commands from your workspace root, the folder that contains your
+  projects, or from the project folder.
+- You do not need [Columbus](columbus.md) for the workflow on this part of the
+  page. You need it only to run local code inside a deployed page.
 
-The port selected during host generation remains the browser-facing preview
-port. Atlas manages the separate framework port and starts the bootstrap only
-after the framework server is ready.
+## Configure previews
 
-Expected output includes a Host Preview URL. Open it and confirm that the main
-page layout appears.
-
-### Proxy host API requests
-
-Atlas can proxy browser requests from the host preview origin. Configure the
-Angular proxy natively in `angular.json` under `serve-original`:
-
-```json
-"serve-original": {
-  "options": {
-    "proxyConfig": "config/local-api-proxy.json"
-  }
-}
-```
-
-Atlas forwards matching browser requests to Angular's native development
-server. Angular loads and executes the configured proxy file unchanged, so use
-any Angular-supported proxy format, option, or JavaScript callback; choose any
-relative file name and location:
-
-```json
-{
-  "/get-data": {
-    "target": "http://localhost:8080",
-    "changeOrigin": true,
-    "secure": false
-  }
-}
-```
-
-`atlas dev` forwards matching requests before its SPA fallback, so
-`http://localhost:<host-port>/get-data` reaches the target. This preserves
-Angular behavior such as `pathRewrite`, `headers`, `bypass`, WebSocket proxying,
-JSONC and JavaScript proxy files, and glob contexts. Atlas does not generate
-production proxy configuration; configure Nginx, an ingress, API gateway, or a
-BFF in deployment infrastructure.
-
-Proxy contexts follow Angular semantics: `/get-data` also matches descendants.
-This development-only configuration is neither emitted nor used in production;
-use deployment infrastructure when production needs rewrites, custom headers,
-or advanced proxy behavior.
-
-Useful overrides:
-
-```sh
-atlas dev customer-host \
-  --port=4500 \
-  --control-port=4501 \
-  --host-client-port=4502
-```
-
-### Use published versions with a local host
-
-Set the published registry base URL when a local host needs to load its normal
-production apps or when Columbus should offer production and PR versions:
-
-```sh
-ATLAS_REGISTRY_URL=https://registry.example/atlas atlas dev customer-host
-```
-
-`atlas dev` keeps local host and app overrides, then overlays them on selected
-deployment from `registry.json`. Columbus uses registry descriptors to offer
-current deployment, PR/MR previews, and other retained releases.
-
-Use `--registry-url https://registry.example/atlas` instead of
-`ATLAS_REGISTRY_URL` when the setting applies to one command. Without either
-setting, local development still works, but its control catalog contains only
-local artifacts and Columbus cannot offer published versions.
-
-## Use a deployed domain
-
-```sh
-atlas dev customer-host
-```
-
-With `https://customer.example` selected from `atlas.previews`, local static
-bootstrap is not started. Columbus discovers local host manifest from loopback
-control server and stores tab- or all-tabs override. Reloading
-`customer.example` causes deployed loader to select local host client.
-
-Atlas does not probe localhost on normal production page loads. `atlas dev`
-adds an explicit development-session query parameter. Local manifest URLs must use loopback; Columbus and loader reject
-other HTTP origins. Registry-backed PR and previous-production overrides are
-always available and do not require this flag. Generated host CSP permits
-loopback HTTP assets and WebSocket connections so Vite can reload remote-host
-tabs when local React source changes.
-
-## Run a local app
-
-Define one or more host pages in the app's development-only `atlas.previews`
-package metadata. Atlas discovers host identity from selected page origin's
-public `/atlas.runtime.json` when app configuration does not identify it.
-
-```sh
-atlas dev orders
-```
-
-Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console and browser use the production preview URL directly. Columbus obtains the development session from the local control server in extension context, then the loader applies the preconfigured override before resolving the app.
-
-### Configure previews
-
-Define `atlas.previews` in the project's `package.json`:
+A _preview_ is the host page where you want to see your code. You list previews
+in the project's `package.json` under `atlas.previews`:
 
 ```json
 {
@@ -149,114 +53,203 @@ Define `atlas.previews` in the project's `package.json`:
 }
 ```
 
-Each entry must be an absolute `http` or `https` page URL. Include the app's
-route when more than one route could match the host.
+The rules are:
 
-`atlas dev` preview behavior:
+- Each entry must be an absolute `http` or `https` URL.
+- An app must define at least one preview. Without one, `atlas dev` fails with
+  `package.json atlas.previews is required for atlas dev apps.`
+- A host can omit `atlas.previews`. It then runs on `http://localhost:4200`, or
+  on the port configured for the host project.
+- With one preview, `atlas dev` uses it. With several, `atlas dev` asks you to
+  pick one. In a non-interactive terminal, several previews are an error.
+- For an app, include the route in the URL. If you give only the host origin and
+  the app has one route for that host, Atlas appends that route. If the app has
+  several routes, Atlas asks which one to open.
 
-- one preview: opens it automatically;
-- multiple previews: prompts for a URL before starting;
-- no host previews: starts the host on localhost;
-- no app previews: fails with `package.json atlas.previews is required for atlas dev apps.`
+`atlas.previews` lives in `package.json` because it is your team's development
+setting. It never enters `atlas.config.ts` or a published manifest, and it does
+not affect production.
 
-Apps require `atlas.previews`; hosts use it only to target an explicit local or
-deployed page.
+## Run a host locally
 
-`atlas.previews` belongs in `package.json` because it is team-owned launch
-metadata, not an Atlas production contract. It can list each host environment
-an app team uses locally, never enters `atlas.config.ts`, and is not emitted in
-an Atlas manifest.
+1. In a terminal, start the host:
 
-For a local host, include its page URL such as
-`http://localhost:4200/orders` in `atlas.previews`.
+   ```sh
+   npx atlas dev customer-host
+   ```
+
+   > **Expected result:** Atlas starts the framework server, waits until it is
+   > ready, and prints the preview URL, similar to this:
+   >
+   > ```text
+   > Starting React dev server on port 4300
+   > Dev server ready in 2.4s
+   > App preview: http://localhost:4200
+   > ```
+
+2. Atlas opens the preview in your browser. To skip that, pass `--no-open`.
+
+   > **Expected result:** The host layout renders. Until you run an app, the
+   > route outlet is empty.
+
+The browser-facing port is the host's configured development port, 4200 by
+default. The host's framework server runs on a separate internal port.
+
+## Run an app inside the local host
+
+1. Add the local host page to the app's `atlas.previews`, as shown in
+   [Configure previews](#configure-previews):
+
+   ```json
+   {
+     "atlas": {
+       "previews": ["http://localhost:4200/orders"]
+     }
+   }
+   ```
+
+2. In a first terminal, start the host:
+
+   ```sh
+   npx atlas dev customer-host
+   ```
+
+3. In a second terminal, start the app:
+
+   ```sh
+   npx atlas dev orders
+   ```
+
+   > **Expected result:** Atlas prints `App preview: http://localhost:4200/orders`
+   > and opens it. The app renders inside the host, and saving an app file
+   > reloads it.
+
+Atlas finds the host ID for the app in this order: the only host the app declares
+routes or slots for, the host that owns the route in the preview URL, or the
+`hostId` in the preview page's `/atlas.runtime.json`.
 
 ## Edit a local library
 
-If an app or host imports a workspace library that exports compiled files, run
-that library's build watcher alongside `atlas dev`. Keep the library's sharing
-settings; a workspace dependency does not need to be added to `skip` for local
-development. Follow [Developing local packages](workspaces-and-ci.md#developing-local-packages)
-for setup and troubleshooting links.
+If the host or the app imports a workspace library that points to compiled files,
+run that library's build watcher next to `atlas dev`. Keep the library's sharing
+settings. You do not need to add it to `skip`. See
+[Developing local packages](workspaces-and-ci.md#developing-local-packages).
 
-## Columbus selection model
+## Command options
 
-Columbus displays:
+| Option                      | Applies to   | Effect                                                                                                                                                         |
+| --------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--port=<port>`             | Host and app | For a host, the browser-facing port. For an app, its framework server port. Defaults to the port in the project config, then 4200 for hosts and 4201 for apps. |
+| `--bootstrap-port=<port>`   | Host         | The browser-facing port of the local host page.                                                                                                                |
+| `--host-client-port=<port>` | Host         | The internal port of the host's framework server. It must differ from the browser-facing port.                                                                 |
+| `--control-port=<port>`     | Host and app | The port of the Atlas development server. Defaults to 4400.                                                                                                    |
+| `--no-open`                 | Host and app | Does not open the browser.                                                                                                                                     |
+| `--prepare-only`            | Host and app | Writes the local override document to `.atlas/local-overrides.json`, then exits without starting servers.                                                      |
 
-```text
-Host client
-  Customer Host
-  Production: 1.4.0 / build-123
-  [Current deployment | PR / MR preview | Other release | Local]
+`atlas dev` loads environment variables from `.env.local` and `.env` in the
+project folder, then in the workspace root. Variables that are already set in
+your shell win.
 
-Apps
-  Orders
-  Production: 2.1.0 / build-456
-  [Current deployment | PR / MR preview | Other release | Local]
+## Advanced: develop against deployed pages
 
-External widget providers
-  Shared UI
-  Production: 3.2.0 / build-91
-  [Current deployment | PR / MR preview | Other release | Local]
-```
+The sections below are for later, when the local workflow is not enough.
 
-The host is visually separate and carries a stronger warning because it controls product routing, SDK creation, authentication integration, layout, and every mounted app. External providers are visually separate because they supply widgets but are not mounted as routed/slotted apps. Version override mechanics remain symmetric.
+### Run inside a deployed page
 
-Supported combinations include production host + local app, local host + production apps, PR host + PR app, and an older host + selected current apps. Compatibility and origin checks still apply.
+You can run a local app or host inside a deployed page, for example staging. This
+requires [Columbus](columbus.md), because the deployed loader only reads local
+builds through the extension.
 
-Scopes:
+1. Install [Columbus](columbus.md#install-columbus).
+2. Add the deployed page to `atlas.previews`:
 
-- **Current tab:** stored in session storage.
-- **All tabs:** stored in local storage for the origin.
-- **Production:** removes that artifact override.
-- **Reset everything:** clears host and all app overrides.
+   ```json
+   {
+     "atlas": {
+       "previews": ["https://staging.example.com/orders"]
+     }
+   }
+   ```
 
-## Recovery from a broken host
+3. Start the app or host:
 
-An overridden host may fail before it creates product UI. Recovery does not depend on it:
+   ```sh
+   npx atlas dev orders
+   ```
 
-1. use the stable loader's **Clear overrides and reload** button; or
-2. open Columbus and reset everything to production.
+   > **Expected result:** Atlas opens the deployed page, Columbus passes the local
+   > build to the loader, and the page renders your local code. The Columbus
+   > toolbar icon counts the active overrides.
 
-The loader and Columbus badge are independent of the selected host client.
+For a host, the deployed page must serve `/atlas.runtime.json` with the same host
+ID as your local host. Atlas checks this before it starts. No local host page is
+started in this case. The deployed page loads your local host code instead.
 
-## Safety checks
+The loader does not contact `localhost` on its own. Only Columbus asks the Atlas
+development server for local builds, and local builds must use loopback URLs.
+See [How Columbus keeps the page safe](columbus.md#how-columbus-keeps-the-page-safe).
 
-Before applying a host override Atlas checks:
+### Load published versions with a local host
 
-- manifest kind is `host`;
-- manifest id matches runtime config host ID;
-- required loader API major is compatible;
-- production/PR URLs use an approved HTTPS origin;
-- local URLs use loopback;
-- declared SHA-256 integrity matches the remote metadata.
-
-Apps retain their host compatibility, integrity, URL, route, and widget validation.
-
-## Prepare without starting servers
+By default, a local host page loads only local builds. To also load the apps that
+an environment deploys, give `atlas dev` the public URL of your artifact registry:
 
 ```sh
-atlas dev customer-host --prepare-only
-atlas dev orders --prepare-only
+ATLAS_REGISTRY_URL=https://registry.example.com/atlas npx atlas dev customer-host
 ```
 
-Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`. It does not publish local artifacts.
+You can pass `--registry-url=https://registry.example.com/atlas` instead, or set
+`ATLAS_REGISTRY_URL` in `.env.local`. Atlas reads the host's deployment from the
+`production` environment. Pass `--environment=<name>` to use another one.
+
+Atlas reads
+`<registry>/environments/<environment>/hosts/<hostId>/manifest.json` and loads
+local builds on top of it. If that file cannot be loaded, Atlas prints a warning
+and serves only local builds. With a registry URL, Columbus can also offer PR
+previews and other releases from the registry's `registry.json`.
+
+### Proxy API requests from an Angular host
+
+A local Angular host page can forward API requests to a backend. Configure the
+proxy in `angular.json` on the host's `serve-original` target, or on `serve`:
+
+```json
+"serve-original": {
+  "options": {
+    "proxyConfig": "config/local-api-proxy.json"
+  }
+}
+```
+
+```json
+{
+  "/get-data": {
+    "target": "http://localhost:8080",
+    "changeOrigin": true,
+    "secure": false
+  }
+}
+```
+
+Atlas loads the file with Angular's own proxy loader. Requests to the local host
+page that match a proxy context, such as
+`http://localhost:4200/get-data`, go to the Angular dev server, which applies the
+proxy. Any format and option that Angular supports works, including JavaScript
+proxy files and WebSocket proxying. Contexts follow Angular semantics:
+`/get-data` also matches paths below it.
+
+This proxy exists only in local development and only for a local host page.
+Configure production routing in your own infrastructure, such as an ingress, an
+API gateway, or a backend for frontend.
 
 ## Troubleshooting
 
-`package.json atlas.previews is required for atlas dev apps`: define it in the
-app's `package.json`.
+For errors such as `atlas.previews is required`, a preview that does not expose
+runtime config, or a remote entry that does not load, see
+[Troubleshooting](../troubleshooting.md#local-development).
 
-`Multiple Atlas previews configured. Run atlas dev interactively.`: choose one
-preview in an interactive terminal, or reduce `atlas.previews` to one entry.
+## Next steps
 
-`Host URL identifies ..., but app ... has no route or slot for that host`: use a
-host URL supported by the app, or add a placement for that host.
-
-`Framework dev server did not serve ... remoteEntry.json`: check the framework process, selected port, and federation config.
-
-If Columbus cannot select a custom URL, verify its local manifest URL uses
-loopback. If registry versions are missing, verify `registry.json`, the active
-`.../environments/<environment>/hosts/<hostId>/manifest.json`, and referenced canonical manifests are
-publicly readable.
-
-Remote custom assets blocked by browser: allow their origin in host's Content Security Policy.
+- [Columbus](columbus.md)
+- [Testing apps and hosts](testing-apps-and-hosts.md)
+- [Workspaces and CI](workspaces-and-ci.md)

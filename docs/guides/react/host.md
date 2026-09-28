@@ -1,35 +1,46 @@
-# Build A React Host
+---
+title: Build a React host
+description: Generate a React Host, lay out the page with host anchors, provide shared services through the SDK, and run it locally.
+---
 
-Audience: React team building the main application layout, top-level navigation,
-and shared browser services. Start with [Get Started](../../get-started/tutorial.md),
-then use this guide.
+# Build a React host
 
-Finished system:
+This guide walks you through building a React [Host](../../introduction/glossary.md): the
+page layout, top-level navigation, and shared browser services that every App runs inside.
+It is for the team that owns the product shell. If you have not run Atlas before, complete
+the [tutorial](../../get-started/tutorial.md) first.
 
-```text
-customer.example
-  Startup files provide HTML, configuration, and the Atlas loader
-  The React Host provides the page layout and shared services
-  Atlas shows Apps at matching URLs and named page areas
-```
+## Before you start
 
-Atlas publishes the Host and its startup files separately. Read
-[Host bootstrap](../../deploy/bootstrap.md) before deployment.
+You need:
 
-## 1. Generate The Host
+- Node.js `^22.12.0` or `^24.0.0`.
+- A workspace with `@atlas/cli` installed as a dev dependency. The
+  [tutorial](../../get-started/tutorial.md) shows how to create one.
+- A basic understanding of how Hosts and Apps divide the page. Read
+  [Hosts](../../concepts/hosts.md) and [Host anchors](../../concepts/host-anchors.md) if the
+  terms are new.
 
-From workspace root:
+Run every command in this guide from the workspace root unless a step says otherwise.
+
+## 1. Generate the host
+
+Generate a React Host named `customer-host`:
 
 ```sh
-atlas g host customer-host --framework=react
+npx atlas g host customer-host --framework react
 ```
 
-Generation creates one host project:
+The generator creates this project:
 
 ```text
 customer-host/
-  atlas.config.ts
+  package.json
+  tsconfig.json
   vite.config.ts
+  atlas.config.ts
+  atlas.bootstrap.html
+  index.html
   src/
     bootstrap.tsx
     host-layout.tsx
@@ -38,18 +49,19 @@ customer-host/
     styles.css
 ```
 
-Responsibilities:
+| File                   | What it does                                                                                          | Edit it?                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `atlas.config.ts`      | Declares the Host ID (a UUID), display name, and framework.                                           | Change the name. Never change the ID after Apps use it. |
+| `src/host-layout.tsx`  | The `HostLayout` component: your page layout and the host anchors where Apps appear.                  | Yes. Most host UI work happens here.                    |
+| `src/host.config.tsx`  | Your SDK type (`CustomerHostSdk`), product providers (`HostProviders`), and SDK options hook.         | Yes.                                                    |
+| `src/bootstrap.tsx`    | Exports the `mount` function Atlas calls. It passes the files above to `defineReactHost()`.           | Rarely.                                                 |
+| `src/main.tsx`         | A stub for the Vite page. It only prints a message telling you to use `atlas dev`.                    | No.                                                     |
+| `atlas.bootstrap.html` | The HTML template that `atlas bootstrap` turns into the static entry page.                            | Yes, for the page title and loading markup.             |
+| `vite.config.ts`       | Vite configuration composed with `createReactHostViteConfig`, which adds the Native Federation setup. | Yes, but keep the `createReactHostViteConfig` call.     |
+| `src/styles.css`       | Global Host styles.                                                                                   | Yes.                                                    |
 
-| File                  | Owner          | Edit for                                                                                                   |
-| --------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts`     | Host team      | Unique Host ID and display name                                                                            |
-| `src/host-layout.tsx` | Host UI team   | Main page layout and elements where Atlas shows Apps                                                       |
-| `src/host.config.tsx` | Host team      | SDK services, UI renderers, monitoring                                                                     |
-| `src/bootstrap.tsx`   | Atlas/platform | Exports `mount()` from `defineReactHost()`; do not edit                                                    |
-| `src/main.tsx`        | Host team      | Vite asset-server entry that points developers to `atlas dev`                                              |
-| `vite.config.ts`      | Host build     | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
-
-Generated host config resembles:
+The generated `atlas.config.ts` looks like this. Your `id` is a different, randomly
+generated UUID:
 
 ```ts
 import type { AtlasHostConfig } from '@atlas/schema' with {
@@ -64,282 +76,359 @@ export default {
 } satisfies AtlasHostConfig;
 ```
 
-Keep `id` unchanged when you rename a folder, package, repository, or display
-name. Apps use this ID to declare their URLs and named page areas in this Host.
+Apps use this `id` to declare where they appear in your Host. Keep it unchanged when you
+rename the folder, package, repository, or display name.
 
-## 2. Understand The React Bootstrap
+> **Expected result:** A `customer-host/` folder exists with the files listed above, and its
+> `atlas.config.ts` contains a UUID `id`.
 
-Atlas loader chooses the published or local Host version, creates an HTML
-container, and calls the `mount` function exported by `src/bootstrap.tsx`.
-`src/bootstrap.tsx` passes `atlas.config.ts`, `HostLayout`, the React DOM root
-API, and `useCustomHostSdkOptions` to `defineReactHost()`, which:
+## 2. Understand how the host starts
 
-1. creates one React root inside loader-owned container;
-2. renders the main page layout and React Router;
-3. passes the selected Apps and configuration to the Atlas provider;
-4. creates one host-owned Atlas SDK while initializing provider;
-5. starts Atlas after React tree commits;
-6. shows selected Apps at their URLs and named page areas;
-7. unmounts React root when loader replaces or stops host client.
-
-Opening the Vite port has no Atlas runtime or catalog endpoints, so it is not
-complete host composition. `atlas dev` loads `src/bootstrap.tsx` behind local
-static bootstrap.
-
-Do not fetch another list of Apps or choose App versions in React code. Atlas
-passes that information into `mount`.
-
-## 3. Build The Main Application Layout
-
-Replace generated `HostLayout` function in `src/host-layout.tsx`, while keeping anchors
-that tell Atlas where Apps may appear:
+The generated `src/bootstrap.tsx` connects your files to Atlas:
 
 ```tsx
+import 'es-module-shims';
+import { createRoot } from 'react-dom/client';
+import { defineReactHost } from '@atlas/runtime/react';
+import atlasConfig from '../atlas.config';
+import { HostLayout } from './host-layout';
+import {
+  HostProviders,
+  useCustomHostSdkOptions,
+  type CustomerHostSdk,
+} from './host.config';
+import './styles.css';
+
+export const mount = defineReactHost<CustomerHostSdk>({
+  config: atlasConfig,
+  layout: HostLayout,
+  reactDom: { createRoot },
+  providers: HostProviders,
+  useSdkOptions: useCustomHostSdkOptions,
+});
+```
+
+In a browser, the Atlas [loader](../../introduction/glossary.md) reads the
+[runtime config](../../introduction/glossary.md) (`atlas.runtime.json`), resolves which Host
+and App versions are deployed, and calls `mount` with a container element.
+`defineReactHost()` then:
+
+1. creates a React Router browser router with one catch-all route that renders `HostLayout`;
+2. wraps the tree in `HostProviders`;
+3. creates the Host's SDK from the options returned by `useCustomHostSdkOptions()`;
+4. renders the tree into the container that the loader provided;
+5. starts Atlas, which mounts the selected Apps into the host anchors in `HostLayout`;
+6. returns an `unmount` function that the loader calls when it stops the Host.
+
+You do not fetch the list of Apps or choose App versions in React code. The loader passes
+that information to `mount`.
+
+The Vite dev server serves only the `src/main.tsx` stub, so opening it directly shows the
+message "Start this Atlas host with atlas dev." Always open the URL that `atlas dev` prints.
+
+## 3. Build the host layout
+
+Edit `src/host-layout.tsx`. The generated layout uses the React host anchors from
+`@atlas/runtime/react`:
+
+```tsx
+import {
+  AtlasHostLayout,
+  AtlasHostStatus,
+  AtlasNavigation,
+  AtlasRouteOutlet,
+  AtlasSlot,
+} from '@atlas/runtime/react';
+
 export function HostLayout() {
   return (
-    <div className="product-shell">
-      <div data-atlas-host-status />
-
-      <header className="product-header">
-        <a href="/" className="product-brand">
-          Customer Portal
-        </a>
-        <div data-atlas-slot="header" />
+    <AtlasHostLayout layoutId="default">
+      <AtlasHostStatus />
+      <header>
+        <strong>Atlas</strong>
+        <AtlasSlot slotId="header" />
       </header>
-
-      <div className="product-workspace">
-        <aside className="product-sidebar">
-          <nav data-atlas-navigation aria-label="Applications" />
-          <div data-atlas-slot="sidebar" />
-        </aside>
-
-        <main className="product-content">
-          <section data-atlas-route-outlet />
-        </main>
-      </div>
-    </div>
+      <AtlasNavigation aria-label="Application" />
+      <AtlasRouteOutlet />
+    </AtlasHostLayout>
   );
 }
 ```
 
-Anchor behavior:
-
-| Anchor                     | Purpose                               | Required when                                     |
-| -------------------------- | ------------------------------------- | ------------------------------------------------- |
-| `data-atlas-host-status`   | Host startup and failure UI container | Host must display default or custom startup state |
-| `data-atlas-navigation`    | Atlas-generated top-level links       | Optional; omit when rendering custom navigation   |
-| `data-atlas-route-outlet`  | Active routed app mount point         | Host contains routed apps                         |
-| `data-atlas-slot="header"` | Apps assigned to named `header` slot  | Catalog contains that slot placement              |
-
-Anchors must render as real DOM elements. Putting an Atlas attribute on a React
-component does not pass it through unless that component explicitly forwards the
-attribute to a DOM node.
-
-Add any named slot required by app configuration:
+Replace the markup with your product layout and keep the anchors where Apps should appear:
 
 ```tsx
-<aside data-atlas-slot="help-panel" />
-<footer data-atlas-slot="footer-tools" />
+import {
+  AtlasHostLayout,
+  AtlasHostStatus,
+  AtlasNavigation,
+  AtlasRouteOutlet,
+  AtlasSlot,
+} from '@atlas/runtime/react';
+
+export function HostLayout() {
+  return (
+    <AtlasHostLayout layoutId="default">
+      <div className="product-shell">
+        <AtlasHostStatus />
+
+        <header className="product-header">
+          <a href="/" className="product-brand">
+            Customer Portal
+          </a>
+          <AtlasSlot slotId="header" />
+        </header>
+
+        <div className="product-workspace">
+          <aside className="product-sidebar">
+            <AtlasNavigation aria-label="Applications" />
+            <AtlasSlot slotId="sidebar" />
+          </aside>
+
+          <main className="product-content">
+            <AtlasRouteOutlet />
+          </main>
+        </div>
+      </div>
+    </AtlasHostLayout>
+  );
+}
 ```
 
-Missing slot anchors do not crash the host; Atlas logs a warning and cannot mount
-that placement. Duplicate slot names are ambiguous and should be avoided.
+Each anchor renders a custom element and registers it with Atlas:
 
-Read [React routing](routing.md) for custom navigation, route ownership, inner
-app routes, and deep links.
+| Anchor                                 | Renders                  | Purpose                                                                                        |
+| -------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `<AtlasHostLayout layoutId="default">` | Its children, or nothing | Shows its children only while a route that uses this layout is active.                         |
+| `<AtlasHostStatus />`                  | `<atlas-status>`         | Holds the Host loading and error UI while Atlas starts.                                        |
+| `<AtlasNavigation aria-label="…" />`   | `<atlas-navigation>`     | Renders a basic list of links to routed Apps. Optional; omit it to render your own navigation. |
+| `<AtlasRouteOutlet />`                 | `<atlas-route-outlet>`   | Where the App that matches the current URL mounts.                                             |
+| `<AtlasSlot slotId="header" />`        | `<atlas-slot>`           | Where Apps that declare the `header` slot mount.                                               |
 
-## 4. Provide Host Services Through The SDK
+Keep these rules in mind:
 
-Apps must not import host source. Put product-wide capabilities into
-`src/host.config.tsx`. The generated `useCustomHostSdkOptions()` hook runs inside the
-host React tree, so it can use React Query and other product hooks. Put their
-providers, such as `QueryClientProvider`, in the generated `HostProviders`
-component in the same file; it wraps the whole host, `StrictMode` included.
+- **Every route needs a layout.** Each App route activates a layout by `layoutId`. Routes
+  that do not set `layoutId` use `"default"`, so keep one `AtlasHostLayout` with
+  `layoutId="default"`. To give some routes a different page frame, see
+  [Use more than one layout](routing.md#use-more-than-one-layout).
+- **Slots follow the anchor.** Atlas mounts a slot App when a matching `AtlasSlot` is
+  rendered and unmounts it when the anchor is removed. If no anchor exists for a slot, the
+  App does not appear.
+- **Use each slot name once.** Atlas tracks one element per slot name.
+- **Anchors need the host provider.** Anchors must render inside the tree that
+  `defineReactHost()` creates. Rendering one in a separate React root throws an error.
 
-Example extension inside `host.config.tsx`:
+To render navigation with your own design system instead of `AtlasNavigation`, use
+`useAtlasNavigationItems()`. See [Render custom navigation](routing.md#render-custom-navigation).
 
-`useToast`, `ordersApi`, and `monitoring` below are product-owned
-placeholders. Replace them with hooks and services from host project.
+> **Expected result:** `HostLayout` compiles, and it still contains one `AtlasHostLayout`
+> with `layoutId="default"`, one `AtlasHostStatus`, and one `AtlasRouteOutlet`.
+
+## 4. Provide host services through the SDK
+
+Apps never import Host source code. Instead, the Host exposes shared capabilities through
+the [SDK](../../introduction/glossary.md), and Apps read them with `useAtlasSdk()`.
+
+Declare your SDK in `src/host.config.tsx`. The file has three parts:
+
+- `CustomerHostSdk`: the TypeScript type of your custom SDK members and host data.
+- `HostProviders`: a component that wraps the whole Host. Put product providers here, such
+  as a React Query `QueryClientProvider`.
+- `useCustomHostSdkOptions()`: a hook that returns the SDK options. It runs inside the Host
+  React tree, so it can call other hooks.
+
+This example exposes the signed-in user as host data, plus an orders API and a toast
+function. `useToast`, `loadCurrentUser`, `ordersApi`, `OrdersApi`, `PublicUser`, and
+`monitoring` stand for your own product code:
 
 ```tsx
-import { useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { StrictMode, type ReactNode } from 'react';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from '@tanstack/react-query';
 import type { HostSdkOptions } from '@atlas/runtime/react';
 
-interface CustomerHostSdk {
+export interface CustomerHostSdk {
   hostData: {
-    projectId: string;
     user: PublicUser | null | undefined;
   };
   orders: OrdersApi;
   showToast(message: string): void;
 }
 
+const queryClient = new QueryClient();
+
+export function HostProviders({ children }: { children?: ReactNode }) {
+  return (
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </StrictMode>
+  );
+}
+
 export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
   const toast = useToast();
   const session = useQuery({ queryKey: ['session'], queryFn: loadCurrentUser });
-  const showToast = useCallback(
-    (message: string) => toast.show(message),
-    [toast],
-  );
 
-  return useMemo(
-    () => ({
-      hostData: {
-        projectId: 'customer-portal',
-        user: session.data,
-      },
-      orders: ordersApi,
-      showToast,
-      observe: (event) => monitoring.capture('atlas.runtime', event),
-    }),
-    [session.data, showToast],
-  );
+  return {
+    hostData: { user: session.data },
+    orders: ordersApi,
+    showToast: (message) => toast.show(message),
+    observe: (event) => monitoring.capture('atlas.runtime', event),
+  };
 }
 ```
 
-Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`, plus
-router, Native Federation, runtime config, and catalog.
-`undefined` means user is loading; `null` means user is known signed out. Atlas
-updates mounted Angular and React apps when React Query changes this value.
+How Atlas uses these options:
 
-Typical host-provided capabilities:
+- Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`. You do not set them.
+- Atlas creates the SDK once, from the options returned on the first render. After that,
+  only `hostData` changes reach Apps. When `session.data` changes, Atlas updates the host
+  data and re-renders React Apps that read it. Other members, such as `showToast`, keep the
+  value from the first render, so they must not capture values that change later.
+- `observe` receives every Atlas runtime event, such as resource loading, retries, Host
+  readiness, and App mount state. Use it for monitoring.
 
-- product API or company client;
-- current tenant, locale, feature policy, or product identity;
-- toast, modal, and other host-owned overlay services;
-- cross-app events and top-level navigation;
-- runtime monitoring and error reporting.
+A common convention for user data is `undefined` while loading and `null` when the user is
+signed out.
 
-Use normal React state and context for state private to host. Expose only stable
-contracts that apps need. Place shared TypeScript interfaces in a package both
-host and apps can compile against; do not share live host implementation code.
+> **Warning:** Everything in the SDK and host data is visible to every App in the browser.
+> Never put access tokens, refresh tokens, API secrets, or publication credentials in host
+> data, SDK options, `atlas.config.ts`, or `atlas.runtime.json`.
 
-Read [React SDK](sdk.md) for app hooks, events, loading readiness, widgets, and
-host-owned UI.
+Use normal React state and context for state that only the Host needs. Put shared
+TypeScript types, such as `CustomerHostSdk`, in a package that both the Host and the Apps
+compile against. Share types, not live implementation code.
 
-## 5. Connect Authentication Deliberately
+Read [React SDK](sdk.md) for how Apps consume these services, and
+[Host data](../host-data.md) for patterns around live host data.
 
-Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.runtime.json`, environment manifests, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
+## 5. Add loading and error UI
 
-## 6. Run The Host Locally
+Atlas shows functional default loading and error states. To use your design system, return
+renderer functions from `useCustomHostSdkOptions()` alongside your SDK members:
 
-From workspace root:
-
-```sh
-atlas dev customer-host
+```tsx
+export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
+  return {
+    // ...your SDK members
+    renderHostLoading: (container) => renderHostSkeleton(container),
+    renderHostError: (container, error, retry) =>
+      renderHostFailure(container, { error, retry }),
+    renderLoading: (container, event) =>
+      renderAppSkeleton(container, event.manifest.name),
+    renderError: (container, event, retry) =>
+      renderAppFailure(container, { app: event.manifest.name, retry }),
+  };
+}
 ```
 
-CLI starts:
+| Option                                     | Covers                                                         |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `renderHostLoading`, `renderHostError`     | Atlas startup, rendered into `AtlasHostStatus`.                |
+| `renderLoading`, `renderError`             | One routed or slotted App, rendered into that App's container. |
+| `renderWidgetLoading`, `renderWidgetError` | One exported Widget.                                           |
 
-- browser-facing static bootstrap, normally `http://localhost:4200`;
-- internal Vite asset server, normally port `4300`;
-- local catalog/control endpoints used by Columbus.
+Renderers receive DOM containers rather than React elements because Apps may use different
+frameworks. Use a React portal, a separate root, or an imperative design-system API.
+`renderHostLoading`, `renderHostError`, and the Widget renderers may return a cleanup
+function; return one when you create a root or subscription.
 
-Open URL printed by CLI. Default product URL stays on port `4200`; internal
-asset-server port does not represent complete Atlas composition.
+A failing App shows its error UI in its own container. The rest of the Host keeps working.
 
-Verify host alone:
+## 6. Run the host locally
+
+Start the Host:
+
+```sh
+npx atlas dev customer-host
+```
+
+The CLI starts three local servers:
+
+| Default port | Server                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| `4200`       | The local bootstrap. This is the URL you open in the browser.                                     |
+| `4300`       | The internal Vite server for the Host code. Do not open it directly.                              |
+| `4400`       | The local control server that [Columbus](../columbus.md) uses to switch App versions in the page. |
+
+Change them with `--port`, `--host-client-port`, and `--control-port`. The CLI opens the
+Host in your browser unless you pass `--no-open`.
+
+In a second terminal, check that the bootstrap serves the runtime config:
 
 ```sh
 curl --fail http://localhost:4200/atlas.runtime.json
 ```
 
-Expected browser state:
+> **Expected result:** The browser shows your layout. The Host status clears after startup.
+> The route outlet stays empty until an App matches the current URL. The `curl` command
+> prints a JSON document that contains your Host ID.
 
-- the main page layout appears;
-- the Host status message clears after startup;
-- navigation appears when an App has a visible URL;
-- the App area stays empty until an App matches the current URL;
-- Columbus identifies the local Host separately from Apps.
+## 7. Mount an app during development
 
-## 7. Mount An App During Development
-
-Configure the app's `package.json` `atlas.previews` with this host page before
-starting it. For example: `"previews": ["http://localhost:4200/orders"]`.
-
-Run app in another terminal:
+Apps choose their own URLs in their `atlas.config.ts`, so you do not add routes to the Host.
+To see an App inside your Host, follow [Build a React app](app.md) or
+[Build an Angular app](../angular/app.md), then run both projects at once:
 
 ```sh
-atlas dev orders
+# Terminal 1, workspace root
+npx atlas dev customer-host
 ```
 
-Open `/orders`, then verify:
-
-- Orders appears inside the element with `data-atlas-route-outlet`;
-- refreshing `/orders` shows the same page;
-- an App URL such as `/orders/42` stays inside Orders;
-- top-level navigation changes the browser URL without a full reload;
-- stopping the Orders development process shows an error for Orders without
-  removing the main page layout.
-
-The App chooses its URL in its `atlas.config.ts`; do not hard-code the Orders URL
-in Host source code. The Host should not import Orders source code.
-
-## 8. Add Product Loading And Error UI
-
-Generated status elements provide functional defaults. Production hosts often
-connect design-system renderers from `useCustomHostSdkOptions()`:
-
-```tsx
-return {
-  // product SDK options
-  renderHostLoading: (container) => renderHostSkeleton(container),
-  renderHostError: (container, error, retry) =>
-    renderHostFailure(container, { error, retry }),
-  renderLoading: (container, event) =>
-    renderAppSkeleton(container, event.manifest.name),
-  renderError: (container, event, retry) =>
-    renderAppFailure(container, { app: event.manifest.name, retry }),
-};
+```sh
+# Terminal 2, workspace root
+npx atlas dev orders
 ```
 
-Host-level renderers cover Atlas startup. Placement renderers cover one routed or
-slotted app. Keep failures isolated so one app does not replace whole shell.
+> **Expected result:** Opening `http://localhost:4200/orders` shows Orders inside the route
+> outlet. Refreshing `/orders/details/42` keeps you in Orders. Stopping the Orders process
+> shows an error in the route outlet while the rest of the layout stays in place.
 
-Renderer functions receive DOM containers because mounted apps may use different
-frameworks. Product can use React portals or an imperative design-system API.
-Host loading/error renderers may return a disposer; use it to clean up any root
-or subscription they create.
+## 8. Build the host
 
-## 9. Test And Build
-
-Add organization-standard React tests for:
-
-- required anchors in `src/main.tsx` `HostLayout`;
-- custom navigation and active state;
-- host SDK wiring for auth, HTTP, overlays, and monitoring;
-- mount and unmount cleanup;
-- host and placement loading/error renderers.
-
-Build host artifact and static bootstrap independently:
+Build the Host code, then generate the static bootstrap files:
 
 ```sh
 npm --prefix customer-host run build
-atlas bootstrap customer-host
+npx atlas bootstrap customer-host
 ```
 
-Use [Consumer testing](../testing-apps-and-hosts.md) for Atlas lifecycle and SDK
-contract tests.
+The first command runs the generated `build` script (`tsc -b && vite build`). The second
+writes the static entry files to `customer-host/dist/bootstrap/`. You build the bootstrap
+once per Host; releasing a new Host or App version does not require rebuilding it.
 
-## 10. Release And Deploy
+> **Expected result:** `customer-host/dist/` contains the Vite build output, and
+> `customer-host/dist/bootstrap/` contains `index.html` and the loader scripts.
 
-Build static bootstrap once. Your deployment platform renders the included runtime template:
+## When you deploy
 
-```sh
-atlas bootstrap customer-host
-```
+Publishing, deploying, and serving the Host in production are covered separately:
 
-Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host and app publication uses native workspace `atlas:publish` targets. Atlas deployment changes selected UI without rebuilding bootstrap container. Follow [React production deployment](production-deployment.md).
+- [React production deployment](production-deployment.md) covers building, publishing, and
+  verifying React artifacts.
+- [Production deployment](../../deploy/production-deployment.md) covers registries,
+  environments, and rollback.
+- [Host bootstrap](../../deploy/bootstrap.md) covers serving the static entry files.
+- [Security](../../deploy/security.md) covers response headers, Content Security Policy,
+  and routing authentication and backend requests alongside the static Host.
 
-## Common Mistakes
+## Common mistakes
 
-- Opening Vite asset-server port instead of Atlas bootstrap URL.
-- Changing generated host UUID after apps already target it.
-- Removing route outlet while customizing layout.
-- Failing to forward `data-atlas-*` attributes through wrapper components.
-- Fetching a second catalog from provider instead of using mount request.
-- Importing host services directly into an app instead of exposing SDK contract.
-- Putting API secrets in browser-visible runtime configuration.
-- Hard-coding app routes in host source instead of app `atlas.config.ts`.
-- Expecting host-client release to redeploy static bootstrap.
+- Opening the Vite port (`4300`) instead of the bootstrap URL (`4200`).
+- Changing the Host ID after Apps already reference it.
+- Removing `AtlasRouteOutlet` or the `default` layout while customizing the layout.
+- Rendering host anchors outside the tree that `defineReactHost()` creates.
+- Expecting SDK members other than `hostData` to update after the first render.
+- Importing Host code into an App instead of exposing it through the SDK.
+- Putting secrets or tokens in host data or runtime config.
+- Hard-coding App routes in Host code instead of letting each App declare them.
+
+## Next steps
+
+- [Build a React app](app.md) to add your first App to this Host.
+- [React routing](routing.md) for layouts, custom navigation, and deep links.
+- [Testing apps and hosts](../testing-apps-and-hosts.md) for Host tests.
+- [React troubleshooting](troubleshooting.md) if the Host does not start.

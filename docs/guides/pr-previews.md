@@ -1,110 +1,138 @@
-# PR and MR Previews
+---
+title: PR previews
+description: Publish a preview of a host or app for each pull request or merge request, protect it from stale CI jobs, view it with Columbus, and clean it up.
+---
 
-PR and MR are two names for one Atlas preview-number namespace. Each artifact
-has one current preview per number, regardless of how many commits the branch has.
+# PR previews
 
-## Publish
+A PR preview is a published build of a host or app for one open pull request (PR)
+or merge request (MR). This guide shows how to publish previews from CI, how
+Atlas rejects stale builds, how reviewers view a preview, and how to remove
+previews when a PR closes.
 
-Build first, then publish existing output:
+## How previews work
 
-```bash
-npm run build -- orders
+PR and MR are two names for the same thing in Atlas. `--pr 123` and `--mr 123`
+address the same preview number. Each artifact has at most one current preview
+per number, however many commits the branch has. A new publish for the same
+number replaces the previous one.
+
+Previews are never deployed. Nobody sees a preview unless they select it in
+[Columbus](columbus.md).
+
+## Publish a preview
+
+Build first, then publish the existing output:
+
+```sh
+npm run build --workspace=orders
 npx atlas publish orders --pr 123
 ```
 
-GitLab-oriented pipelines may use the identical alias:
+GitLab pipelines can use the `--mr` alias:
 
-```bash
-npm run build -- orders
+```sh
 npx atlas publish orders --mr 123
 ```
 
-Exactly one of `--version`, `--pr`, or `--mr` is required. Passing both preview
-flags fails. Atlas never infers preview or release intent from a CI event, branch,
-or tag. It uses source-control context only to reject stale preview builds.
+Pass exactly one of `--version`, `--pr`, or `--mr`. Atlas never infers a preview
+or a release from the CI event, branch, or tag. It uses source control only to
+reject stale preview builds.
 
-## Stale-job protection
+> **Expected result:** The preview appears in the registry's `registry.json`,
+> and Columbus lists it under **PR Preview** for that artifact.
 
-Atlas is CI-orchestrator agnostic and source-control aware:
+## Stale-build protection
 
-1. It records the commit SHA from checked-out Git source.
-2. `--git-sha` overrides this for synthetic merge commits or unusual layouts.
-3. A GitHub, GitLab, Bitbucket, or custom resolver obtains authoritative live head.
-4. Atlas checks the head before upload and again under the registry lease.
-5. Closed, merged, unresolved, or stale previews fail publication.
+Two CI jobs for the same PR can finish in any order. Atlas makes sure that only a
+build of the PR's current head commit is published:
 
-This works for Jenkins with GitHub, Jenkins with GitLab, GitHub Actions, GitLab
-CI, and other combinations because source control and CI orchestration are
-separate concerns.
+1. Atlas reads the commit SHA of the checked-out source. Pass `--git-sha` when
+   the checkout is a synthetic merge commit or has an unusual layout.
+2. Atlas asks your source-control provider for the PR's state and current head
+   SHA.
+3. Atlas checks the head before it uploads, and again while it holds the registry
+   lock.
+4. Publishing fails when the PR is closed or merged, when the head moved to
+   another commit, or when Atlas cannot resolve the PR.
 
-Built-in resolvers use these source-control variables:
+This works with any CI system, because Atlas talks to source control, not to CI.
+Atlas uses the first provider it finds:
 
-| Provider  | Repository/API context                         | Token                                         |
+| Provider  | Repository and API variables                   | Token                                         |
 | --------- | ---------------------------------------------- | --------------------------------------------- |
-| GitHub    | `GITHUB_REPOSITORY`; optional `GITHUB_API_URL` | `GITHUB_TOKEN` or `ATLAS_GIT_TOKEN`           |
-| GitLab    | `CI_PROJECT_ID` and `CI_API_V4_URL`            | `CI_JOB_TOKEN` or `ATLAS_GIT_TOKEN`           |
-| Bitbucket | `BITBUCKET_REPO_FULL_NAME`                     | `BITBUCKET_ACCESS_TOKEN` or `ATLAS_GIT_TOKEN` |
+| GitHub    | `GITHUB_REPOSITORY`, optional `GITHUB_API_URL` | `ATLAS_GIT_TOKEN` or `GITHUB_TOKEN`           |
+| GitLab    | `CI_PROJECT_ID` and `CI_API_V4_URL`            | `ATLAS_GIT_TOKEN` or `CI_JOB_TOKEN`           |
+| Bitbucket | `BITBUCKET_REPO_FULL_NAME`                     | `ATLAS_GIT_TOKEN` or `BITBUCKET_ACCESS_TOKEN` |
 
-Atlas reads the checked-out Git SHA, branch, and commit title. Pass `--git-sha`
-when the checkout points at a synthetic merge commit. Private or unsupported
-systems configure an explicit resolver:
+### Use your own resolver
+
+For another provider, define `resolvePreviewHead` in `atlas.registry.ts` in the
+directory where you run the command, or pass its path with `--registry-config`.
+A resolver in this file takes precedence over the built-in providers:
 
 ```ts
 import { defineAtlasRegistryConfig } from '@atlas/cli';
 
 export default defineAtlasRegistryConfig({
   async resolvePreviewHead({ previewNumber }) {
-    const change = await companyScm.getChange(previewNumber);
-    return {
-      state: change.state,
-      headSha: change.headSha,
+    const response = await fetch(
+      `https://scm.example.com/api/changes/${previewNumber}`,
+    );
+    const change = (await response.json()) as {
+      state: 'open' | 'closed' | 'merged';
+      headSha: string;
     };
+
+    return { state: change.state, headSha: change.headSha };
   },
 });
 ```
 
-The resolver must return `state` as `open`, `closed`, or `merged` and the
-authoritative head SHA. Atlas fails closed when resolution or authentication
-fails.
+The resolver receives `artifactId`, `previewNumber`, `gitSha`, and, when known,
+`gitBranch`. It must return `state` as `open`, `closed`, or `merged`, and the
+current head SHA. If resolution or authentication fails, publishing fails.
 
-## Storage behavior
+## Where previews are stored
 
-The public preview identity remains number `123`. Atlas stages each replacement
-under an internal digest:
+The public identity of a preview is its number. Atlas stores each publish for
+that number under a new internal digest:
 
 ```text
-apps/<id>/previews/123/<digest>/manifest.json
-apps/<id>/previews/123/<digest>/<payload>
+apps/<app-id>/previews/123/<digest>/manifest.json
+apps/<app-id>/previews/123/<digest>/<files>
 ```
 
-Only the newest descriptor appears in `registry.json` and Columbus. Digest is
-not a version, public build ID, or history. Staging avoids overwriting files used
-by in-flight clients. Superseded generations remain for 24 hours.
+Only the newest publish appears in `registry.json` and in Columbus. The digest is
+not a version or a history. It lets browsers that are still loading the previous
+publish finish without their files being overwritten.
 
-## Overrides
+## View a preview
 
-Columbus can apply a current PR/MR app or host preview to a deployed host. Local,
-preview, other-release, disabled, reset, tab-only, and all-tabs override behavior
-remains available. A broken override does not replace the stored deployment.
+Reviewers open a deployed host page, such as staging, select the host or app in
+[Columbus](columbus.md), and choose the preview under **PR Preview**. The
+override applies only in their browser. A broken preview does not change the
+deployment, and reviewers can clear it at any time.
 
-## Close or merge cleanup
+## Clean up previews
 
-The close/merge job removes its explicit artifact preview:
+When a PR closes or merges, remove its preview:
 
-```bash
+```sh
 npx atlas remove-preview orders --pr 123
-npx atlas remove-preview orders --mr 123
 ```
 
-Removal is artifact-scoped and never performs broad bucket deletion.
+`remove-preview` removes the preview from `registry.json` for that one artifact.
+It does not delete files.
 
-Use scheduled reconciliation when close events can be missed:
+To remove previews whose close event you missed, and to delete old files, run
+`prune-previews` on a schedule:
 
-```bash
+```sh
 npx atlas prune-previews --state-file open-previews.json
 ```
 
-The state file is provider-neutral and authoritative:
+The state file lists every artifact to check and its open preview numbers:
 
 ```json
 {
@@ -120,19 +148,26 @@ The state file is provider-neutral and authoritative:
 }
 ```
 
-Atlas refuses incomplete, duplicate, or unsafe scopes. Each entry uses stable
-artifact ID, preventing PR number collisions across repositories. Cleanup only
-touches declared artifact prefixes. It removes registry selections not in that
-artifact's set, then removes unreferenced digest generations older than 24
-hours. A custom SCM integration may generate same authoritative state file.
+For each listed artifact, `prune-previews`:
+
+1. removes every preview from `registry.json` whose number is not in
+   `openPreviews`;
+2. deletes preview files that `registry.json` no longer references and that are
+   older than 24 hours.
+
+It only touches the artifacts in the file, identified by stable ID, so PR numbers
+from different repositories never collide. Atlas rejects a file that is not
+marked `complete`, lists an artifact twice, or has invalid preview numbers. Your
+CI job or source-control integration generates this file.
 
 ## CI examples
 
-Commands remain identical across tools:
+The Atlas commands are the same in every CI system. Only the way you pass the PR
+number and head SHA changes.
 
 ```groovy
 // Jenkins
-sh 'npm run build -- orders'
+sh 'npm run build --workspace=orders'
 withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
   withEnv(['GITHUB_REPOSITORY=company/orders']) {
     sh 'npx atlas publish orders --pr "$CHANGE_ID" --git-sha "$GIT_COMMIT"'
@@ -142,7 +177,7 @@ withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOK
 
 ```yaml
 # GitHub Actions
-- run: npm run build -- orders
+- run: npm run build --workspace=orders
 - run: npx atlas publish orders --pr "$PR_NUMBER" --git-sha "$HEAD_SHA"
   env:
     PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -153,11 +188,12 @@ withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOK
 ```yaml
 # GitLab CI
 script:
-  - npm run build -- orders
+  - npm run build --workspace=orders
   - npx atlas publish orders --mr "$CI_MERGE_REQUEST_IID" --git-sha "$CI_COMMIT_SHA"
 ```
 
-CI maps its event values into explicit Atlas arguments. Atlas does not change
-command behavior based on Jenkins, GitHub Actions, GitLab CI, or another
-orchestrator; source-control variables only select and authenticate stale-head
-verification.
+## Next steps
+
+- [Columbus](columbus.md)
+- [Workspaces and CI](workspaces-and-ci.md)
+- [Production deployment](../deploy/production-deployment.md)

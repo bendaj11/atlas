@@ -1,60 +1,63 @@
-# Angular Project Guide
+---
+title: Angular project structure
+description: See which files in a generated Angular host or app you edit, which Atlas owns, and where to go for each task.
+---
 
-Audience: Angular host and app developers who completed
-[Get Started](../../get-started/tutorial.md). This guide identifies generated Angular
-boundaries and routes each task to its detailed guide.
+# Angular project structure
 
-## Choose Your Role
+This page maps the files in a generated Angular host and app to their owners, and points you to the guide for each task. It is for Angular developers who completed the [tutorial](../../get-started/tutorial.md).
 
-- Host team: [Build an Angular host client](host.md)
-- App team: [Build an Angular app](app.md)
+Hosts and apps are normal Angular projects: you use Angular components, dependency injection, Router, styles, and tests as usual. Atlas owns discovery, loading, and the mount lifecycle.
 
-Both roles use normal Angular components, dependency injection, router, styles,
-and tests. Atlas owns cross-application discovery and mount lifecycle.
+## Host files
 
-## Host Files
+| File                       | Responsibility                                                          | Do you edit it?                    |
+| -------------------------- | ----------------------------------------------------------------------- | ---------------------------------- |
+| `atlas.config.ts`          | Host UUID and display name                                              | Rarely. Never change the UUID.     |
+| `atlas.bootstrap.html`     | Template for the static entry page                                      | To brand the loading page          |
+| `src/app/app.component.ts` | Page layout and host anchors                                            | Yes                                |
+| `src/app/app.config.ts`    | Angular providers                                                       | Yes                                |
+| `src/app/host.config.ts`   | Host SDK capabilities, renderers, and monitoring                        | Yes                                |
+| `src/bootstrap.ts`         | Host `mount` function, exposed as `./host`                              | Rarely                             |
+| `src/main.ts`              | Placeholder browser entry; Atlas never runs the host from it            | No                                 |
+| `federation.config.mjs`    | Native Federation exposes and shared dependencies (`.js` on Angular 19) | Only to add options such as `skip` |
+| `dist/bootstrap/`          | Static entry page created by `npx atlas bootstrap`                      | No. Regenerate it with the CLI.    |
 
-| File                       | Responsibility                                                 | Edit normally?                    |
-| -------------------------- | -------------------------------------------------------------- | --------------------------------- |
-| `src/main.ts`              | Framework-only development entry                               | Rarely                            |
-| `src/bootstrap.ts`         | Atlas `mount` lifecycle exported as `./host`                   | Rarely                            |
-| `src/app/app.config.ts`    | Angular providers, router, and zoneless configuration          | Yes                               |
-| `src/app/host.config.ts`   | Auth, HTTP, SDK services, monitoring                           | Yes                               |
-| `src/app/app.component.ts` | Main page layout, navigation, status, page areas, and App area | Yes                               |
-| `federation.config.js`     | Native Federation expose and shared dependency wiring          | Preserve generated Atlas sections |
-| `dist/bootstrap/`          | Generated static product-domain entry                          | Regenerate through CLI            |
+The host receives the selected catalog in its mount request. Do not fetch or choose catalog versions in Angular code.
 
-Host client receives selected catalog in its mount request. Do not fetch or
-choose catalog versions from Angular application code.
+## App files
 
-## App Files
+| File                    | Responsibility                                                               | Do you edit it?                   |
+| ----------------------- | ---------------------------------------------------------------------------- | --------------------------------- |
+| `atlas.config.ts`       | App UUID, routes, slots, and other app settings                              | When the app's placement changes  |
+| `src/entry.ts`          | Atlas lifecycle (`mount` and `unmount`), exposed as `./entry`                | Rarely                            |
+| `src/main.ts`           | Angular browser entry; runs `initFederation()` and re-exports `src/entry.ts` | No                                |
+| `src/app/app.config.ts` | `createAppConfig()` with `provideAtlasApp()` and the router                  | Yes                               |
+| `src/app/app.routes.ts` | Inner routes below the app's mount path                                      | Yes                               |
+| `src/app/`              | Feature components and services                                              | Yes                               |
+| `src/exported-widgets/` | Widgets, each with `atlas.config.ts`, `index.ts`, and `widget.config.ts`     | Yes                               |
+| `public/`               | Static files copied to the build output                                      | Yes                               |
+| `package.json`          | `atlas.previews` host pages for local development                            | When your local host pages change |
 
-| File                    | Responsibility                                                  | Edit normally?            |
-| ----------------------- | --------------------------------------------------------------- | ------------------------- |
-| `src/main.ts`           | Angular entry and Atlas `mount` lifecycle exported as `./entry` | Rarely                    |
-| `src/app/app.config.ts` | Angular and Atlas providers                                     | Yes                       |
-| `src/app/app.routes.ts` | Inner Angular routes scoped below assigned Atlas path           | Yes                       |
-| `src/app/`              | Feature components and services                                 | Yes                       |
-| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts`    | Yes                       |
-| `atlas.config.ts`       | App identity, routes, slots, external app dependencies          | When contract changes     |
-| `package.json`          | Development `atlas.previews` host pages                         | When local targets change |
+Apps reach host services with `injectAtlasSdk()`. They never import host source code or depend on host implementation details.
 
-Apps obtain host services with `injectAtlasSdk()`. They must not import host
-source or assume host implementation details.
+See [Angular generators](generators.md) for the complete list of generated files.
 
-## Task Guides
+## Task guides
 
-| Task                                                  | Guide                                                     |
-| ----------------------------------------------------- | --------------------------------------------------------- |
-| Configure top-level and inner routes                  | [Angular routing](routing.md)                             |
-| Use HTTP, events, navigation, overlays, and host data | [Angular SDK](sdk.md)                                     |
-| Package images, fonts, and CSS                        | [Angular assets and styles](assets-and-styles.md)         |
-| Generate projects or widgets                          | [Angular generators](generators.md)                       |
-| Inspect working projects                              | [Angular examples](examples.md)                           |
-| Build and release Angular artifacts                   | [Angular production deployment](production-deployment.md) |
-| Diagnose loading or routing failure                   | [Angular troubleshooting](troubleshooting.md)             |
+| Task                                              | Guide                                                     |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| Build the host layout and services                | [Build an Angular host](host.md)                          |
+| Build a feature app                               | [Build an Angular app](app.md)                            |
+| Configure host routes, layouts, and inner routes  | [Angular routing](routing.md)                             |
+| Use host services, host data, events, and widgets | [Angular SDK](sdk.md)                                     |
+| Package images, fonts, and CSS                    | [Angular assets and styles](assets-and-styles.md)         |
+| Generate projects or widgets                      | [Angular generators](generators.md)                       |
+| Study working projects                            | [Angular examples](examples.md)                           |
+| Build and publish Angular artifacts               | [Angular production deployment](production-deployment.md) |
+| Diagnose Angular-specific failures                | [Angular troubleshooting](troubleshooting.md)             |
 
-Use [Angular production deployment](production-deployment.md) for framework
-build output and checkpoints. It links to canonical
-[Production deployment](../../deploy/production-deployment.md) for storage, CI,
-verification, and rollback.
+## Next steps
+
+- [Build an Angular host](host.md)
+- [Build an Angular app](app.md)

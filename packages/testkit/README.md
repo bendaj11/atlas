@@ -1,19 +1,24 @@
 # @atlas/testkit
 
-Fixtures and in-memory utilities for testing Atlas hosts, manifests, and apps.
+Test helpers for Atlas hosts and apps: a mock Atlas environment for unit tests, memory navigation, and manifest builders. Install it as a development dependency; never ship it in a production bundle.
 
-Audience: host/app test authors. Install as development dependency; never ship
-testkit in production bundle.
+## Install
+
+The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first, then install:
 
 ```sh
-# Choose one:
 npm install --save-dev @atlas/testkit
-pnpm add --save-dev @atlas/testkit
-yarn add --dev @atlas/testkit
 ```
 
-Use `mockAtlasEnvironment` for app unit tests, with
-`provideMockAtlasEnvironment` from `@atlas/testkit/angular` or
-`MockAtlasEnvironmentProvider` from `@atlas/testkit/react`. Use `anAppManifest`
-for host mount tests. These replace host/runtime boundary, not framework component test
-tools. See [Consumer testing](https://github.com/bendaj11/atlas/blob/main/docs/guides/testing-apps-and-hosts.md).
+## Entry points
+
+| Entry point              | Use                                                                 |
+| ------------------------ | ------------------------------------------------------------------- |
+| `@atlas/testkit`         | `mockAtlasEnvironment`, `createMemoryNavigation`, manifest builders |
+| `@atlas/testkit/react`   | `MockAtlasEnvironmentProvider` for React tests                      |
+| `@atlas/testkit/angular` | `provideMockAtlasEnvironment` for Angular tests                     |
+
+## Documentation
+
+- [Testing apps and hosts](https://github.com/bendaj11/atlas/blob/main/docs/guides/testing-apps-and-hosts.md)
+- [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md#atlastestkit)

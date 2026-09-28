@@ -1,7 +1,13 @@
+---
+title: Releasing Atlas packages
+description: Learn how maintainers version, verify, bundle, and publish the Atlas package set.
+---
+
 # Releasing Atlas packages
 
-These commands are for maintainers of the Atlas source repository, which uses
-pnpm. They do not require Atlas consumers to use pnpm.
+This page explains how to release the Atlas npm packages. It is for maintainers of the Atlas source repository, which uses pnpm; Atlas consumers do not need pnpm.
+
+## The release set
 
 Atlas publishes seven packages as one compatible release set:
 
@@ -13,65 +19,48 @@ Atlas publishes seven packages as one compatible release set:
 - `@atlas/testkit`
 - `@atlas/cli`
 
-They intentionally use the same version. Runtime packages pin other Atlas packages to that exact version, while generated applications use a compatible caret range.
+All seven packages always share the same version. In the repository, packages depend on each other with `workspace:^`. In the published tarballs, those dependencies become the caret range of the release version, for example `^0.5.7`, and generated projects use a compatible caret range as well.
 
-## Columbus extension policy
+## Columbus is released separately
 
-Columbus is not part of the Atlas package release set. It is a separately
-versioned and distributed Chrome extension, so its version must not be aligned
-with an Atlas package version merely because both changed in the same commit.
+Columbus is not part of the Atlas package release set. It is a separately versioned Chrome extension, so do not align its version with an Atlas package version only because both changed in the same commit.
 
-`pnpm release` and `pnpm release --verify` update and validate only the seven
-Atlas packages. They do not change Columbus's `package.json` or Chrome
-`manifest.json` version, and the Atlas release bundle does not contain a
-Columbus artifact.
+`pnpm release` and `pnpm release --verify` update and validate only the seven Atlas packages. They do not change the version in the Columbus `package.json` or Chrome `manifest.json`, and the Atlas release bundle does not contain a Columbus artifact.
 
-When Columbus changes, bump its Chrome manifest version, build its extension
-artifact, and distribute it through the extension's release channel. A
-Columbus release must state and test its supported Atlas version range; equal
-version numbers do not establish compatibility.
+When Columbus changes, bump its Chrome manifest version, build the extension, and distribute it through the extension's release channel. A Columbus release must state and test the Atlas versions it supports, because equal version numbers do not prove compatibility.
 
 ## Prepare a release
 
-Prepare the next version interactively:
+1. From the repository root, prepare the next version:
 
-```sh
-pnpm release
-```
+   ```sh
+   pnpm release
+   ```
 
-Select `patch`, `minor`, or `major`. For scripts and other non-interactive
-environments, pass the release type explicitly:
+   In an interactive terminal, the command asks you to choose `patch`, `minor`, or `major`. In scripts and other non-interactive environments, pass the release type or an exact version:
 
-```sh
-pnpm release patch
-```
+   ```sh
+   pnpm release patch
+   pnpm release 0.6.0
+   ```
 
-The command calculates and propagates the next version, builds verified package
-archives, and creates `dist/release`. It does not commit, push, or publish. CI
-can build an already-versioned tag without changing files:
+   The command updates the root `package.json`, every public package, and the Atlas version that generators emit. It then runs `pnpm pack:verify` and creates the release bundle in `dist/release`. It does not commit, push, or publish.
+
+   > **Expected result:** The terminal prints `Prepared Atlas <version>. Update the changelog, commit, and tag v<version>.`, and `dist/release` contains seven tarballs, `SHA256SUMS`, and `release.json`.
+
+2. Review the changes, and move the relevant entries from `Unreleased` in `CHANGELOG.md` to a new section for the version.
+
+3. Commit the changes, and tag the reviewed commit as `v<version>`. The tag must match the package version exactly.
+
+4. Push the tag. The Release bundle workflow in `.github/workflows/release.yml` repeats type checking, linting, unit tests, generated-project verification, and the browser end-to-end tests. It then runs `pnpm release --verify`, uploads `dist/release` as a workflow artifact, and attaches the bundle to the GitHub release for the tag. Rerunning the workflow for the same tag replaces the existing release assets with the newly verified bundle.
+
+To rebuild the bundle for an already versioned commit without changing any files, run:
 
 ```sh
 pnpm release --verify
 ```
 
-For an exact version, pass it directly: `pnpm release 0.2.0`.
-
-The release command updates the root manifest, every public package, internal
-Atlas dependency pins, and the version range emitted by generators. Tests
-remain separate test and CI commands.
-
-Review the changes, move the relevant entries from `Unreleased` in the changelog
-to a section for the new version, and tag the reviewed commit as `v<version>`.
-The tag must exactly match the package version.
-
-`pnpm release` creates `dist/release` with the seven verified tarballs,
-`SHA256SUMS`, and `release.json`. Release CI preserves this exact directory as
-an artifact and attaches it to the tag's GitHub release. Publishing automation must consume that artifact instead of
-rebuilding packages from the tag. Package order is schema, SDK, runtime,
-bootstrap, generators, testkit, then CLI.
-Rerunning the tag workflow replaces existing GitHub release assets with the newly verified bundle.
-
-## Publishing policy
+## Publish the packages
 
 Publish the complete package set with one command:
 
@@ -79,41 +68,46 @@ Publish the complete package set with one command:
 pnpm release:publish
 ```
 
-The command verifies the release bundle, validates every SHA-256
-digest, and publishes packages in dependency order. Existing immutable
-versions are skipped. Use `--dry-run` to validate without uploading.
+By default, the command first runs `pnpm release --verify` to rebuild `dist/release`. It then checks the release manifest and every SHA-256 digest, and it publishes the packages in dependency order: schema, SDK, runtime, bootstrap, generators, testkit, and then CLI. Versions that already exist in the registry are skipped.
 
-Registry URLs, scoped registries, authentication, proxies, and custom
-certificate authorities come from normal pnpm configuration, including the
-workspace or user `.npmrc`. `--registry`, `--tag`, `--access`, `--otp`, and
-`--provenance` are optional command-line overrides:
+The command accepts these options:
+
+| Option             | Effect                                                                   |
+| ------------------ | ------------------------------------------------------------------------ |
+| `--skip-build`     | Publishes the existing `dist/release` bundle instead of rebuilding it    |
+| `--dry-run`        | Validates the bundle and runs `pnpm publish --dry-run` without uploading |
+| `--registry <url>` | Overrides the registry URL                                               |
+| `--tag <tag>`      | Sets the npm distribution tag                                            |
+| `--access <value>` | Sets `public` or `restricted` access                                     |
+| `--otp <code>`     | Passes a one-time password                                               |
+| `--provenance`     | Publishes with provenance                                                |
+
+Publishing automation should download the verified bundle from the tag's GitHub release into `dist/release` and run `pnpm release:publish --skip-build`, so the published tarballs are exactly the ones that CI verified.
+
+Registry URLs, scoped registries, authentication, proxies, and custom certificate authorities come from the normal pnpm configuration, including the workspace or user `.npmrc`. For example:
 
 ```sh
-pnpm release:publish --registry https://registry.example.com --access restricted
+pnpm release:publish --skip-build --registry https://registry.example.com --access restricted
 ```
 
-Do not commit authentication tokens. Prefer `pnpm login`, a user-level
-`.npmrc`, or CI secret configuration. Registries differ on scoped-package
-visibility, so configure `access=public` only when the target requires it.
+> **Warning:** Never commit authentication tokens or store them in source files. Prefer `pnpm login`, a user-level `.npmrc`, or CI secrets. For npmjs.org, use trusted publishing or a short-lived token, require approval through a protected environment, and publish with `--provenance`.
 
-Atlas is released under the MIT License. Every package tarball includes the
-license text, and package verification rejects different license metadata.
-
-The tag workflow remains available for immutable GitHub release artifacts. It
-repeats type checking, unit tests, clean-room generator verification, and
-browser E2E tests before creating the release artifact.
-
-For npmjs.org, use trusted publishing or a short-lived token, require approval through a protected environment, and publish with provenance. Never store a registry token in source files.
+Registries differ in how they treat scoped-package visibility, so configure `access=public` only when the target registry requires it.
 
 ## Package checks
 
-`pnpm pack:verify` rejects:
+Atlas is released under the MIT License. `pnpm pack:verify` builds and packs every public package, and it fails when any of the following is true:
 
-- a package missing its JavaScript or TypeScript entry point;
-- internal Atlas dependencies pointing at another release;
-- a generator that emits a different Atlas version;
-- incomplete package metadata or package contents.
-- missing or incorrect MIT license metadata and text.
-- source maps in public package tarballs.
+- A package name, version, or description is missing or unexpected.
+- A package version differs from the version that the generators emit.
+- A package does not declare `main`, `types`, `exports`, and `files`, or a declared entry point is absent from its tarball.
+- An internal Atlas dependency is not declared as `workspace:^`, or is not published as the caret range of the release version.
+- The license metadata is not `MIT`, or the tarball does not contain the repository license text.
+- The tarball contains source maps.
 
-The static app registry and CDN publication flow is separate. Releasing Atlas packages does not upload consumer app assets or catalogs.
+The static app registry and CDN publication flow is separate from package releases. Releasing Atlas packages does not upload any consumer app assets or catalogs.
+
+## Related
+
+- [Testing](testing.md)
+- [Compatibility](../docs/reference/compatibility.md)

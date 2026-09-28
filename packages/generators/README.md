@@ -1,13 +1,19 @@
 # @atlas/generators
 
-Project templates used by `@atlas/cli` to generate React and Angular Atlas hosts and apps.
+The host, app, and exported widget templates behind `npx atlas generate`. It is an internal building block of `@atlas/cli`.
 
-Most applications should install `@atlas/cli` rather than invoke this package directly.
+## Install
 
-Audience: Atlas maintainers extending scaffolds. Generated project users should
-run `atlas g host`, `atlas g app`, or `atlas g widget` through CLI. Generator
-owns lifecycle/federation wiring; product teams own components, routes, styles,
-tests, and `atlas.config.ts`. See [Generators](https://github.com/bendaj11/atlas/blob/main/docs/reference/cli.md).
+Do not install this package directly. Install `@atlas/cli`, which depends on it, and run the generators through the CLI:
 
-Host generation returns framework host files through `generateHostFiles`.
-Static deployment files belong to Atlas CLI and `@atlas/bootstrap`.
+```sh
+npx atlas g host shop-host --framework angular
+npx atlas g app orders --framework angular
+npx atlas g widget order-summary --app-id <app-uuid>
+```
+
+## Documentation
+
+- [CLI reference: generate](https://github.com/bendaj11/atlas/blob/main/docs/reference/cli.md#generate)
+- [React generators](https://github.com/bendaj11/atlas/blob/main/docs/guides/react/generators.md)
+- [Angular generators](https://github.com/bendaj11/atlas/blob/main/docs/guides/angular/generators.md)

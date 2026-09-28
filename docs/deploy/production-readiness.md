@@ -1,209 +1,170 @@
-# Production Readiness
+---
+title: Production readiness
+description: A release-gate checklist for Atlas hosts and apps, including verification, monitoring with runtime events, and rollback rehearsal.
+---
 
-Audience: release approver. Prerequisites: deployed bootstrap, public registry,
-published host client/app, and public host URL. This is a gate, not setup tutorial;
-use [Production deployment](production-deployment.md) first.
+# Production readiness
 
-Use this checklist before an Atlas host or app receives production traffic.
-Complete it once for the platform, then repeat release-specific checks for every
-app version.
+Use this checklist before an Atlas host or app receives production traffic. It is for the release approver and assumes you have already completed [Production deployment](production-deployment.md) in a staging environment.
 
-Baseline review covers owners, host behavior, registry/CDN configuration, and
-security controls. Repeat app, publication, verification, and warning review for
-every release. Repeat rollback rehearsal after delivery-process changes and on
-your incident-readiness schedule.
+Complete the platform sections once, then repeat the app, verification, and smoke-test sections for every release. Rehearse rollback after any change to the delivery process.
 
-Atlas verifies deployed files and policies it can observe over HTTP. Your team
-still owns authentication, storage permissions, monitoring, release approval,
-and incident response.
+Atlas verifies the files and headers it can observe over HTTP. Your team still owns authentication, storage permissions, monitoring, release approval, and incident response.
 
-## Assign Owners
+## Assign owners
 
-Name an owner for each domain before release:
+Name an owner for each area before release:
 
-| Domain     | Owner is responsible for                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------- |
-| Host       | Page shell, auth, layout anchors, host services, deep links, CSP, and runtime monitoring    |
-| App        | Feature behavior, inner routes, assets, SDK usage, tests, and release identity              |
-| Deployment | Registry locking, upload order, cache policy, CORS, verification, rollback, and audit trail |
+| Area       | Owner is responsible for                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| Host       | Page shell, authentication, host anchors, host SDK services, deep links, CSP, and monitoring. |
+| App        | Feature behavior, inner routes, assets, SDK usage, tests, and release versions.               |
+| Deployment | Storage permissions, publication lock, cache policy, CORS, verification, rollback, and audit. |
 
-## Host Checklist
+## Host checklist
 
-- [ ] Production serves `/atlas.runtime.json` as JSON with `no-cache`.
-- [ ] Runtime config `hostId` matches app route and slot declarations.
-- [ ] Runtime config selects intended production environment and registries.
-- [ ] Active host manifest points to intended immutable releases.
-- [ ] Both registries, referenced manifests, and assets permit host origin
-      through CORS.
-- [ ] Host layout retains route, navigation, status, and required slot anchors.
-- [ ] Host returns `index.html` for browser navigation routes such as
-      `/orders/42`, but never rewrites missing Atlas JSON, JavaScript, stylesheet,
-      or CDN assets to `index.html`.
-- [ ] Real auth, HTTP, modal, toast, host data, and monitoring providers replace
-      generated placeholders.
-- [ ] Loading and failure UI is usable and accessible.
-- [ ] Runtime observation events reach production monitoring without breaking
-      host execution when monitoring fails.
+- [ ] The host origin serves `/atlas.runtime.json` as JSON with `Cache-Control: no-cache`.
+- [ ] The runtime config `hostId` matches the host's `atlas.config.ts`, and `environment` names the intended environment.
+- [ ] `artifactRegistryUrl` (and `environmentRegistryUrl`, if set) point at the production registries.
+- [ ] The host layout keeps the route outlet, status, and every slot that apps target. See [host anchors](../concepts/host-anchors.md).
+- [ ] Browser navigation routes such as `/orders/42` return `index.html`, but missing `.js`, `.json`, and `.css` files return `404`.
+- [ ] Real authentication, HTTP, host data, and monitoring providers replace any generated placeholders.
+- [ ] Loading and failure states are usable and accessible.
+- [ ] The host passes an `observe` callback and runtime events reach monitoring. See [Monitor the runtime](#monitor-the-runtime).
 
-## App Checklist
+## App checklist
 
-- [ ] `atlas.config.ts` uses a stable app id and the correct framework.
-- [ ] Every route and slot names an approved host id and existing host anchor.
-- [ ] Route paths do not conflict with another selected app.
-- [ ] Inner routes stay scoped to the app's assigned path.
-- [ ] Cross-app navigation uses the Atlas SDK.
-- [ ] Host-dependent behavior uses typed SDK contracts instead of importing host
-      source.
+- [ ] `atlas.config.ts` has a stable app `id` and the correct framework.
+- [ ] Every route and slot names an approved host ID and an existing host anchor.
+- [ ] No route path conflicts with another app deployed to the same host. See [Governance](governance.md#route-and-slot-ownership).
+- [ ] Inner routes stay inside the app's assigned path, and cross-app navigation uses the SDK.
+- [ ] Host-dependent behavior uses typed SDK contracts instead of importing host source.
 - [ ] Asset URLs are imports or relative URLs, not host-root `/assets/...` URLs.
-- [ ] Framework tests cover useful success, empty, loading, and failure states.
-- [ ] Integration testing covers the app inside a real host.
-- [ ] Explicit release version is correct, and its canonical manifest digest
-      identifies the expected immutable bytes and HTTP metadata.
-- [ ] CI uses a project-pinned `@atlas/cli` version and committed lockfile, not a
-      floating global CLI.
+- [ ] Tests cover success, empty, loading, and failure states, and integration tests run the app inside a real host. See [Testing apps and hosts](../guides/testing-apps-and-hosts.md).
+- [ ] CI uses the project's pinned `@atlas/cli` and a committed lockfile.
 
-## Registry And CDN Checklist
+## Registry and CDN checklist
 
-- [ ] Protected CI identity is the only publisher.
-- [ ] Multi-file publication holds an expiring, renewable deployment lease from
-      its live registry read through public verification. A lock-free provider
-      transaction is acceptable only when it atomically protects the entire
-      mutable set; single-object compare-and-swap is insufficient.
-- [ ] Lease ownership is checked before mutable replacement and after verification.
-- [ ] Publish creates immutable host/app bytes and canonical manifests before
-      adding their compact descriptors to `registry.json`.
-- [ ] Deploy commits desired environment state to `registry.json`, then converges
-      each affected environment-qualified active host manifest.
-- [ ] Existing release-version paths are conditionally created and never overwritten.
-- [ ] Publisher reads and HEADs stored objects to verify SHA-256, MIME, and cache policy.
-- [ ] Immutable assets use long-lived immutable caching.
-- [ ] Discovery, `registry.json`, and active host manifests revalidate or
-      receive explicit CDN invalidation.
-- [ ] `remoteEntry.json` uses `application/json`.
-- [ ] JavaScript modules use `text/javascript` or `application/javascript`.
-- [ ] Approved host origins can `GET` and `HEAD` required remote files through
-      CORS.
-- [ ] Missing JSON and JavaScript return an error instead of host `index.html`.
-- [ ] HTTPS is used for all production host, registry, manifest, and asset URLs.
-- [ ] New selection is exercised through a staging or canary environment before
-      production activation. If that is impossible, release plan documents the
-      exposure window and automatic recovery path.
+- [ ] Only protected CI identities can write to registry storage.
+- [ ] Every publish, deploy, and preview cleanup job uses the Atlas publication lock. For Artifactory, every writer runs inside the shared external lock described in [Publish with Artifactory](artifactory.md).
+- [ ] Release paths (`apps/<id>/<version>/**`, `hosts/<id>/<version>/**`) are served with `Cache-Control: public, max-age=31536000, immutable`.
+- [ ] `registry.json` and `environments/**` are served with `Cache-Control: no-cache, max-age=0, must-revalidate`, or your CDN invalidates them after each publish and deploy.
+- [ ] JSON is served as `application/json`, JavaScript as `text/javascript`, and CSS as `text/css`.
+- [ ] Every registry file allows the host origin through CORS for `GET` and `HEAD`.
+- [ ] Missing registry files return an error, never the host's `index.html`.
+- [ ] All host, registry, and asset URLs use HTTPS.
+- [ ] New releases run in staging before production. If that is impossible, the release plan states the exposure window and the recovery path.
 
-See [Static registry](../reference/registry.md) for revision and concurrency rules and
-[Production deployment](production-deployment.md) for workspace-native publication flow.
+Publish writes release files first and then adds them to `registry.json`. Deploy writes `environments/<environment>/deployment.json` and then each affected `environments/<environment>/hosts/<host-id>/manifest.json`. Deploy never writes `registry.json` or copies release files. See the [registry reference](../reference/registry.md).
 
-## Security Checklist
+## Security checklist
 
-- [ ] Host CSP permits only approved remote script and connection origins.
-- [ ] Publication credentials are absent from source, generated output, and
-      browser code.
-- [ ] Dependency, secret, and static-analysis checks meet organization policy.
-- [ ] Build artifacts and manifests have an auditable relationship to reviewed
-      source.
-- [ ] Team understands that Atlas apps share the host page; they are not isolated
-      by cross-origin iframes.
-- [ ] Access to publish assets/manifests or change deployment selections is
-      treated as production-code access.
+- [ ] The host CSP follows the [reference policy](bootstrap.md#write-a-content-security-policy) and was tested in report-only mode.
+- [ ] The team has decided whether production CSP allows loopback sources for [Columbus overrides](security.md#columbus-overrides-in-production).
+- [ ] Storage credentials are absent from source, build output, and browser files.
+- [ ] Dependency, secret, and static-analysis checks meet your organization's policy.
+- [ ] Every published release can be traced to reviewed source.
+- [ ] The team understands that apps share the host page and are not isolated like cross-origin iframes.
+- [ ] Permission to publish or deploy is granted and reviewed as production code access.
 
-Read [security](security.md) before approving a new registry origin or publisher.
+## Verify the release
 
-## Release Verification
-
-`atlas verify` checks bootstrap metadata, host discovery, the active host deployment manifest,
-referenced canonical manifest shapes, one-version-per-app selection, route
-conflicts, external app dependencies, remote entries, federation expose files,
-stylesheets, CORS, MIME types, cache headers, and declared SHA-256 integrity.
-Cache and missing-integrity findings can be warnings, so read the full report
-instead of checking only the exit code.
-
-It cannot prove browser rendering, authentication, SDK behavior, CSP enforcement,
-storage permissions, publisher identity, atomic uploads, monitoring, accessibility,
-or incident readiness. Test those separately below.
-
-Run verification against the public host URL after CDN publication:
-
-Commands below assume the current project contains the approved, pinned
-`@atlas/cli` dependency and dependencies were installed from its lockfile.
+Run verification against the public host after the CDN serves the new deployment:
 
 ```sh
-npm exec --package=@atlas/cli -- atlas verify \
-  --host-url=https://customer.example
+npx atlas verify --host-url https://customer.example.com
 ```
 
-Then complete browser smoke tests:
+`atlas verify` checks the runtime config, the host deployment manifest, referenced artifact manifests, route conflicts, remote entries, federation exposes, stylesheets, CORS, MIME types, cache headers, and declared SHA-256 integrity. Cache and missing-integrity findings are warnings, so read the whole report instead of checking only the exit code.
 
-- [ ] Report contains no failures. Every warning other than missing production
-      integrity is fixed or accepted by the final approver and a named risk owner
-      with an expiry.
-- [ ] Production manifests declare SHA-256 integrity for the remote entry and
-      every stylesheet that supports integrity metadata; no missing-integrity
-      warning remains.
-- [ ] Host root loads without console errors.
-- [ ] App base route loads the selected version.
-- [ ] Nested route survives a full-page refresh.
+It cannot prove rendering, authentication, SDK behavior, CSP enforcement, storage permissions, or accessibility. Cover those with the smoke tests below.
+
+- [ ] The report contains no failures.
+- [ ] Every warning is fixed, or accepted by the release approver with a named risk owner and an expiry date.
+- [ ] Production manifests declare SHA-256 integrity; no missing-integrity warning remains.
+
+## Run browser smoke tests
+
+- [ ] The host root loads without console errors.
+- [ ] Each app's base route loads the selected version.
+- [ ] A nested route survives a full-page refresh.
 - [ ] Critical images, styles, and lazy chunks load.
-- [ ] Product APIs and other host SDK services work.
-- [ ] Loading, timeout, and failure UI behaves as designed.
-- [ ] Keyboard, focus, screen-reader, and automated accessibility checks cover
-      host navigation plus app loading, success, empty, and failure states.
-- [ ] Monitoring identifies environment, host id, app id, version, manifest
-      digest, placement, and failure stage.
+- [ ] Product APIs and host SDK services work.
+- [ ] Loading, timeout, and failure states behave as designed.
+- [ ] Keyboard, focus, screen reader, and automated accessibility checks cover host navigation and app states.
 
-## Rollback Rehearsal
+## Monitor the runtime
 
-Use the same protected target storage and registry as normal deployment. Atlas
-owns lease acquisition, conditional desired-state commit, host convergence,
-verification, and resumable failure reporting.
+The Atlas runtime reports diagnostics through an optional `observe` callback that the host provides. In a React host, return `observe` from `useSdkOptions`. In an Angular host, set `observe` in `sdkOptions`. Atlas ignores errors thrown by the callback, so a monitoring failure cannot break the host.
 
-Before selection, confirm the exact target version is complete, reachable,
-and compatible with current host and SDK contracts in staging or canary.
+```ts
+import type { AtlasRuntimeEvent } from '@atlas/runtime';
 
-Prepare an earlier published version:
-
-```sh
-APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
-
-npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
-  --to=production \
-  --version=1.3.2 \
-  --registry-url=https://cdn.example.com/atlas \
-  --dry-run
-
-# After reviewing dry-run paths, run real rollback with verification.
-npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
-  --to=production \
-  --version=1.3.2 \
-  --registry-url=https://cdn.example.com/atlas
-
-npm exec --package=@atlas/cli -- atlas verify \
-  --host-url=https://customer.example
+export function observeAtlas(event: AtlasRuntimeEvent): void {
+  navigator.sendBeacon(
+    '/telemetry/atlas',
+    JSON.stringify({ ...event, error: event.error?.message }),
+  );
+}
 ```
 
-- [ ] `APP_ID` is stable UUID from app `atlas.config.ts`.
-- [ ] Dry run resolves only the intended artifact and exact version.
-- [ ] Registry and active host revisions converge after rollback.
-- [ ] Built-in verification passes after rollback deployment.
-- [ ] Browser smoke tests confirm the older version.
-- [ ] On-call documentation names the decision maker and communication channel.
-- [ ] Team knows how to inspect and resume partial host convergence.
+The runtime emits these events. Every event has a `type` and an ISO `timestamp`.
 
-Rollback changes the target environment's registry selection and affected active
-host manifests. It does not rebuild an app, overwrite an immutable version, or
-redeploy the host platform.
+| Type                | Fields                                                                          | Emitted when                                                              |
+| ------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `host.start`        | `hostId`                                                                        | The host runtime starts.                                                  |
+| `host.ready`        | `hostId`, `durationMs`                                                          | The host runtime is ready.                                                |
+| `host.error`        | `hostId`, `durationMs`, `error`                                                 | The host runtime fails to start.                                          |
+| `operation.success` | `stage`, `attempt`, `maxAttempts`, `durationMs`, `resource`, `appId`, `version` | A runtime operation succeeds.                                             |
+| `operation.retry`   | Same as `operation.success`, plus `error`                                       | An operation failed and will be retried.                                  |
+| `operation.error`   | Same as `operation.success`, plus `error`                                       | An operation failed after its last attempt or with a non-retryable error. |
+| `app.state`         | `hostId`, `appId`, `version`, `placementId`, `state`, `error`                   | An app placement changes state.                                           |
 
-## Ready To Release
+`stage` is one of `manifest`, `integrity`, `federation-init`, `remote-module`, or `exported-widget`. `state` is one of `mounting`, `loading`, `mounted`, `error`, or `unmounted`.
 
-Release is ready when every applicable item has an owner and evidence, public
-verification passes, smoke tests pass, monitoring is visible, and rollback has
-been rehearsed in a production-like environment.
+Failures inside the bootstrap loader happen before the runtime exists, so they do not reach `observe`. The loader shows its startup error page and logs to the browser console. To capture them, add your error-monitoring script to the host's `atlas.bootstrap.html` template.
 
-Record evidence as links to CI runs, verification output, smoke-test results,
-monitoring views, security approval, and rollback rehearsal. Name the final
-release approver and document any waived item with its risk owner and expiry.
-Verification failures, absent publication concurrency protection, mutable-first
-upload, immutable-path overwrite, and missing production integrity are not
-waivable production conditions.
+Suggested alerts:
 
-For test boundaries and fixtures, see [consumer testing](../guides/testing-apps-and-hosts.md).
-For browser symptoms, use [Angular troubleshooting](../guides/angular/troubleshooting.md)
-or [React troubleshooting](../guides/react/troubleshooting.md).
+- **Host start failures.** Any rise in `host.error` events or startup error pages after a deploy. Page the host owner.
+- **App mount failures.** `app.state` events with `state: "error"`, grouped by `appId` and `version`. A spike right after a deploy points at that release; roll it back.
+- **Integrity failures.** Any `operation.error` with `stage: "integrity"`. Unless the error is a network failure, served bytes do not match their manifest, for example because a CDN transforms files. Investigate it as a possible security event.
+- **Registry or CDN degradation.** A rising rate of `operation.retry` events, grouped by `resource`.
+- **Startup regressions.** The 95th percentile of `durationMs` on `host.ready`, compared with the previous release.
+
+## Rehearse rollback
+
+Rehearse rollback in a production-like environment with the same storage and registry setup as production.
+
+1. Confirm that the older version you will roll back to is published and still compatible with the current host.
+2. Run a dry run and review the selection it prints.
+
+   ```sh
+   npx atlas deploy orders --to production --version 1.3.2 --dry-run
+   ```
+
+3. Roll back, then verify the host.
+
+   ```sh
+   npx atlas deploy orders --to production --version 1.3.2
+   npx atlas verify --host-url https://customer.example.com
+   ```
+
+   > **Expected result:** Verification passes and browser smoke tests show the older version.
+
+- [ ] The dry run resolved only the intended artifact and version.
+- [ ] Verification and smoke tests passed after the rollback.
+- [ ] On-call documentation names the decision maker and the communication channel.
+- [ ] The team knows how to rerun a deploy that failed partway. See [Recover from a failed deploy](production-deployment.md#recover-from-a-failed-deploy).
+
+## Ready to release
+
+A release is ready when every applicable item has an owner and evidence, verification and smoke tests pass, monitoring is visible, and rollback has been rehearsed.
+
+Record evidence as links to CI runs, verification output, smoke-test results, monitoring dashboards, security approval, and the rollback rehearsal. Name the release approver and document every waived item with its risk owner and expiry. Verification failures, missing publication locking, and missing production integrity cannot be waived.
+
+## Next steps
+
+- [Security](security.md): the trust model behind this checklist.
+- [Governance](governance.md): ownership and permissions across teams.
+- [Troubleshooting](../troubleshooting.md): diagnose browser and deployment symptoms.

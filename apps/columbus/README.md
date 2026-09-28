@@ -1,51 +1,91 @@
-# Atlas Columbus Extension
+# Columbus
 
-This Manifest V3 extension switches the app versions used by the Atlas host in the active tab. It does not modify host source code, Native Federation configuration, or CDN URLs.
+Columbus is the Atlas local development browser extension for Chrome. It lets you
+replace the deployed version of an Atlas host or app with a local build, a PR
+preview, or another published release, in your own browser only. It does not
+change host source code, federation configuration, the deployment, or the
+artifact registry.
 
-## Build And Install
+For usage, see the [Columbus guide](https://github.com/bendaj11/atlas/blob/main/docs/guides/columbus.md).
 
-```bash
-yarn workspace @atlas/columbus build
+## Build and install
+
+Columbus requires Chrome 111 or later. It is not published to npm. It is
+versioned and distributed separately from the `@atlas/*` packages.
+
+1. From the repository root, install dependencies and build the extension:
+
+   ```sh
+   pnpm install
+   pnpm --filter @atlas/columbus build
+   ```
+
+   The build writes the unpacked extension to `apps/columbus/dist`.
+
+2. Open `chrome://extensions`, turn on **Developer mode**, select **Load
+   unpacked**, and choose `apps/columbus/dist`.
+
+## Permissions
+
+Columbus requests the `activeTab`, `scripting`, `storage`, and `tabs`
+permissions, and host permissions only for `http://localhost/*` and
+`http://127.0.0.1/*`. It uses the loopback permissions to reach the `atlas dev`
+server, on port 4400 by default.
+
+It runs these content scripts:
+
+- On every `http` and `https` page, a development-session bridge that lets the
+  Atlas loader request local builds from Columbus, and a badge script that keeps
+  the override count on the toolbar icon current.
+- On `localhost` pages, a preview launcher that focuses an existing preview tab
+  when `atlas dev` opens the browser.
+
+Columbus does not execute remote JavaScript itself. The Atlas loader loads the
+selected versions and validates them. Local builds must use loopback URLs, and
+published versions must come from the host's registry origins.
+
+## Where overrides are stored
+
+- **All tabs:** in `chrome.storage.local`, keyed by host ID, and in the host
+  origin's `localStorage`.
+- **This tab:** in the host origin's `sessionStorage`. It takes precedence over an
+  **All tabs** override in that tab.
+
+The Atlas loader reads overrides from the page storage key
+`atlas.runtime-overrides`.
+
+## Published versions
+
+Columbus reads published releases and PR previews from
+`<artifactRegistryUrl>/registry.json`, where `artifactRegistryUrl` comes from the
+page's `/atlas.runtime.json`. If one artifact's versions cannot be loaded,
+Columbus shows a warning and keeps the rest usable.
+
+## Source layout
+
+- `src/components`: React components with their colocated tests and drivers.
+- `src/scripts`: browser entry points (background, badge, development session,
+  preview launcher), grouped by responsibility.
+- `src/utils`, `src/hooks`, `src/providers`: shared logic for the popup.
+- `src/types`: shared extension contracts and Chrome declarations.
+- `src/index.html`: the popup entry document.
+- `public/manifest.json`: the Manifest V3 extension manifest.
+
+## Tests
+
+Run the unit tests from the repository root:
+
+```sh
+pnpm --filter @atlas/columbus test
 ```
 
-Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/columbus/dist`.
-
-The extension requests `activeTab`, `scripting`, and `storage`. Columbus inspects the active Atlas host and writes explicit tab- or origin-scoped app and host selections to Atlas override storage. Atlas does not probe localhost unless an `atlas dev` preview URL explicitly requests a development session. No remote JavaScript is executed by the extension.
-
-Chrome 111 or newer is required because Columbus uses main-world static content scripts.
-
-## Source Layout
-
-- `src/components` contains React components, providers, feature hooks, and their colocated tests and drivers.
-- `src/scripts` contains browser entry points and domain scripts grouped by responsibility. A tested script owns a same-named folder containing its implementation, driver, and specs.
-- `src/types` contains shared extension contracts and Chrome declarations.
-- `src/index.html` is the Vite and extension UI entry document.
-- `src/styles` and `src/icons` contain UI styles and extension assets.
-
-## Use
-
-1. Open an Atlas host.
-2. Open the Atlas extension.
-3. Choose current production, previous production, PR, or local version for each app.
-4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
-5. Select **Save**. Columbus persists the selection, then reloads the host.
-
-Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For custom development, paste any HTTP or HTTPS base URL. Columbus derives `remoteEntry.json` from that URL. Remote origins must be permitted by host's Content Security Policy.
-
-All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
-
-Choosing the current production version creates an explicit production selection. With **All tabs**, it replaces the origin-wide selection. With **This tab**, it takes precedence over any all-tabs override in that tab.
-
-If one app version index is unavailable, the extension keeps the host usable, shows a warning, and still offers that app's production version. Local manifests are validated for structure, app identity, and host compatibility before they can be applied.
-
-## Verification
-
-`pnpm test:e2e` (suite in `examples/e2e/extension.specs.ts`) loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-URL workflows against the example Atlas deployment. Columbus has permanent loopback-only host permissions for local development discovery; all non-loopback page access still depends on the active tab and static content-script matches.
+`pnpm test:e2e` includes `examples/e2e/extension.specs.ts`, which loads the built
+extension in Playwright's Chromium and exercises published, PR, local, reset,
+all-tabs, this-tab, and invalid-URL workflows against the example deployment.
 
 ## Troubleshooting
 
-- **This page does not expose valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
-- **Host discovery has no binding for this page URL**: deploy the host with the
-  correct public `--host-url` so Columbus can resolve its environment.
-- **Custom URL is rejected**: use absolute HTTP or HTTPS URL without credentials, query parameters, or fragment.
-- **A version is disabled**: its manifest does not declare compatibility with the current host.
+- **No Atlas host found:** the page must serve a valid `/atlas.runtime.json`.
+- **Custom URL is rejected:** use the base URL of a running local development
+  server that serves `remoteEntry.json`.
+- **A version is disabled:** its manifest does not support the current host.

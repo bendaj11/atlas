@@ -1,71 +1,37 @@
-# `@atlas/cli`
+# @atlas/cli
 
-Atlas CLI publishes immutable artifacts, activates logical environments, supports
-local composition, builds static bootstrap files, and verifies deployments.
+The Atlas command-line interface. It generates hosts, apps, and exported widgets, runs them locally, publishes build output to a static registry, deploys releases to environments, creates the host bootstrap files, and verifies deployed hosts.
 
-## Commands
+## Install
 
-| Command                                                   | Purpose                                                    |
-| --------------------------------------------------------- | ---------------------------------------------------------- |
-| `atlas generate`                                          | Generate host, app, or widget                              |
-| `atlas dev`                                               | Run local composition and Columbus integration             |
-| `atlas publish <project> <selector>`                      | Publish existing build output                              |
-| `atlas deploy <artifact> --to <env> --version <selector>` | Activate one app/host without workspace                    |
-| `atlas remove-preview <artifact> <preview-selector>`      | Remove one preview selection                               |
-| `atlas prune-previews --state-file <file>`                | Reconcile preview selections                               |
-| `atlas bootstrap <host> --registry-url <url>`             | Create reusable static host startup files                  |
-| `atlas verify`                                            | Verify active manifest, artifacts, assets, and convergence |
+The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first, then install the CLI as a development dependency:
 
-Run `atlas <command> --help` for exact options.
-
-## Build, publish, deploy
-
-```bash
-npm run build -- orders
-npx atlas publish orders --version 1.4.0
-npx atlas deploy orders --to production --version 1.4.0
+```sh
+npm install --save-dev --save-exact @atlas/cli
 ```
 
-Publish consumes output and never runs the framework build. Deploy does not
-discover a workspace, load repository `.env` files, build, bootstrap, or publish.
-It resolves `<artifact>` from the registry by its published project/package name,
-stable UUID, or unique display name. Use the project/package name in CI.
+The CLI requires Node.js `^22.12.0` or `^24.0.0`.
 
-Version may be an exact release, `latest`, or source environment name. Versions
-are opaque consumer values; Atlas does not infer package versions or CI tags.
+## Example
 
-## Storage
+```sh
+npx atlas g host shop-host --framework react
+npx atlas g app orders --framework react
+npx atlas dev shop-host
 
-```bash
-export ATLAS_REGISTRY_URL=https://assets.example.com/atlas
-export ATLAS_STORAGE_API_URL=https://s3.example.com
-export ATLAS_S3_BUCKET=atlas
-export ATLAS_STORAGE_KEY_PREFIX=platform
-export ATLAS_S3_REGION=us-east-1
+npx atlas publish orders --version 1.4.0 --registry-url https://assets.example.com/atlas
+npx atlas deploy orders --to production --version 1.4.0 --registry-url https://assets.example.com/atlas
+npx atlas bootstrap shop-host
 ```
 
-Flags with equivalent names override variables. S3 credentials use the provider
-chain; there are no credential flags. `atlas.registry.ts` is optional for custom
-storage, invalidation, verification host URLs, preview-head resolution, or external
-locking.
+`publish` uses existing build output; it does not run your build. `deploy` selects a published release for one environment and never copies artifact files. To deploy from one registry to another, pass `--source-registry-url` and `--target-registry-url` together instead of `--registry-url`.
 
-Artifactory is built in too: select `ATLAS_STORAGE=artifactory` or
-`--storage artifactory`. No `atlas.registry.ts` or adapter code is required.
-Set `ATLAS_STORAGE_API_URL`, `ATLAS_ARTIFACTORY_REPOSITORY`,
-`ATLAS_REGISTRY_URL`, `ATLAS_ARTIFACTORY_ACCESS_TOKEN`, and
-`ATLAS_ARTIFACTORY_LOCK_RESOURCE`. The key prefix defaults to `atlas`.
-Run the whole command inside your shared Jenkins lock, which supplies
-`ATLAS_PUBLICATION_LOCK`; manually setting this marker does not acquire a lock.
-See the [copyable Jenkins setup](../../docs/deploy/artifactory.md) for configuration,
-self-hosted requirements, and delivery policy.
+Run `npx atlas <command> --help` for the options of one command.
 
-For separate source and target registries:
+## Documentation
 
-```bash
-npx atlas deploy <uuid> --to production --version rc \
-  --source-registry-url https://rc.example.com/atlas \
-  --registry-url https://prod.example.com/atlas
-```
-
-See [production deployment](../../docs/deploy/production-deployment.md) and
-[registry reference](../../docs/reference/registry.md).
+- [CLI reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/cli.md): every command, flag, and environment variable
+- [Registry reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/registry.md)
+- [Production deployment](https://github.com/bendaj11/atlas/blob/main/docs/deploy/production-deployment.md)
+- [Publish with Artifactory](https://github.com/bendaj11/atlas/blob/main/docs/deploy/artifactory.md)
+- [Tutorial](https://github.com/bendaj11/atlas/blob/main/docs/get-started/tutorial.md)

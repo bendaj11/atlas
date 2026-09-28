@@ -196,10 +196,6 @@ function buildStorageEnvironmentHelp({
         'Parallel storage requests; --parallel-uploads wins; default 16',
     },
     {
-      label: 'ATLAS_HOST_URL',
-      description: 'Public host base URL used when deploying a host binding',
-    },
-    {
       label: 'ATLAS_STORAGE',
       description: 'Storage provider: s3 or artifactory (bucket implies s3)',
     },

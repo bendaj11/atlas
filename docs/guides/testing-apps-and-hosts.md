@@ -1,31 +1,49 @@
-# Consumer Testing
+---
+title: Testing apps and hosts
+description: Test Atlas apps and hosts without a real host, using the @atlas/testkit mock environment and manifest builders.
+---
 
-This page is for teams that build Atlas hosts and apps. It is not about testing
-the Atlas source repository itself.
+# Testing apps and hosts
 
-Prerequisites: generated project tests run, host/app can start with `atlas dev`,
-and tester knows which boundary is under test. Run unit tests in project folder;
-run two-process integration flow from common workspace root.
+This guide shows how to test the apps and hosts you build with Atlas. You learn
+how to replace the real host with a mock environment, how to build test manifests,
+and what to check at each boundary. It is not about testing the Atlas source
+repository itself.
 
-## What To Test
+Install the testkit in each project that has tests:
 
-Test each domain at the boundary it owns:
+```sh
+npm install --save-dev --save-exact @atlas/testkit
+```
 
-| Domain            | Test focus                                                                                                           |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Host domain       | `startHost` providers, layout anchors, runtime config, auth, HTTP, modal, toast, monitoring, and deep-link fallback. |
-| App domain        | Feature UI, app-owned routes, SDK usage, assets, and behavior when host services succeed or fail.                    |
-| Deployment domain | Publication upload order, registry descriptors, active host projection, CDN headers, CORS, integrity, and rollback.  |
+## What to test
 
-## App Domain
+Test each part of the system at the boundary it owns:
 
-Use normal framework tests for feature behavior, with Angular Testing Library or
-React Testing Library. Replace the real host with `mockAtlasEnvironment()`: it
-builds a complete Atlas environment and lets each test override only the part
-it depends on.
+| Boundary   | Test focus                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| App        | Feature UI, app-owned routes, SDK usage, assets, and behavior when host services succeed or fail. |
+| Host       | Host anchors, host SDK options, auth, HTTP, modals, toasts, monitoring, and deep-link fallback.   |
+| Deployment | Published files, registry and deployment manifests, CDN headers, CORS, integrity, and rollback.   |
+
+## Test an app
+
+Use normal framework tests for feature behavior, for example with Angular Testing
+Library or React Testing Library. Replace the real host with
+`mockAtlasEnvironment()` from `@atlas/testkit`. It builds a complete Atlas
+environment and lets each test override only the part it depends on.
 
 ```ts
 import { mockAtlasEnvironment } from '@atlas/testkit';
+
+interface CustomerHostSdk {
+  hostData: { user: { name: string } | null };
+  orders: { create(): Promise<{ id: string }> };
+}
+
+interface OrderEvents {
+  'order-created': { id: string };
+}
 
 const atlas = mockAtlasEnvironment<CustomerHostSdk, OrderEvents>({
   sdk: {
@@ -35,7 +53,7 @@ const atlas = mockAtlasEnvironment<CustomerHostSdk, OrderEvents>({
 });
 ```
 
-Everything you do not override is mocked by Atlas:
+Atlas mocks everything you do not override:
 
 | Part                      | Default                                                                                   |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
@@ -52,15 +70,15 @@ Everything you do not override is mocked by Atlas:
 | Tab title                 | Recorded, so tests can read `atlas.tabTitle()`.                                           |
 | Asset URLs                | Resolved inside the mocked manifest artifact directory.                                   |
 
-Pass `app: null` to test host components: the environment then has no app
-context, and `assetUrl()`/`assetBaseUrl()` throw `ATLAS_APP_CONTEXT_MISSING` as
-they do in a real host.
+Pass `app: null` to test host components. The environment then has no app
+context, and `assetUrl()` and `assetBaseUrl()` throw `ATLAS_APP_CONTEXT_MISSING`
+as they do in a real host.
 
-### Mock commands, observe state
+### Mock commands and observe state
 
-Override host commands (`navigateTo`, `getWidget`, custom extensions such as
-`orders` or `showToast`) with your test runner's spies (`jest.fn()` or
-`vi.fn()`) and assert on them. The testkit does not depend on a test runner and
+Override host commands, such as `navigateTo`, `getWidget`, or custom extensions
+like `orders` and `showToast`, with your test runner's spies (`jest.fn()` or
+`vi.fn()`), and assert on them. The testkit does not depend on a test runner and
 does not record calls itself.
 
 Assert on state for the parts Atlas already runs for real:
@@ -108,16 +126,16 @@ export const CUSTOMERS_APP_ID = '2bea9c13-4899-4f93-9211-cd8c55e9c529';
   `,
 })
 export class OrdersToolbarComponent {
-  private readonly atlas = injectAtlasSdk<CustomerHostSdk>();
-  readonly user = computed(() => this.atlas.hostData().user);
+  private readonly sdk = injectAtlasSdk<CustomerHostSdk>();
+  readonly user = computed(() => this.sdk.hostData().user);
 
   async create(): Promise<void> {
-    const order = await this.atlas.orders.create();
-    this.atlas.showToast(`Order ${order.id} created`);
+    const order = await this.sdk.orders.create();
+    this.sdk.showToast(`Order ${order.id} created`);
   }
 
   openCustomers(): void {
-    this.atlas.navigateTo(CUSTOMERS_APP_ID, { tab: 'recent' });
+    this.sdk.navigateTo(CUSTOMERS_APP_ID, { tab: 'recent' });
   }
 }
 ```
@@ -208,87 +226,110 @@ it('shows a toast when an order is created', async () => {
 
 Assert that the app calls SDK capabilities instead of importing host code:
 
-- cross-app navigation uses `atlas.navigateTo(appId, state)`;
-- product API calls use the host-owned SDK contract when host auth or interceptors matter;
-- app-internal screens use React Router or Angular Router relative paths.
+- Cross-app navigation calls `sdk.navigateTo(appId, state)`. In tests, pass a spy
+  as `navigateTo` in the `sdk` overrides and assert on it. `atlas.sdk.navigateTo`
+  is that same spy.
+- Product API calls use the host-owned SDK contract when host auth or
+  interceptors matter.
+- App-internal screens use React Router or Angular Router with relative paths.
 
-## Host Domain
+## Build test manifests
 
-Test generated or customized host startup with fake manifests and providers:
+The testkit exports builders that return complete, valid objects with random
+values. Pass only the fields your test cares about:
+
+| Builder                               | Returns                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| `anAppManifest(overrides)`            | An app manifest (`AtlasManifest`) with no placements.                                |
+| `anAppVersionOf(manifest, overrides)` | Another version of an app manifest, with the same `id`, `name`, and supported hosts. |
+| `aHostManifest(overrides)`            | A host manifest (`AtlasHostManifest`).                                               |
+| `aRoutePlacement(overrides)`          | A route placement. Pass route fields under `route`.                                  |
+| `aSlotPlacement(overrides)`           | A slot placement. Set the slot name with `slot`.                                     |
+| `anExportedWidgetManifest(overrides)` | An exported widget entry for an app manifest's `exportedWidgets`.                    |
+| `aStylesheet(overrides)`              | A stylesheet entry with an `href` and an `integrity` hash.                           |
+| `aHostCatalog(overrides)`             | A host catalog (`AtlasHostCatalog`) with a host manifest and no apps.                |
+| `aHostRuntimeConfig(overrides)`       | A runtime config (`AtlasHostRuntimeConfig`), the contents of `atlas.runtime.json`.   |
+| `createMemoryNavigation(initialPath)` | In-memory host navigation for code that takes an `AtlasNavigation`.                  |
+
+For example, an orders app with one route in a host:
 
 ```ts
-import { anAppManifest, aRoutePlacement } from '@atlas/testkit';
+import { aHostCatalog, anAppManifest, aRoutePlacement } from '@atlas/testkit';
+
+const hostId = '0a17281f-287b-4d89-a8ca-0ab0e577c506';
 
 const ordersManifest = anAppManifest({
   id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
-  placements: [
-    aRoutePlacement({
-      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-      route: { path: '/orders' },
-    }),
-  ],
+  placements: [aRoutePlacement({ hostId, route: { path: '/orders' } })],
 });
+
+const catalog = aHostCatalog({ hostId, apps: [ordersManifest] });
 ```
 
-Host tests should prove:
+The testkit also exports the types of the mock environment:
+`MockAtlasEnvironment`, `MockAtlasEnvironmentOverrides`, `MockAtlasSdkOverrides`,
+`MockAtlasAppOverrides`, `MockAtlasHostData`, and `NavigateToApp`. Use them to type
+your own test helpers.
 
-- layout keeps `data-atlas-route-outlet`, `data-atlas-navigation`,
-  `data-atlas-host-status`, and any named `data-atlas-slot` anchors;
-- `startHost` receives real product services in production code;
-- `observe` sends runtime events to monitoring without breaking host execution;
-- deep links such as `/orders/42` return the host `index.html`;
-- development-only app overrides are disabled in production runtime config.
+## Test a host
 
-## Local Integration
+Host tests should prove that:
 
-Use the same local flow developers use manually:
+- every host layout renders the host anchors it needs: `AtlasRouteOutlet`,
+  `AtlasHostStatus`, `AtlasNavigation`, and each `AtlasSlot` (or
+  `<atlas-route-outlet>`, `<atlas-host-status>`, `<atlas-navigation>`, and
+  `<atlas-slot>` in Angular). See [Host anchors](../concepts/host-anchors.md).
+- the host SDK options supply the real product services, such as auth, HTTP, and
+  toasts;
+- `observe` sends runtime events to monitoring without breaking the host when the
+  observer throws;
+- deep links such as `/orders/42` return the host's `index.html`;
+- production `atlas.runtime.json` contains only production fields.
+
+To render a host component that reads the SDK, use `mockAtlasEnvironment({ app:
+null })` with the React or Angular provider shown above.
+
+## Test locally in the browser
+
+Run the host and the app the same way you do during development, in two
+terminals from your workspace root:
 
 ```sh
-# Terminal 1: Host domain
-atlas dev customer-host
-
-# Terminal 2: App domain
-atlas dev orders
+# Terminal 1: the host
+npx atlas dev customer-host
 ```
-
-Use Host Preview URL printed by Atlas CLI, normally
-`http://localhost:4200/orders`. Host-client asset server uses a separate internal port.
-
-Run both commands from the directory that contains `customer-host/` and
-`orders/`, or from your monorepo root.
-
-For a non-default host URL, add it to the app's `package.json` `atlas.previews`:
-
-```json
-{
-  "atlas": {
-    "previews": ["http://localhost:4200/orders"]
-  }
-}
-```
-
-This validates the app inside the host without editing host source or deployed
-environment selections. One preview starts automatically; several previews
-produce an interactive selector. These URLs are app-team development metadata,
-so they remain in `package.json` and never affect the Atlas production manifest.
-See [Local development](local-development.md#configure-app-previews) for URL
-validation and selection rules.
-
-## Deployment Domain
-
-After workspace publication and bootstrap deployment, CI verifies public runtime:
 
 ```sh
-atlas verify --host-url=https://customer.example
+# Terminal 2: the app
+npx atlas dev orders
 ```
 
-Deployment tests should check:
+The app's `package.json` must list the local host page in `atlas.previews`, for
+example `http://localhost:4200/orders`. Open the `App preview` URL that Atlas
+prints for the app. See
+[Local development](local-development.md#configure-previews) for the preview
+rules.
 
-- `atlas publish` uploads immutable files and canonical manifest before its
-  compact `registry.json` descriptor under leased lock;
-- every stored object passes SHA-256, MIME, and cache-policy checks;
-- CDN serves `remoteEntry.json` as JSON and JavaScript chunks as JavaScript;
-- CORS allows each host origin;
-- `atlas deploy <artifact-id> --to production --version=<older>` selects an
-  existing immutable release, commits desired state, converges affected hosts,
-  and reports any host still pending.
+## Test a deployment
+
+After you publish and deploy, verify the public runtime from CI:
+
+```sh
+npx atlas verify --host-url=https://customer.example
+```
+
+Deployment tests should check that:
+
+- the CDN serves `remoteEntry.json` as JSON and JavaScript chunks as JavaScript;
+- CORS allows each host origin to load app files, including CSS;
+- `npx atlas deploy <artifact-id> --to production --version <older-version>`
+  selects an older release, and the host loads it after a reload.
+
+See [Production readiness](../deploy/production-readiness.md) for the complete
+checklist.
+
+## Next steps
+
+- [Local development](local-development.md)
+- [Host anchors](../concepts/host-anchors.md)
+- [SDK reference](../reference/sdk.md)

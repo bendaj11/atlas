@@ -1,141 +1,216 @@
-# Exported Widgets
+---
+title: Exported widgets
+description: Create a widget in one app, publish it, and render it in other apps or in the host with the Atlas SDK.
+---
 
-An exported widget is UI owned and released by a normal Atlas app. An app can render as a routed/slotted app in one host, provide widgets to another host, do both, or do neither. “Widget provider” is a runtime role, not another project type.
+# Exported widgets
+
+An exported widget is a piece of UI that one app builds and releases, and that
+other apps or the host render by ID. This guide shows how to create, publish, and
+consume a widget, and explains how Atlas finds and isolates it.
+
+## What an exported widget is
+
+A widget belongs to a normal Atlas [app](../concepts/apps.md). The app that owns
+a widget is its _provider_. The provider releases the widget together with the
+rest of the app: publishing a new app version publishes its widgets, and
+deploying or rolling back the app does the same for its widgets.
+
+A consumer refers to a widget only by its widget ID. It does not import the
+provider's code, and it does not depend on the provider's framework. A React app
+can render an Angular widget, and the reverse.
 
 ## Create a widget
 
-```sh
-atlas g widget product-count --app-id 3ae54928-c2c6-491d-b766-6996ce0ef3c8
-```
+1. From your workspace root, generate the widget in the provider app:
 
-Atlas creates:
+   ```sh
+   npx atlas g widget product-count --app-id 3ae54928-c2c6-491d-b766-6996ce0ef3c8
+   ```
 
-```text
-src/exported-widgets/product-count/
-  atlas.config.ts
-  index.tsx                 # React
-  # index.ts                # Angular
-```
+   Replace the UUID with your app's `id` from its `atlas.config.ts`. In an
+   interactive terminal, you can omit `--app-id` and pick the app from a list. If
+   the widget already exists, pass `--force` to overwrite it.
 
-`atlas.config.ts` contains identity only:
+   > **Expected result:** Atlas creates a folder for the widget in the provider
+   > app:
+   >
+   > ```text
+   > src/exported-widgets/product-count/
+   >   atlas.config.ts
+   >   index.tsx          # React apps
+   >   index.ts           # Angular apps
+   >   widget.config.ts   # Angular apps only
+   > ```
 
-```ts
-import type { AtlasWidgetConfig } from '@atlas/schema';
+2. Keep the generated widget ID. `atlas.config.ts` holds the widget's identity:
 
-export default {
-  id: '6f4994c1-b95f-4b24-a01a-106dd61aa4fb',
-  name: 'Product Count',
-} satisfies AtlasWidgetConfig;
-```
+   ```ts
+   import type { AtlasWidgetConfig } from '@atlas/schema';
 
-Atlas uses Node's cryptographically random UUIDv4 generator. Generate the id once, commit it, and keep it when folders or display names change. Folder name controls source/expose path; UUID controls public identity.
+   export default {
+     id: '6f4994c1-b95f-4b24-a01a-106dd61aa4fb',
+     name: 'Product Count',
+   } satisfies AtlasWidgetConfig;
+   ```
 
-`index.tsx` is a plain React component with normal props. `index.ts` is a plain
-standalone Angular component with native signal inputs:
+   The `id` is a random UUID that consumers use to find the widget. Commit it and
+   never change it, even when you rename the folder or the display name. The
+   folder name only controls the source path.
 
-```ts
-@Component({
-  selector: 'atlas-product-count-widget',
-  standalone: true,
-  template: `<span>{{ count() }}</span>`,
-})
-export default class ProductCountWidget {
-  readonly count = input.required<number>();
+3. Write the widget as a plain component. In React, `index.tsx` default-exports a
+   component with normal props. In Angular, `index.ts` default-exports a
+   standalone component with signal inputs:
+
+   ```ts
+   import { Component, input } from '@angular/core';
+
+   @Component({
+     selector: 'atlas-product-count-widget',
+     standalone: true,
+     template: `<span>{{ count() }}</span>`,
+   })
+   export default class ProductCountWidget {
+     readonly count = input.required<number>();
+   }
+   ```
+
+   In Angular apps, `widget.config.ts` exports an `ApplicationConfig` where you
+   add the providers that the widget needs.
+
+   Atlas handles mounting. The federation setup generates the widget's entry and
+   maps incoming inputs to React props or Angular inputs. Your widget does not
+   create a React root, bootstrap Angular, or register itself.
+
+4. Publish the provider app as usual:
+
+   ```sh
+   npx atlas publish catalog --version 1.2.0
+   ```
+
+   > **Expected result:** The app's artifact manifest lists the widget with its
+   > ID, owner app, framework, and entry.
+
+## Render a widget in React
+
+The React SDK returns a component for a widget ID:
+
+```tsx
+import { useAtlasSdk } from '@atlas/sdk/react';
+
+const productCountWidgetId = '6f4994c1-b95f-4b24-a01a-106dd61aa4fb';
+
+function ProductCountSkeleton() {
+  return <span>Loading…</span>;
+}
+
+export function Cart() {
+  const sdk = useAtlasSdk();
+  const ProductCount = sdk.getWidget<{ count: number }>(productCountWidgetId, {
+    loadingComponent: ProductCountSkeleton,
+  });
+
+  return <ProductCount count={24} />;
 }
 ```
 
-Framework mounting is Atlas infrastructure. Federation setup writes ignored
-`.atlas/widgets/` lifecycle entries and maps incoming widget props to React props
-or Angular inputs. Widget source does not call `defineExportedWidget`, create a
-React root, bootstrap Angular, or declare injection tokens.
+## Render a widget in Angular
 
-Checkpoint: `atlas publish catalog-react --version <version>` writes widget UUID,
-owner app, framework, and expose into canonical `manifest.json`.
-
-## Consume a widget
-
-Consumers keep widget references where code uses them. App config never lists individual widgets. React SDK returns a native component:
-
-```tsx
-const ProductCount = sdk.getWidget<{ count: number }>(widgetId, {
-  loadingComponent: ProductCountSkeleton,
-});
-
-return <ProductCount count={24} />;
-```
-
-Angular components create a typed binding in TypeScript:
+In Angular, `getWidget` returns a binding that holds the widget ID and its
+inputs. Pass the binding to the `atlasWidget` directive, which you import as
+`WidgetOutlet` from `@atlas/sdk/angular`:
 
 ```ts
-const productCount = sdk.getWidget<{ count: number }>(widgetId, {
-  inputs: { count: 24 },
-  loadingComponent: ProductCountSkeleton,
-});
+import { Component } from '@angular/core';
+import { injectAtlasSdk, WidgetOutlet } from '@atlas/sdk/angular';
+
+const productCountWidgetId = '6f4994c1-b95f-4b24-a01a-106dd61aa4fb';
+
+@Component({
+  selector: 'orders-cart',
+  standalone: true,
+  imports: [WidgetOutlet],
+  template: `<section [atlasWidget]="productCount"></section>`,
+})
+export class CartComponent {
+  private readonly sdk = injectAtlasSdk();
+
+  readonly productCount = this.sdk.getWidget<{ count: number }>(
+    productCountWidgetId,
+    { inputs: { count: 24 } },
+  );
+}
 ```
 
-Import `WidgetOutlet` from `@atlas/sdk/angular`, then bind the widget to a
-normal element. The directive owns mounting, input updates, and unmounting:
+The directive mounts the widget into its element and unmounts it when the element
+is destroyed. When you pass a new binding for the same widget, it updates the
+mounted widget's inputs. You can also pass a `loadingComponent` in the options.
 
-```html
-<section [atlasWidget]="productCount"></section>
-```
+## Loading and errors
 
-Atlas renders loading and error UI inside that widget's own card. A slow or failed widget does not replace its app, route, slot, or sibling widgets. Retry stays inside the failed card.
+Atlas renders loading and error UI inside the widget's own container. A slow or
+failed widget does not affect its app, the route, a slot, or other widgets. The
+error UI offers a retry that reloads only that widget.
 
-Host clients customize every widget card through `renderWidgetLoading` and `renderWidgetError` in their framework `startHost()` options. An optional `getWidget` loading component overrides only that mount. Each renderer gets cleaned up before success, retry, or unmount. See [SDK loading and failure UI](../reference/sdk.md#loading-and-failure-ui).
+You can customize this UI at two levels:
 
-## Same-registry widgets
+- For every widget in the host, return `renderWidgetLoading` and
+  `renderWidgetError` from the host SDK options (`host.config` in a generated
+  host).
+- For one widget, pass `loadingComponent` to `getWidget`.
 
-Deployed widget-only providers are listed as descriptors in the active host
-manifest, including apps with no route or slot. Atlas loads only requested code.
+Atlas cleans up each renderer before the widget mounts, retries, or unmounts. See
+the [SDK reference](../reference/sdk.md) for the renderer signatures.
 
-No dependency config is needed.
+## Where Atlas finds widgets
 
-## External-registry widgets
+Atlas resolves a widget ID from the apps in the host's current deployment. A
+widget is available in a host when its provider app is deployed to the same
+environment and declares at least one route or slot for that host. Atlas loads a
+widget's code only when a consumer renders it, so unused widgets never slow down
+host startup.
 
-When provider app lives in another configured registry, consuming app declares provider app id—not widget ids, versions, URLs, buckets, or credentials:
+When the same widget ID appears in two different provider apps, Atlas refuses to
+resolve it and reports the ID as ambiguous.
+
+`externalAppsDependencies` in an app's `atlas.config.ts` lists provider apps whose
+widgets the app uses:
 
 ```ts
-export default {
-  type: 'app',
-  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
-  name: 'Orders',
-  framework: 'angular',
-  externalAppsDependencies: ['5b0b569f-cae0-48d4-8a41-194fdad05a15'],
-} satisfies AtlasAppConfig;
+externalAppsDependencies: ['5b0b569f-cae0-48d4-8a41-194fdad05a15'],
 ```
 
-The generated runtime template supplies trusted environment-specific registry URLs:
+Atlas copies this list into the published artifact manifest. It does not make
+Atlas load providers from another registry. Its current effect is on
+[Columbus](columbus.md): a published override for a listed provider app is
+accepted even when that app is not in the host's deployment, so you can test a
+provider's local, PR, or other published version.
 
-```sh
-atlas bootstrap customer-host
-```
+## Isolation and caching
 
-On refresh Atlas resolves each dependency through the external registry's
-explicit configured environment. External deploy and rollback become visible
-without bootstrap deployment.
-
-Atlas resolves transitive external app dependencies, rejects duplicate app/widget IDs, and searches only explicitly configured registries. An unavailable registry affects only requested widgets from that registry.
-
-## Performance and caching
-
-- Host startup never waits for unused widgets.
-- Primary and configured external registry reads run in parallel on first unresolved widget lookup.
-- Registry JSON uses `Cache-Control: no-cache` and revalidates after refresh.
-- Version/build assets are immutable and cache forever.
-- Resolved providers and loaded modules are reused for the page lifetime.
-- CDN origins should be few; each new origin adds DNS and TLS cost.
-
-## Columbus
-
-Columbus lists external widget providers separately from routed/slotted apps. Local, PR, historical, and production provider overrides use the same app manifest/index mechanics. Stable loader stores provider overrides under `widgetProviders`, so they never mount as full apps.
+- A widget uses the DOM isolation of its provider app. See
+  [Styles and isolation](../concepts/styles-and-isolation.md).
+- A widget loads from the provider's immutable version path, so browsers and CDNs
+  can cache its files indefinitely.
+- Atlas reuses a loaded widget module for the lifetime of the page.
 
 ## Common errors
 
-`atlas.config.ts is missing`: run widget generator or add file with stable UUIDv4 and name.
+- `Exported widget "<name>" must contain src/exported-widgets/<name>/atlas.config.ts`:
+  run the widget generator, or add an `atlas.config.ts` with a stable UUIDv4
+  `id` and a `name`.
+- `Atlas could not find widget "<id>" in the active environment manifest`:
+  deploy the provider app to the host's environment, and make sure it declares a
+  route or slot for that host.
+- `Atlas found widget "<id>" in more than one provider app`: give one of the
+  widgets a new ID and update its consumers.
+- `... origin "<origin>" ... is not allowed by the host runtime configuration`:
+  the provider's files must load from the origin of `artifactRegistryUrl` or
+  `environmentRegistryUrl` in the host's `atlas.runtime.json`. Publish the
+  provider to that registry.
 
-`External Atlas app dependency ... was not found`: add provider registry URL to bootstrap environment and confirm provider production release exists.
+## Next steps
 
-`widget id ... is exported by multiple apps`: regenerate one duplicate id and update its consumers.
-
-`origin ... is not allowed`: add approved asset/CDN origin with `atlas bootstrap --asset-origins`; never weaken HTTPS or integrity policy globally.
+- [SDK reference](../reference/sdk.md)
+- [Columbus](columbus.md)
+- [Testing apps and hosts](testing-apps-and-hosts.md)

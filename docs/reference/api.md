@@ -1,216 +1,402 @@
+---
+title: Public API
+description: Every public export of the Atlas packages, grouped by package entry point, with a one-line purpose each.
+---
+
 # Public API
 
-Audience: developers choosing imports and maintainers checking compatibility.
-Prerequisite: know whether code belongs to app, host client, or deployment
-tooling. Start with [Overview](../introduction/overview.md) if unsure.
+This page lists the public exports of every Atlas package, grouped by the entry point you import them from. Use it to find the right import and to check whether a symbol is public. Only entry points listed in a package's `exports` field are public; files you can reach only by deep import are internal. For details and examples, follow the links to [SDK](sdk.md), [Configuration](configuration.md), and [Manifests](manifests.md).
 
-This is symbol reference, not first tutorial. Product apps normally use only
-`@atlas/sdk`, one framework adapter, and types generated source already imports.
-Sections labeled runtime/federation are infrastructure-only; generated host code
-owns them unless building platform integration.
+## Which entry point to import
 
-Atlas uses focused packages so the app-facing SDK does not also contain host and deployment infrastructure.
+| Who                     | Imports                                                                 |
+| ----------------------- | ----------------------------------------------------------------------- |
+| App and widget code     | `@atlas/sdk/react` or `@atlas/sdk/angular`, and types from `@atlas/sdk` |
+| Host code               | `@atlas/runtime/react` or `@atlas/runtime/angular`                      |
+| `atlas.config.ts` files | Types from `@atlas/schema`                                              |
+| Build config            | `@atlas/sdk/federation-config`                                          |
+| Tests                   | `@atlas/testkit`, `@atlas/testkit/react`, `@atlas/testkit/angular`      |
+| Deployment tooling      | `@atlas/schema`, `@atlas/bootstrap`, `@atlas/cli`                       |
 
-| Import                  | Purpose                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------ |
-| `@atlas/schema`         | Configuration, canonical artifact manifests, registry, and deployment manifests      |
-| `@atlas/sdk`            | app-to-host capabilities and lifecycle types                                         |
-| `@atlas/runtime`        | Deployment discovery, catalog hydration, overrides, federation loading, and mounting |
-| `@atlas/bootstrap`      | Static bootstrap files and browser loader                                            |
-| `@atlas/sdk/navigation` | Host-owned and app-scoped navigation                                                 |
-| `@atlas/sdk/angular`    | Angular host, app, and widget integration                                            |
-| `@atlas/sdk/react`      | React host, app, and widget integration                                              |
-| `@atlas/generators`     | Generator implementation used by the CLI                                             |
-| `@atlas/testkit`        | Mock Atlas environment, navigation, and manifest fixtures                            |
+The generated projects already contain these imports. Most product code uses only a framework adapter from `@atlas/sdk` and the host SDK type it shares with its host. See [Packages](packages.md) for installation.
 
-Most product code needs only its framework adapter and types inferred by generated code. Runtime and federation APIs are infrastructure APIs used by generated hosts and tooling.
+Framework identity lives in the import path, not in the function name. `defineApp`, `createHostNavigation`, `defineExportedWidget`, and `startHost` exist under both `react` and `angular` entry points.
 
-## Framework API vocabulary
+## @atlas/sdk
 
-Framework identity belongs in the import path, not the function name:
+The root entry point re-exports everything from `@atlas/sdk/host`, `@atlas/sdk/lifecycle`, and `@atlas/sdk/navigation`, plus:
 
-```ts
-import { defineApp } from '@atlas/sdk/angular';
-import { defineApp } from '@atlas/sdk/react';
-import { startHost } from '@atlas/runtime/angular';
-import { startHost } from '@atlas/runtime/react';
-```
+| Export                    | Kind     | Purpose                                                                               |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `createAtlasAppAssets`    | Function | Return `assetBaseUrl()` and `assetUrl(path)` for an app context, outside a framework. |
+| `AtlasAppAssets`          | Type     | Shape returned by `createAtlasAppAssets`.                                             |
+| `AtlasSdkError`           | Class    | SDK misuse or an unavailable capability.                                              |
+| `AtlasWidgetMountError`   | Class    | A React widget failed to mount (`ATLAS_WIDGET_MOUNT_FAILED`).                         |
+| `AtlasEventListenerError` | Class    | An event listener threw (`ATLAS_EVENT_LISTENER_FAILED`).                              |
+| `AtlasSdkErrorOptions`    | Type     | Constructor options of `AtlasSdkError`.                                               |
 
-| Responsibility            | Angular                   | React                     |
-| ------------------------- | ------------------------- | ------------------------- |
-| Start a host              | `startHost`               | `startHost`               |
-| Create an app entry       | `defineApp`               | `defineApp`               |
-| Create an exported widget | Export a native component | Export a native component |
-| Adapt host navigation     | `createHostNavigation`    | `createHostNavigation`    |
-| Configure inner routing   | `createLocationStrategy`  | `createRouterOptions`     |
+### @atlas/sdk/host
 
-Names differ only where the underlying framework concepts differ. React additionally exports `createRoutedApp` and `connectRouter` because its memory-router lifecycle is explicit; Angular owns that lifecycle through dependency injection and `LocationStrategy`.
+SDK object, host data, and events. See [SDK reference](sdk.md).
 
-Files not exported through a package subpath are internal. See [SDK](sdk.md) for examples and [Manifest](manifests.md) for the manifest model.
+| Export                                                                                                      | Kind     | Purpose                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `AtlasSdk<THostSdk, TEvents>`                                                                               | Type     | Core SDK members plus host-owned members.                                                               |
+| `AtlasCoreSdk`                                                                                              | Type     | `hostId`, `hostData`, `navigateTo`, `events`, `getWidget`.                                              |
+| `AtlasSdkOptions`                                                                                           | Type     | Options of `createAtlasSdk`.                                                                            |
+| `createAtlasSdk`                                                                                            | Function | Create the host-owned SDK. Hosts created with `defineReactHost` or `defineAngularHost` do this for you. |
+| `AtlasHostData`                                                                                             | Type     | `hostId` and `name`, present in every `hostData`.                                                       |
+| `AtlasHostDataOf<THostSdk>`                                                                                 | Type     | Custom host data fields declared by a host SDK type.                                                    |
+| `AtlasHostDataValue<THostSdk>`                                                                              | Type     | Full host data snapshot type.                                                                           |
+| `updateAtlasHostData`                                                                                       | Function | Host only. Merge updates into host data and notify apps.                                                |
+| `subscribeAtlasHostData`                                                                                    | Function | Listen for host data updates.                                                                           |
+| `AtlasEventBus<TEvents>`                                                                                    | Type     | Typed event bus. See [Events](sdk.md#events).                                                           |
+| `AtlasEventMap`, `AtlasEventListener`                                                                       | Type     | Event map default and listener type.                                                                    |
+| `createAtlasEventBus`                                                                                       | Function | Create a standalone event bus.                                                                          |
+| `AtlasNavigationState`                                                                                      | Type     | Values `navigateTo` adds to the URL.                                                                    |
+| `AtlasGetWidget`, `AtlasGetWidgetOptions`                                                                   | Type     | Core `getWidget` signature and options.                                                                 |
+| `AtlasWidgetHandle`                                                                                         | Type     | Widget resolved by UUID, with `mount(container, inputs)`.                                               |
+| `AtlasMountedWidgetHandle`, `MountWidget`, `SetWidgetInputs`, `UnmountWidget`, `AtlasWidgetLoadingRenderer` | Type     | Widget mount contracts.                                                                                 |
+| `connectAtlasNavigationResolver`                                                                            | Function | Runtime integration: connect what `navigateTo` calls.                                                   |
+| `connectAtlasWidgetResolver`                                                                                | Function | Runtime integration: connect what `getWidget` calls.                                                    |
+| `getAtlasNavigation`                                                                                        | Function | Runtime integration: read the host navigation of an SDK.                                                |
+| `NavigationResolver`                                                                                        | Type     | Signature of a navigation resolver.                                                                     |
 
-## Contracts
+`AtlasWidgetHandle` is exported from `@atlas/sdk` and `@atlas/sdk/host`, not from `@atlas/sdk/lifecycle`.
 
-Import from `@atlas/schema`:
+### @atlas/sdk/lifecycle
 
-| API                                 | Purpose                                                                              |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `AtlasHostConfig`                   | Developer-owned host source configuration                                            |
-| `AtlasAppConfig`                    | Developer-owned app source configuration                                             |
-| `AtlasConfig`                       | Union of host and app source configuration                                           |
-| `AtlasPublishedArtifactManifest`    | Canonical immutable app or host release/preview manifest                             |
-| `AtlasHostDeploymentManifest`       | Environment-qualified active host manifest containing canonical-manifest descriptors |
-| `AtlasStaticRegistry`               | Compact release, preview, and environment-selection registry                         |
-| `AtlasManifestDescriptor`           | Canonical manifest path, digest, size, and media type                                |
-| `AtlasManifest`                     | Hydrated runtime app manifest used by effective-catalog APIs                         |
-| `AtlasHostCatalog`                  | Hydrated internal host/app selection passed to runtime mounting                      |
-| `AtlasHostRuntimeConfig`            | Environment-qualified deployment manifest, override, timeout, and retry settings     |
-| `AtlasPlacement`                    | Route or slot contribution for a host                                                |
-| `AtlasExportedWidgetManifest`       | One widget exposed by an owning app                                                  |
-| `assertPublishedArtifactManifest()` | Validate an unknown canonical artifact manifest or throw                             |
-| `assertHostDeploymentManifest()`    | Validate an unknown active host deployment manifest or throw                         |
-| `createManifestFromConfig()`        | Build a hydrated runtime manifest from source configuration                          |
-| `validateAtlasManifest()`           | Return structured validation issues for a hydrated runtime manifest                  |
-| `assertAtlasManifest()`             | Validate a hydrated runtime manifest or throw `AtlasValidationError`                 |
+Framework-neutral mount contracts. Framework adapters implement them; you need them only to integrate another framework.
 
-Use `satisfies AtlasHostConfig` or `satisfies AtlasAppConfig` in `atlas.config.ts`;
-do not hand-write canonical artifact manifests, active host deployment manifests,
-or hydrated runtime catalogs.
+| Export                                                                                          | Purpose                                                                                     |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `AtlasAppEntry`, `AtlasAppMountRequest`, `AtlasAppMountResult`, `AtlasMountOutcome`             | The `mount(request)` contract every app remote entry exports.                               |
+| `AtlasAppContext`, `AtlasAppLoading`                                                            | Context of one mounted app: `manifest`, `hostId`, `path`, `navigation`, `route`, `loading`. |
+| `AtlasExportedWidgetEntry`, `AtlasExportedWidgetMountRequest`, `AtlasExportedWidgetMountResult` | The `mount(request)` contract of an exported widget.                                        |
+| `AtlasHostClientEntry`, `AtlasHostMountRequest`                                                 | The `mount(request)` contract of a host client, called by the loader.                       |
+| `AtlasWidgetLoader`, `AtlasMountedWidget`                                                       | Widget discovery and mounting scoped to the selected catalog.                               |
 
-## SDK Core
+All exports are types.
 
-Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
+### @atlas/sdk/navigation
 
-| API                                  | Purpose                                                                |
-| ------------------------------------ | ---------------------------------------------------------------------- |
-| `AtlasHostData`                      | Base host metadata: `hostId` and `name`                                |
-| `AtlasSdk<THostSdk, TEvents>`        | Core capabilities plus host-owned SDK properties and typed host data   |
-| `AtlasSdkOptions<THostSdk, TEvents>` | Providers and host-owned SDK properties supplied while starting a host |
-| `createAtlasSdk()`                   | Create the host-owned SDK instance                                     |
-| `AtlasEventBus<TEvents>`             | Typed in-memory communication between mounted apps                     |
-| `createAtlasEventBus()`              | Create a host-scoped event bus                                         |
+Low-level navigation primitives. Framework adapters use them; most apps use their framework router.
 
-app code normally receives the SDK through `useAtlasSdk()` or
-`injectAtlasSdk()` rather than calling `createAtlasSdk()`.
+| Export                                                                                                                                                                                                    | Kind     | Purpose                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `AtlasNavigation`                                                                                                                                                                                         | Type     | Host navigation: `navigate`, `replace`, `back`, optional `go`, `createHref`, `subscribe`, `getCurrentLocation`. |
+| `AtlasScopedNavigation`                                                                                                                                                                                   | Type     | Navigation restricted to one app path.                                                                          |
+| `AtlasBrowserNavigation`                                                                                                                                                                                  | Type     | Browser navigation with `dispose()`.                                                                            |
+| `AtlasRouteContext`, `AtlasRouteContextOptions`                                                                                                                                                           | Type     | Inner location, subscription, pattern matching, and tab title.                                                  |
+| `AtlasLocation`, `AtlasInnerLocation`, `AtlasQueryValues`, `AtlasRouteParams`, `AtlasNavigateOptions`, `AtlasReplaceOptions`, `AtlasNavigationListener`, `AtlasInnerLocationListener`, `AtlasUnsubscribe` | Type     | Supporting types.                                                                                               |
+| `createBrowserNavigation(window?)`                                                                                                                                                                        | Function | History API implementation for hosts without a router.                                                          |
+| `createScopedNavigation(path, navigation)`                                                                                                                                                                | Function | Restrict navigation to an app path.                                                                             |
+| `createRouteContext(path, navigation, options?)`                                                                                                                                                          | Function | Create an `AtlasRouteContext`.                                                                                  |
+| `scopeAppPathToHost(path, to)`                                                                                                                                                                            | Function | Map an app-relative target to the host path.                                                                    |
+| `convertHostPathToInnerPath(path, pathname)`                                                                                                                                                              | Function | Strip the app path from a host pathname.                                                                        |
+| `normalizePath(path)`                                                                                                                                                                                     | Function | Ensure one leading slash and no trailing slash.                                                                 |
+| `matchRoutePattern(pattern, pathname)`                                                                                                                                                                    | Function | Match `orders/:id` or `files/*`. Returns params or `undefined`.                                                 |
+| `parseQuery(search)`                                                                                                                                                                                      | Function | Parse a query string. Repeated keys become arrays.                                                              |
+| `goThroughHistory(navigation, delta)`                                                                                                                                                                     | Function | Call `go(delta)`, or fall back to `back()`.                                                                     |
 
-Import `initFederation` and `loadRemoteModule` from `@atlas/sdk/federation`.
-Generated projects do not import Native Federation runtime packages directly.
+The browser adapter types (`BrowserWindowLike`, `BrowserHistoryLike`, `BrowserLocationLike`, `BrowserPopstateListener`, `BrowserPopstateRegistrar`) and function types (`NavigateToPath`, `ReplacePath`, `GoBack`, `GoThroughHistory`, `HistoryBack`, `HistoryGo`, `CreateHref`, `SubscribeToLocation`, `ReadLocation`, `WriteHistoryEntry`) are also exported.
 
-## Navigation
+### @atlas/sdk/react
 
-Import from `@atlas/sdk/navigation`:
+| Export                                  | Kind      | Purpose                                                                                      |
+| --------------------------------------- | --------- | -------------------------------------------------------------------------------------------- |
+| `useAtlasSdk<THostSdk, TEvents>()`      | Hook      | Read the React SDK facade. Re-renders on host data changes.                                  |
+| `AtlasSdk<THostSdk, TEvents>`           | Type      | The React facade: `getWidget` returns a component; adds asset helpers.                       |
+| `GetWidgetOptions`                      | Type      | `{ loadingComponent? }`.                                                                     |
+| `useAppLoaded()`                        | Hook      | Defer readiness; returns the callback to call after the first useful render.                 |
+| `useAtlasStyleTarget()`                 | Hook      | The node where CSS-in-JS libraries must insert styles (the app's Shadow Root when isolated). |
+| `defineApp(options)`                    | Function  | App entry without a router. `options`: `createRoot`, `createElement`.                        |
+| `createRoutedApp(options)`              | Function  | App entry with React Router. `options`: `createRoot`, `createRouter`, `createElement`.       |
+| `createRouterOptions(context)`          | Function  | `initialEntries` for `createMemoryRouter`, from the app context.                             |
+| `connectRouter(router, context)`        | Function  | Keep a memory router and the host URL in sync. Returns a stop function.                      |
+| `readAtlasInnerUrl(context)`            | Function  | Current inner URL of the app.                                                                |
+| `defineExportedWidget(options)`         | Function  | Low-level widget entry. Generated widgets do not call it.                                    |
+| `createHostNavigation(router, origin?)` | Function  | Adapt a React Router data router to `AtlasNavigation`.                                       |
+| `AtlasSdkProvider`                      | Component | Provide an SDK to a React tree and re-render on host data changes.                           |
+| `AtlasSdkContext`                       | Context   | React context holding the SDK. Prefer `useAtlasSdk`.                                         |
+| `AtlasRuntimeContext`                   | Context   | React context holding the app context.                                                       |
+| `AtlasStyleTargetContext`               | Context   | React context holding the style target.                                                      |
 
-| API                         | Purpose                                                                                 |
-| --------------------------- | --------------------------------------------------------------------------------------- |
-| `AtlasNavigation`           | Host-owned browser navigation contract                                                  |
-| `AtlasScopedNavigation`     | app navigation restricted to its route path                                             |
-| `createBrowserNavigation()` | Browser History API implementation for simple hosts                                     |
-| `createScopedNavigation()`  | Scope navigation to one app path                                                        |
-| `createRouteContext()`      | Read inner paths, query values, hashes, route matches, and update the browser tab title |
-| `scopeAppPathToHost()`      | Convert an app path to its host path                                                    |
+Also exported: `AppOptions`, `RoutedAppOptions`, `ExportedWidgetOptions`, `AtlasSdkProviderProps`, `MemoryRouterOptions`, `RootAdapter`, `CreateRoot`, `RenderRoot`, `UnmountRoot`, `AppRouterLike`, `RouterLike`, `RouterLocation`, `RouterState`, `RouterNavigate`, `RouterNavigateOptions`, `RouterSubscribe`.
 
-Most apps should use their native Angular or React router. These low-level APIs
-exist for framework adapters and router-free apps.
+### @atlas/sdk/angular
 
-## Lifecycle
+| Export                                            | Kind      | Purpose                                                                           |
+| ------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
+| `injectAtlasSdk<THostSdk, TEvents>()`             | Function  | Read the Angular SDK facade. `hostData` is a `Signal`.                            |
+| `AtlasSdk<THostSdk, TEvents>`                     | Type      | The Angular facade: `getWidget` returns a `WidgetBinding`; adds asset helpers.    |
+| `injectAtlasAppContext()`                         | Function  | Read the app context.                                                             |
+| `injectAppLoaded()`                               | Function  | Defer readiness; returns the callback to call after the first useful render.      |
+| `WidgetOutlet`                                    | Directive | `[atlasWidget]`: render a `WidgetBinding`.                                        |
+| `WidgetBinding`, `GetWidgetOptions`               | Type      | Binding returned by `getWidget`, and its `{ inputs, loadingComponent? }` options. |
+| `defineApp(bootstrap)`                            | Function  | Wrap an Angular bootstrap function as an app entry.                               |
+| `provideAtlasApp(options)`                        | Function  | Providers for app context, SDK, style hosting, and an optional location strategy. |
+| `provideAtlasSdk(sdkOrFactory)`                   | Function  | Provide the SDK value or a factory.                                               |
+| `provideAtlasAppContext(context)`                 | Function  | Provide the app context and use the manifest ID as `APP_ID`.                      |
+| `createLocationStrategy(context)`                 | Function  | `LocationStrategy` that scopes Angular Router to the app path.                    |
+| `createExportedWidget(component, config?)`        | Function  | Boot a standalone component as an exported widget entry.                          |
+| `defineExportedWidget(bootstrap)`                 | Function  | Low-level widget entry. Generated widgets do not call it.                         |
+| `createHostNavigation(router, location, origin?)` | Function  | Adapt Angular Router and `Location` to `AtlasNavigation`.                         |
 
-Import lifecycle types from `@atlas/sdk/lifecycle`:
+Also exported: `AppBootstrap`, `ExportedWidgetBootstrap`, `AtlasAngularAppOptions`, `AtlasSdkFactory`, `LocationStrategyAdapter`, `LocationLike`, `RouterLike`, `RouterEvents`, `RouterEventSubscription`, `NavigateByUrl`, `AngularNavigateByUrlOptions`, `PopStateEvent`, `PopStateListener`, `LocationBack`, `LocationHistoryGo`, `WriteLocationState`.
 
-| API                        | Purpose                                                         |
-| -------------------------- | --------------------------------------------------------------- |
-| `AtlasAppEntry`            | Framework-neutral `mount` contract exposed by an app            |
-| `AtlasAppContext`          | Manifest, navigation, route, widget, loading, and ready context |
-| `AtlasWidgetLoader`        | Effective-selection-scoped widget discovery and mounting        |
-| `AtlasExportedWidgetEntry` | Framework-neutral widget mount contract                         |
-| `AtlasWidgetHandle`        | UUID-resolved widget with `mount(container, props)`             |
+Angular host APIs live in `@atlas/runtime/angular`, not here.
 
-Framework SDK `getWidget(...)` is the preferred consumer API. React receives a stable component. Angular receives a typed declarative binding from `getWidget(widgetId, { inputs, loadingComponent? })` and renders it through `[atlasWidget]`; the directive owns mount, updates, and teardown. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from bootstrap-approved external registries.
+### @atlas/sdk/federation
 
-Framework adapters implement these boundaries. Product code should not create
-manual mount wrappers unless it is integrating another framework.
+| Export             | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `initFederation`   | Re-export of the Native Federation runtime `initFederation`.   |
+| `loadRemoteModule` | Re-export of the Native Federation runtime `loadRemoteModule`. |
 
-## Runtime
+Generated projects import Native Federation through this entry point instead of depending on the runtime package directly.
 
-Import host infrastructure from `@atlas/runtime`:
+### @atlas/sdk/federation-config
 
-| API                              | Purpose                                                                 |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `loadHostDeployment()`           | Fetch active deployment data and hydrate the internal validated catalog |
-| `loadBrowserRuntimeOverrides()`  | Read local, preview, or other-release selections                        |
-| `resolveRuntimeManifests()`      | Enforce one selected version per app id                                 |
-| `createRemoteTrustPolicy()`      | Derive trusted origins and integrity behavior                           |
-| `verifyManifestIntegrity()`      | Verify remote origins and SHA-256 bytes                                 |
-| `findManifestTrustErrors()`      | Verify apps independently for host fallback isolation                   |
-| `createWidgetLoader()`           | Create the effective-selection widget loader                            |
-| `AtlasWidgetUiOptions`           | Host-owned widget loading and error renderers                           |
-| `AtlasWidgetRenderContext`       | Widget id plus resolved widget/provider metadata when available         |
-| `createRegistryWidgetResolver()` | Lazily resolve same-registry and external widget providers              |
-| `createHostNavigationItems()`    | Convert resolved manifests into custom host navigation items            |
-| `startAtlasHostRuntime()`        | Mount routes/slots and own lifecycle state                              |
+Build-time config factories, available as both ES module and CommonJS.
 
-Generated hosts should use framework-specific `startHost()` instead of
-assembling these functions individually.
+| Export                            | Format   | Purpose                                                                                                               |
+| --------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `createReactHostViteConfig`       | ESM, CJS | Vite config for a React host.                                                                                         |
+| `createReactAppViteConfig`        | ESM, CJS | Vite config for a React app.                                                                                          |
+| `createReactWidgetEntries`        | ESM, CJS | Discover exported widgets and create their federation entries.                                                        |
+| `createAngularFederationConfig`   | CJS      | Native Federation config for Angular projects that load it with `require`.                                            |
+| `createAngularFederationOptions`  | CJS      | The options object behind `createAngularFederationConfig`.                                                            |
+| `createAngularV4FederationConfig` | ESM      | Native Federation config for `@angular-architects/native-federation` v21 and later, whose `config` entry is ESM only. |
+| `FederationConfigError`           | ESM, CJS | Build-time error with a `code`. See [Federation build errors](errors.md#federation-build-errors).                     |
 
-## Angular Adapter
+Types: `ReactFederationConfigOptions`, `ReactWidgetEntriesOptions`, `GeneratedWidgetEntry`, `AngularFederationConfigOptions`, `AngularV4FederationConfigOptions` (ESM), `AngularFederationOptions`, `AngularProjectExpose`, `ShareAll`, `SkipEntry`, `FederationConfigErrorOptions`.
 
-Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
+## @atlas/runtime
 
-| API                                   | Purpose                                                                            |
-| ------------------------------------- | ---------------------------------------------------------------------------------- |
-| `injectAtlasSdk<THostSdk, TEvents>()` | Read the typed SDK from Angular injection                                          |
-| `provideAtlasApp()`                   | Register Atlas app context, SDK, style hosting, and optional router strategy       |
-| `provideAtlasSdk()`                   | Register the host-provided SDK during app mount                                    |
-| `defineApp()`                         | Expose an Angular app lifecycle entry                                              |
-| `defineExportedWidget()`              | Low-level Angular widget lifecycle adapter; generated widgets do not call it       |
-| `createLocationStrategy()`            | Scope Angular Router to the app path                                               |
-| `defineAngularHost()`                 | Define the Angular host `mount` entry; Atlas wires router, federation, and anchors |
-| `AtlasNavigationItemsService`         | Read runtime-resolved route navigation items for custom Angular host navigation    |
-| `startHost()`                         | Boot an Angular Atlas host                                                         |
+Host infrastructure. Generated hosts use `defineReactHost` or `defineAngularHost` instead of calling these functions.
 
-`startHost()` accepts host-wide `renderHostLoading` and `renderHostError` callbacks for the single startup outlet, plus shared `renderLoading` and `renderError` callbacks used by every app placement.
+### Host startup and mounting
 
-It also accepts `observe(event)`. The callback receives the
-`AtlasRuntimeEvent` discriminated union exported by `@atlas/runtime`; errors
-thrown by an observer are isolated from host execution.
+| Export                                                                                                                                                                                                                    | Purpose                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `startAtlasHostRuntime`                                                                                                                                                                                                   | Own the route and slot placement lifecycle of a catalog.                             |
+| `loadAndMountHostCatalog`                                                                                                                                                                                                 | Load a catalog and mount it into DOM containers, for custom DOM hosts.               |
+| `mountApp`                                                                                                                                                                                                                | Mount one app manifest into one container.                                           |
+| `createHostUi`                                                                                                                                                                                                            | Control the host status outlet used while Atlas starts.                              |
+| `AtlasHostRuntime`, `AtlasHostRuntimeOptions`, `DomHostOptions`, `DomHostServices`, `DomRuntimeOptions`, `AtlasHostUi`, `AtlasHostUiOptions`, `AtlasMountAppOptions`, `AtlasMountedApp`, `AtlasHostCatalogMountOptions`   | Types for the above.                                                                 |
+| `RenderHostLoading`, `RenderHostError`, `RenderPlacementLoading`, `RenderPlacementError`, `RenderWidgetLoading`, `RenderWidgetError`, `AtlasWidgetUiOptions`, `AtlasWidgetRenderContext`, `AtlasWidgetErrorRenderContext` | Host UI callback types. See [Loading and failure UI](sdk.md#loading-and-failure-ui). |
+| `AtlasHostMountEvent`, `AtlasHostMountState`                                                                                                                                                                              | Placement state passed to UI callbacks.                                              |
+| `AtlasHostAnchorRegistry`, `AtlasHostAnchorKind`, `AtlasHostAnchorListener`, `SubscribeToAnchors`                                                                                                                         | Registry that framework anchors register with.                                       |
 
-## React Adapter
+### Deployment, catalog, and overrides
 
-Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
+| Export                                                                                                           | Purpose                                                              |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `loadHostDeployment`                                                                                             | Fetch the active host manifest and build a validated catalog.        |
+| `loadPublishedManifest`                                                                                          | Fetch and verify one artifact manifest.                              |
+| `resolveRuntimeCatalog`, `resolveRuntimeManifests`                                                               | Apply overrides while keeping one version per app.                   |
+| `loadBrowserRuntimeOverrides`                                                                                    | Read Columbus overrides from browser storage or the Columbus bridge. |
+| `ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY`                                                                            | Storage key of the override document.                                |
+| `AtlasBrowserOverrideOptions`, `LoadHostDeploymentOptions`, `LoadPublishedManifestOptions`, `AtlasLoaderOptions` | Option types.                                                        |
 
-| API                                | Purpose                                                                                                     |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `useAtlasSdk<THostSdk, TEvents>()` | Read the typed SDK from React context                                                                       |
-| `defineApp()`                      | Expose a router-free React app lifecycle entry                                                              |
-| `createRoutedApp()`                | Expose a React Router app lifecycle entry                                                                   |
-| `defineExportedWidget()`           | Low-level React widget lifecycle adapter; generated widgets do not call it                                  |
-| `createRouterOptions()`            | Scope a memory router to the app path                                                                       |
-| `useAtlasStyleTarget()`            | Read the app Shadow Root for a CSS-in-JS library insertion target                                           |
-| `connectRouter()`                  | Synchronize React Router and host navigation                                                                |
-| `defineReactHost()`                | Define the React host `mount` entry; Atlas owns the router, root, provider, and federation                  |
-| `AtlasHostProvider`                | Create and provide the host SDK, then start Atlas after the React tree commits                              |
-| `AtlasDefaultHostLayout`           | Replaceable default React host layout; renders the Atlas status, navigation, route outlet, and slot anchors |
-| `useAtlasNavigationItems()`        | Read runtime-resolved route navigation items for custom React host navigation                               |
-| `startHost()`                      | Imperatively boot a React Atlas host                                                                        |
+### Trust and federation loading
 
-Generated React hosts call `defineReactHost()`, which wraps the host layout with
-`AtlasHostProvider`; `startHost()` remains available for imperative integrations
-and tests. React hosts receive the
-same host-wide and shared app UI callbacks as Angular hosts. Global renderer
-callbacks may return a cleanup function for framework roots and subscriptions.
+| Export                                                                                                                                                                                                                                                                                                                                                             | Purpose                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `createRemoteTrustPolicy`                                                                                                                                                                                                                                                                                                                                          | Build the default fail-closed trust policy from the deployment configuration. |
+| `verifyManifestIntegrity`                                                                                                                                                                                                                                                                                                                                          | Check remote origins and SHA-256 integrity.                                   |
+| `findManifestTrustErrors`                                                                                                                                                                                                                                                                                                                                          | Check manifests one by one so one rejected app cannot stop the host.          |
+| `assertManifestAssetTrust`, `assertManifestStylesTrust`                                                                                                                                                                                                                                                                                                            | Check asset and stylesheet URLs against the policy.                           |
+| `createNativeFederationImporters`, `createTrustedNativeFederationImporters`                                                                                                                                                                                                                                                                                        | Initialize Native Federation for the selected remotes.                        |
+| `importNativeFederationRemote`                                                                                                                                                                                                                                                                                                                                     | Import one remote module.                                                     |
+| `AtlasRemoteTrustPolicy`, `AtlasFederationAdapter`, `AtlasNativeFederationImporters`, `NativeFederationImportersOptions`, `TrustedNativeFederationImportersOptions`, `VerifyManifestIntegrityOptions`, `FindManifestTrustErrorsOptions`, `FetchBytes`, `InitFederation`, `LoadRemoteModule`, `ImportAppRemote`, `ImportFederationRemote`, `ImportFederationWidget` | Types.                                                                        |
 
-React hosts support the same provider-neutral `observe(event)` callback as
-Angular hosts.
+### Widgets
 
-## Testkit
+| Export                                                                                                                                              | Purpose                                                |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `createWidgetLoader`                                                                                                                                | Create the widget loader for the selected catalog.     |
+| `createRegistryWidgetResolver`                                                                                                                      | Resolve widgets from apps in the active host manifest. |
+| `importExportedWidget`                                                                                                                              | Import one widget module.                              |
+| `AtlasWidgetLoaderOptions`, `CreateWidgetLoaderInput`, `AtlasResolvedWidget`, `AtlasWidgetResolver`, `AtlasWidgetImporter`, `WidgetRegistryOptions` | Types.                                                 |
 
-| API                             | Import                   | Purpose                                                          |
-| ------------------------------- | ------------------------ | ---------------------------------------------------------------- |
-| `mockAtlasEnvironment()`        | `@atlas/testkit`         | Mock SDK and app context; override only what the test depends on |
-| `provideMockAtlasEnvironment()` | `@atlas/testkit/angular` | Provide a mock environment to Angular tests                      |
-| `MockAtlasEnvironmentProvider`  | `@atlas/testkit/react`   | Provide a mock environment to React tests                        |
-| `anAppManifest()`               | `@atlas/testkit`         | Create a valid manifest with focused overrides                   |
-| `createMemoryNavigation()`      | `@atlas/testkit`         | Test navigation without a browser                                |
+### Navigation items
 
-See [Consumer testing](../guides/testing-apps-and-hosts.md#app-domain).
+| Export                                                                                                    | Purpose                                                  |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `createHostNavigationItems`                                                                               | Build menu items from the route placements in a catalog. |
+| `readAtlasNavigationItems`, `subscribeAtlasNavigationItems`, `publishAtlasNavigationItems`                | Read, observe, and publish the current items.            |
+| `ATLAS_NAVIGATION_ITEMS_EVENT`                                                                            | DOM event name used to publish items.                    |
+| `AtlasHostNavigationItem`, `HostNavigationItemsInput`, `NavigationItemsListener`, `ReportNavigationItems` | Types.                                                   |
 
-The testkit follows public contracts and is suitable for unit tests. Use a real
-generated host and static registry deployment for integration and E2E tests.
+### Styles and assets
+
+| Export                                                                        | Purpose                                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `loadManifestStyles`                                                          | Load an app's stylesheets into its document or isolation boundary. |
+| `startRemoteAssetRewrite`, `rewriteAssetUrl`, `rewriteCssAssetUrls`           | Rewrite relative asset URLs to the app's published location.       |
+| `AtlasStylesheetLoadOptions`, `AtlasStyleRelease`, `AtlasAssetRewriteRelease` | Types.                                                             |
+
+### Resilience and observability
+
+| Export                                                                                                                  | Purpose                                                      |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `createRetryPolicy`                                                                                                     | Build a timeout and retry policy.                            |
+| `runResiliently`                                                                                                        | Run an operation with that policy and emit operation events. |
+| `emitRuntimeEvent`                                                                                                      | Send an event to an observer and ignore observer failures.   |
+| `logBrowserError`                                                                                                       | Log a structured Atlas error to the console.                 |
+| `AtlasRuntimeEvent`, `AtlasRuntimeObserver`, `AtlasHostEvent`, `AtlasOperationEvent`, `AtlasAppEvent`                   | Event types. See [Runtime events](sdk.md#runtime-events).    |
+| `AtlasRetryPolicy`, `AtlasRetryPolicySource`, `ResilientOperation`, `ResilientOperationRunner`, `AtlasOperationContext` | Types.                                                       |
+
+### Error classes
+
+Every class extends `AtlasError` from `@atlas/schema`, most of them through `AtlasRuntimeError` or `AtlasBrowserError`. See [Errors](errors.md#runtime-errors) for codes.
+
+`AtlasRuntimeError`, `AtlasBrowserError`, `AtlasLoadError`, `AtlasHostStartError`, `AtlasHostRetryError`, `AtlasAppLoadError`, `AtlasAppMountError`, `AtlasAppMountExportMissingError`, `AtlasAppMountTimeoutError`, `AtlasCatalogHostMismatchError`, `AtlasCatalogSelectionError`, `AtlasDuplicateRouteError`, `AtlasInvalidRetryCountError`, `AtlasInvalidTimeoutError`, `AtlasOverrideError`, `AtlasRemoteTrustError`, `AtlasResourceHttpError`, `AtlasRetryStateError`, `AtlasRouteReconciliationError`, `AtlasRuntimeConfigurationError`, `AtlasSlotNameMissingError`, `AtlasStyleTargetMissingError`, `AtlasStylesheetAdaptError`, `AtlasStylesheetLoadError`, `AtlasWidgetAmbiguousError`, `AtlasWidgetIdInvalidError`, `AtlasWidgetMountError`, `AtlasWidgetMountExportMissingError`, `AtlasWidgetNotFoundError`, `AtlasWidgetOwnerMismatchError`, `AtlasWidgetOwnerUntrustedError`, `AtlasWidgetRemoteMismatchError`, `AtlasWidgetResolverMissingError`. Supporting types: `AtlasRuntimeErrorOptions`, `AtlasBrowserErrorContext`.
+
+> **Note:** `@atlas/runtime` exports its own `AtlasWidgetMountError` for the widget loader. It is a different class from the `AtlasWidgetMountError` in `@atlas/sdk`, which React widget components throw. Both use the code `ATLAS_WIDGET_MOUNT_FAILED`.
+
+## @atlas/runtime/react
+
+| Export                                                                                                                                   | Kind      | Purpose                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `defineReactHost(definition)`                                                                                                            | Function  | Create the host `mount` entry. `definition`: `config`, `layout`, `reactDom`, optional `providers`, `useSdkOptions`. |
+| `AtlasHostProvider`                                                                                                                      | Component | Create the host SDK, provide it, and start Atlas after the tree commits. Props: `hostId`, `options`, `children`.    |
+| `startHost(options)`                                                                                                                     | Function  | Start a React host imperatively. Returns an `AtlasHostRuntime`.                                                     |
+| `AtlasDefaultHostLayout`                                                                                                                 | Component | Default layout: status, header slot, navigation, and route outlet inside the `default` layout.                      |
+| `useAtlasNavigationItems()`                                                                                                              | Hook      | Current route navigation items for a custom menu.                                                                   |
+| `HostOptions`, `HostSdkOptions`, `ReactHostDefinition`, `AtlasHostProviderProps`, `ReactDomClient`, `LegacyReactDom`, `ReactDomRenderer` | Type      | Option types.                                                                                                       |
+
+### React host anchors
+
+Host anchors mark where Atlas renders. Render them inside the layout passed to `defineReactHost`, or inside `AtlasHostProvider`; otherwise they throw `ATLAS_HOST_PROVIDER_MISSING`. See [Host anchors](../concepts/host-anchors.md).
+
+| Component          | Props                  | Renders                 | Purpose                                                                |
+| ------------------ | ---------------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `AtlasHostLayout`  | `layoutId`, `children` | Its children or nothing | Render its children only while a route with this `layoutId` is active. |
+| `AtlasRouteOutlet` | None                   | `<atlas-route-outlet>`  | Where the active route's app mounts.                                   |
+| `AtlasSlot`        | `slotId`               | `<atlas-slot>`          | Where apps with a matching slot mount.                                 |
+| `AtlasNavigation`  | `aria-label`, optional | `<atlas-navigation>`    | Where Atlas renders the default route menu.                            |
+| `AtlasHostStatus`  | None                   | `<atlas-status>`        | Where host startup loading and errors appear.                          |
+
+## @atlas/runtime/angular
+
+| Export                                                                                                                 | Kind     | Purpose                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `defineAngularHost(definition)`                                                                                        | Function | Create the host `mount` entry. `definition`: `config`, `component`, optional `appConfig`, `sdkOptions(injector)`. |
+| `bootstrapAngularHost(options)`                                                                                        | Function | Bootstrap an Angular host component and start Atlas. `defineAngularHost` calls it.                                |
+| `startHost(options, services?)`                                                                                        | Function | Start Atlas for an already bootstrapped Angular app. Pass `hostDataInjector` to keep Signal host data live.       |
+| `AtlasNavigationItemsService`                                                                                          | Service  | `items`: a `Signal` of the current route navigation items.                                                        |
+| `AtlasAngularHostAnchors`                                                                                              | Service  | Anchor registry the anchor components register with.                                                              |
+| `HostOptions`, `HostSdkOptions`, `AngularHostDefinition`, `AngularHostBootstrapOptions`, `CreateAngularHostSdkOptions` | Type     | Option types.                                                                                                     |
+
+### Angular host anchors
+
+All are standalone. Import them into the host component. See [Host anchors](../concepts/host-anchors.md).
+
+| Class              | Selector               | Inputs                                  | Purpose                                                                                                         |
+| ------------------ | ---------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `AtlasHostLayout`  | `[atlasHostLayout]`    | `atlasHostLayout` (layout ID), required | Structural directive. Renders its template only while its layout is active. Use `*atlasHostLayout="'default'"`. |
+| `AtlasRouteOutlet` | `<atlas-route-outlet>` | None                                    | Where the active route's app mounts.                                                                            |
+| `AtlasSlot`        | `<atlas-slot>`         | `slotId`, required                      | Where apps with a matching slot mount.                                                                          |
+| `AtlasNavigation`  | `<atlas-navigation>`   | None                                    | Where Atlas renders the default route menu.                                                                     |
+| `AtlasHostStatus`  | `<atlas-host-status>`  | None                                    | Where host startup loading and errors appear.                                                                   |
+
+## @atlas/schema
+
+Types, validators, and helpers for configuration, manifests, and runtime config. The package has one entry point.
+
+### Configuration types
+
+`AtlasConfig`, `AtlasBaseConfig`, `AtlasHostConfig`, `AtlasAppConfig`, `AtlasRouteMount`, `AtlasSlotMount`, `AtlasWidgetConfig`, `AtlasHostRuntimeConfig`. See [Configuration](configuration.md).
+
+### Manifest and registry types
+
+| Types                                                                                                                                                                                                                                                                                                                                 | See                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `AtlasPublishedArtifactManifest`, `AtlasAppArtifactManifest`, `AtlasHostArtifactManifest`, `AtlasArtifactManifestBaseV2`, `AtlasArtifactKind`, `AtlasArtifactSource`, `AtlasArtifactStylesheet`, `AtlasReleaseIdentity`, `AtlasPreviewIdentity`, `AtlasPayloadFileDescriptor`, `AtlasPayloadFileRole`, `AtlasPublishedWidgetManifest` | [Artifact manifest](manifests.md#artifact-manifest)       |
+| `AtlasStaticRegistry`, `AtlasRegistryArtifact`, `AtlasManifestDescriptor`                                                                                                                                                                                                                                                             | [registry.json](manifests.md#registryjson)                |
+| `AtlasEnvironmentDeployment`, `AtlasDeploymentSelection`, `AtlasHostDeploymentSelection`                                                                                                                                                                                                                                              | [deployment.json](manifests.md#deploymentjson)            |
+| `AtlasHostDeploymentManifest`, `AtlasDeploymentManifestReference`                                                                                                                                                                                                                                                                     | [Active host manifest](manifests.md#active-host-manifest) |
+| `AtlasHostCatalog`, `AtlasDeploymentCatalog`, `AtlasManifest`, `AtlasAppManifest`, `AtlasHostManifest`, `AtlasArtifactManifestBase`, `AtlasExportedWidgetManifest`, `AtlasStylesheet`, `AtlasExposeMap`, `AtlasMetadata`, `AtlasMetadataValue`                                                                                        | [Host catalog](manifests.md#host-catalog)                 |
+| `AtlasPlacement`, `AtlasPlacementKind`, `AtlasRouteContribution`, `AtlasRouteMatch`, `AtlasRouteNavigation`, `AtlasDomIsolation`, `AtlasAppDomIsolation`, `AtlasFramework`, `AtlasVersionChannel`                                                                                                                                     | [Placements](manifests.md#placements)                     |
+| `AtlasRuntimeOverride`, `AtlasRuntimeOverrideDocument`, `AtlasRuntimeOverrideReason`, `AtlasOverrideSelection`                                                                                                                                                                                                                        | Columbus override document                                |
+
+### Functions
+
+| Export                                                                   | Purpose                                                                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `validate*` and `assert*` functions                                      | Validate each document type. See [Validation functions](manifests.md#validation-functions). |
+| `resolveAtlasHostRuntimeConfig(value, hostUrl?)`                         | Validate a runtime config and resolve relative registry URLs against the host page.         |
+| `resolveEnvironmentRegistryUrl(runtime)`                                 | `environmentRegistryUrl`, or `artifactRegistryUrl` when it is not set.                      |
+| `buildEnvironmentManifestUrl(runtime)`                                   | Absolute URL of the active host manifest.                                                   |
+| `buildArtifactUrl(runtime, path)`                                        | Resolve an artifact path against `artifactRegistryUrl`.                                     |
+| `createManifestFromConfig(input)`                                        | Build a runtime app manifest from `atlas.config.ts`.                                        |
+| `hydratePublishedArtifactManifest(value, manifestUrl)`                   | Convert an artifact manifest to its runtime form.                                           |
+| `placementTargetsHost(placement, hostId)`                                | Whether a placement applies to a host, including `*`.                                       |
+| `assertReleaseVersion`, `assertSafeArtifactId`, `assertSafeRelativePath` | Validate a version, an ID, or a relative path.                                              |
+| `isLoopbackHostname(hostname)`                                           | Whether a hostname is `localhost`, `127.0.0.1`, or `[::1]`.                                 |
+
+### Errors
+
+| Export                                                 | Purpose                                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `AtlasError`, `AtlasErrorOptions`, `AtlasErrorSurface` | Base error with `code`, `summary`, `suggestedActions`, `surface`, and `cause`. See [Errors](errors.md). |
+| `AtlasValidationError`, `AtlasValidationIssue`         | Validation failure with a list of issues (`ATLAS_INVALID_JSON`).                                        |
+| `ensureActionableError(value, options?)`               | Wrap any thrown value in an `AtlasError`.                                                               |
+| `actionableMessage(message, actions)`                  | Format a summary with suggested actions.                                                                |
+| `errorSummary(message)`                                | Strip the suggested actions from a message.                                                             |
+| `suggestedActionFor(message)`                          | Default suggested action for a known message pattern.                                                   |
+
+### Constants
+
+`ATLAS_FRAMEWORKS`, `ATLAS_DOM_ISOLATIONS`, `ATLAS_PLACEMENT_KINDS`, `ATLAS_ROUTE_MATCHES`, `ATLAS_VERSION_CHANNELS`, `ATLAS_PAYLOAD_FILE_ROLES`, `ATLAS_ALL_HOSTS` (`'*'`), `ATLAS_IMMUTABLE_CACHE_CONTROL`, `ATLAS_RUNTIME_CONFIG_PATH` (`'/atlas.runtime.json'`), `ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION`, `ATLAS_DEVELOPMENT_ENVIRONMENT`, `ATLAS_LOADER_HTML`.
+
+The development-session exports (`ATLAS_DEV_*`, `ATLAS_PREVIEW_LAUNCHER_*`, `AtlasDevelopment*`, and the development offer helpers) exist for the CLI and Columbus. Do not depend on them.
+
+## @atlas/bootstrap
+
+Node-only. It reads built loader assets from disk.
+
+| Export                                                                  | Purpose                                                                                                                                      |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createAtlasBootstrapFiles(options)`                                    | Return `index.html`, `atlas.loader.js`, and `es-module-shims.js` as `AtlasBootstrapFile` objects. `options`: `html`, `title`, `loadingHtml`. |
+| `createBootstrapHtml(options?)`                                         | Default bootstrap HTML with an optional `title` and `loadingHtml`.                                                                           |
+| `validateBootstrapHtml(html)`                                           | Throw `BOOTSTRAP_TEMPLATE_INVALID` unless the HTML has `#atlas-host-root` and the loader script.                                             |
+| `ATLAS_BROWSER_LOADER`                                                  | The browser loader source.                                                                                                                   |
+| `AtlasBootstrapOptions`, `AtlasBootstrapFile`, `AtlasBootstrapFilePath` | Types.                                                                                                                                       |
+
+## @atlas/testkit
+
+Test helpers. See [Testing apps and hosts](../guides/testing-apps-and-hosts.md).
+
+| Entry point               | Exports                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@atlas/testkit`          | `mockAtlasEnvironment`, `createMemoryNavigation`; builders `anAppManifest`, `anAppVersionOf`, `aHostManifest`, `aHostCatalog`, `aHostRuntimeConfig`, `aRoutePlacement`, `aSlotPlacement`, `anExportedWidgetManifest`, `aStylesheet`; types `MockAtlasEnvironment`, `MockAtlasEnvironmentOverrides`, `MockAtlasAppOverrides`, `MockAtlasSdkOverrides`, `MockAtlasHostData`, `NavigateToApp` |
+| `@atlas/testkit/react`    | `MockAtlasEnvironmentProvider`, `MockAtlasEnvironmentProviderProps`                                                                                                                                                                                                                                                                                                                        |
+| `@atlas/testkit/angular`  | `provideMockAtlasEnvironment`                                                                                                                                                                                                                                                                                                                                                              |
+| `@atlas/testkit/internal` | Builders used by Atlas's own tests. Not part of the supported API.                                                                                                                                                                                                                                                                                                                         |
+
+## @atlas/cli
+
+The CLI is mainly a command. Its root entry point also exports:
+
+| Export                                                                                                                                                                                                                                                 | Purpose                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `defineAtlasRegistryConfig`                                                                                                                                                                                                                            | Type the default export of `atlas.registry.ts`. See [Registry config file](cli.md#registry-config-file). |
+| `S3PublicationStorage`, `ArtifactoryPublicationStorage`                                                                                                                                                                                                | Built-in storage implementations for a custom `storage`.                                                 |
+| `runAtlasCli(values?, prompter?)`                                                                                                                                                                                                                      | Run the CLI programmatically.                                                                            |
+| `AtlasRegistryConfig`, `AtlasPublicationStorage`, `AtlasPublicationLease`, `AtlasPublicationObjectMetadata`, `AtlasVersionedObject`, `S3Options`, `ArtifactoryOptions`, `AtlasPreviewHeadResolver`, `AtlasPreviewHeadLookup`, `AtlasPreviewHeadStatus` | Types.                                                                                                   |
+
+## @atlas/generators
+
+Used by the CLI. Install `@atlas/cli` and run `npx atlas generate` instead of calling it. Exports: `generateHostFiles`, `generateAppFiles`, `generateWidgetFiles`, `validateGeneratorOptions`, `assertValidGeneratorName`, `getDefaultDevServerPort`, `deriveHostClientPortFromBootstrapPort`, `DEFAULT_HOST_BOOTSTRAP_PORT` (4200), `DEFAULT_HOST_CLIENT_PORT` (4300), `DEFAULT_APP_DEV_PORT` (4201), the error classes listed in [Generator errors](errors.md#generator-errors), and the types `AtlasGeneratorOptions`, `AtlasGeneratedFile`, `AtlasProjectType`, `AngularStylesheetFormat`.
+
+## Related
+
+- [SDK reference](sdk.md)
+- [Packages](packages.md)
+- [Configuration](configuration.md)
+- [Manifests](manifests.md)
+- [Errors](errors.md)

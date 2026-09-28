@@ -1,56 +1,61 @@
-# Build An Angular Host
+---
+title: Build an Angular host
+description: Generate an Angular host, lay out its host anchors, provide host services through the SDK, and run it locally.
+---
 
-Audience: Angular team building the main application layout, top-level
-navigation, and shared browser services. Start with [Get Started](../../get-started/tutorial.md),
-then use this guide.
+# Build an Angular host
 
-Finished system:
+This guide walks you through building an Angular host: the page layout, top-level navigation, and shared browser services that every app runs inside. It is for the Angular team that owns the product shell.
 
-```text
-customer.example
-  Startup files provide HTML, configuration, and the Atlas loader
-  The Angular Host provides the page layout and shared services
-  Atlas shows Apps at matching URLs and named page areas
-```
+A host is the application that owns the browser URL and the page layout. Apps are independently released micro-frontends that the host mounts at runtime. See the [glossary](../../introduction/glossary.md) for the full vocabulary.
 
-Atlas publishes the Host and its startup files separately. Read
-[Host bootstrap](../../deploy/bootstrap.md) before deployment.
+## Before you start
 
-## 1. Generate The Host
+- Complete the [tutorial](../../get-started/tutorial.md), or have a workspace with `@atlas/cli` installed.
+- Read [Hosts](../../concepts/hosts.md) and [Host anchors](../../concepts/host-anchors.md) if you have not built an Atlas host before.
+- Run every command in this guide from the workspace root.
 
-From workspace root:
+## 1. Generate the host
+
+Run the host generator:
 
 ```sh
-atlas g host customer-host --framework=angular
+npx atlas g host customer-host --framework=angular
 ```
 
-Generation creates one host project:
+The generator creates an Angular project with Atlas wiring:
 
 ```text
 customer-host/
+  angular.json
+  atlas.bootstrap.html
   atlas.config.ts
-  federation.config.js
+  federation.config.mjs        (federation.config.js on Angular 19)
+  package.json
+  public/
   src/
     app/
-      app.config.ts
       app.component.ts
+      app.config.ts
       host.config.ts
     bootstrap.ts
+    index.html
     main.ts
+    styles.css
 ```
 
-Responsibilities:
+| File                       | What you use it for                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`          | The host's stable ID (a UUID) and display name. Apps target this ID.                                                      |
+| `atlas.bootstrap.html`     | The HTML template that `npx atlas bootstrap` turns into the static entry page.                                            |
+| `src/app/app.component.ts` | The page layout and the host anchors where Atlas mounts apps.                                                             |
+| `src/app/app.config.ts`    | Angular providers. On Angular 20 it enables zoneless change detection. Atlas adds the router for you.                     |
+| `src/app/host.config.ts`   | Host services that apps receive through the SDK, plus loading, error, and monitoring hooks.                               |
+| `src/bootstrap.ts`         | Exports `mount` from `defineAngularHost()`. Native Federation exposes this file as `./host`. You rarely edit it.          |
+| `src/main.ts`              | A placeholder browser entry. It prints "Start this Atlas host with atlas dev." when you open the Angular server directly. |
+| `federation.config.mjs`    | Native Federation settings. See [Angular generators](generators.md#native-federation-config).                             |
 
-| File                       | Owner                   | Edit for                                                                       |
-| -------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| `atlas.config.ts`          | Host team               | Unique Host ID and display name                                                |
-| `src/app/app.component.ts` | Host UI team            | Main page layout and HTML elements where Atlas shows Apps                      |
-| `src/app/app.config.ts`    | Host UI team            | Angular providers and zoneless configuration; Atlas provides the router        |
-| `src/app/host.config.ts`   | Host platform team      | Auth-aware HTTP, SDK services, UI renderers, monitoring                        |
-| `src/bootstrap.ts`         | Atlas lifecycle adapter | Exports `mount()` from `defineAngularHost()`; do not edit                      |
-| `federation.config.js`     | Federation build        | Add Native Federation options; Atlas keeps required exposure and sharing rules |
-
-Generated host config resembles:
+The generated `atlas.config.ts` looks like this. Your `id` is a different UUID:
 
 ```ts
 import type { AtlasHostConfig } from '@atlas/schema' with {
@@ -65,104 +70,131 @@ export default {
 } satisfies AtlasHostConfig;
 ```
 
-Keep `id` unchanged when you rename a folder, package, repository, or display
-name. Apps use this ID to declare their URLs and named page areas in this Host.
+Keep `id` unchanged when you rename the folder, package, repository, or display name. Apps use this ID to declare their routes and slots in this host.
 
-## 2. Understand The Angular Bootstrap
+> **Expected result:** A `customer-host/` folder exists and its dependencies are installed.
 
-Atlas loader chooses the published or local Host version, creates an HTML
-container, and calls the `mount` function exported by `src/bootstrap.ts`.
+## 2. Understand how the host starts
 
-`src/bootstrap.ts` passes `atlas.config.ts`, `AppComponent`, `appConfig`, and
-`createCustomHostSdkOptions` to `defineAngularHost()`, which then:
+The Atlas loader picks the host version to run, creates a container element, and calls the `mount` function that `src/bootstrap.ts` exports:
 
-1. bootstraps the Angular application;
-2. provides Angular Router with the catch-all route Atlas navigation requires;
-3. connects Angular Router and browser navigation to Atlas;
-4. initializes Native Federation loading;
-5. creates one host-owned Atlas SDK;
-6. shows Apps selected for this Host at their URLs and named page areas;
-7. stops Atlas and destroys Angular during unmount.
+```ts
+import { defineAngularHost } from '@atlas/runtime/angular';
+import atlasConfig from '../atlas.config';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+import {
+  createCustomHostSdkOptions,
+  type CustomerHostSdk,
+} from './app/host.config';
 
-Do not fetch another list of Apps or choose App versions in Angular code. Atlas
-passes that information into `mount`.
+export const mount = defineAngularHost<CustomerHostSdk>({
+  config: atlasConfig,
+  component: AppComponent,
+  appConfig,
+  sdkOptions: createCustomHostSdkOptions,
+});
+```
 
-## 3. Build The Main Application Layout
+When the loader calls `mount`, `defineAngularHost()`:
 
-Replace generated branding and layout in `src/app/app.component.ts`, while
-keeping the HTML attributes that tell Atlas where Apps may appear:
+1. Creates an `<atlas-host-root>` element in the loader's container and bootstraps `AppComponent` into it.
+2. Adds Angular Router with a catch-all route, so every URL reaches Atlas.
+3. Calls `createCustomHostSdkOptions()` with the application injector.
+4. Starts the Atlas runtime with the router, location, host anchors, Native Federation, runtime config, and the catalog from the mount request.
+5. Creates one host SDK and provides it to Angular, so `injectAtlasSdk()` works in the host.
+6. Mounts the apps selected for this host into the matching route outlet and slots.
+7. Stops the runtime and destroys the Angular application on unmount.
+
+Do not fetch the host catalog or choose app versions in Angular code. The loader passes that information to `mount`.
+
+`defineAngularHost()` calls the lower-level `bootstrapAngularHost()` from `@atlas/runtime/angular`. Use `bootstrapAngularHost()` only when you must build the host options yourself. It takes `component`, `appConfig`, the mount `request`, and a `createHostOptions(injector)` function.
+
+## 3. Build the host layout
+
+Replace the generated branding and layout in `src/app/app.component.ts`. Keep the host anchors, which are the components that tell Atlas where to render:
 
 ```ts
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import {
+  AtlasHostLayout,
+  AtlasHostStatus,
+  AtlasNavigation,
+  AtlasRouteOutlet,
+  AtlasSlot,
+} from '@atlas/runtime/angular';
 
 @Component({
   selector: 'atlas-host-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [
+    RouterOutlet,
+    AtlasHostLayout,
+    AtlasHostStatus,
+    AtlasNavigation,
+    AtlasRouteOutlet,
+    AtlasSlot,
+  ],
   template: `
-    <div data-atlas-host-status></div>
+    <ng-container *atlasHostLayout="'default'">
+      <atlas-host-status />
 
-    <header class="product-header">
-      <a href="/" class="product-brand">Customer Portal</a>
-      <div data-atlas-slot="header"></div>
-    </header>
+      <header class="product-header">
+        <a href="/" class="product-brand">Customer Portal</a>
+        <atlas-slot slotId="header" />
+      </header>
 
-    <div class="product-workspace">
-      <aside class="product-sidebar">
-        <nav data-atlas-navigation aria-label="Applications"></nav>
-        <div data-atlas-slot="sidebar"></div>
-      </aside>
+      <div class="product-workspace">
+        <aside class="product-sidebar">
+          <atlas-navigation aria-label="Applications" />
+          <atlas-slot slotId="sidebar" />
+        </aside>
 
-      <main class="product-content">
-        <section data-atlas-route-outlet></section>
-      </main>
-    </div>
+        <main class="product-content">
+          <atlas-route-outlet />
+        </main>
+      </div>
+    </ng-container>
 
-    <router-outlet hidden></router-outlet>
+    <router-outlet hidden />
   `,
 })
 export class AppComponent {}
 ```
 
-Anchor behavior:
+| Anchor                           | Purpose                                                                       | When you need it                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `*atlasHostLayout="'default'"`   | Renders its content only while this layout is active.                         | When routes use different layouts. Routes use `default` unless they set `layoutId`. |
+| `<atlas-host-status />`          | Shows host startup progress and startup errors.                               | When you want the default or a custom startup UI.                                   |
+| `<atlas-navigation />`           | Renders links to this host's routes, except routes with `nav.visible: false`. | Optional. Omit it when you render your own navigation.                              |
+| `<atlas-route-outlet />`         | The route outlet where the app for the current URL mounts.                    | When the host shows routed apps.                                                    |
+| `<atlas-slot slotId="header" />` | A named slot where apps that declare this `slotId` mount.                     | For each slot that apps use.                                                        |
+| `<router-outlet hidden />`       | Keeps Angular Router in sync with the browser URL. Apps never render here.    | Always. Keep it outside the layout block.                                           |
 
-| Anchor                     | Purpose                                         | Required when                                     |
-| -------------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| `data-atlas-host-status`   | Host startup and failure UI container           | Host must display default or custom startup state |
-| `data-atlas-navigation`    | Atlas-generated top-level links                 | Optional; omit when rendering custom navigation   |
-| `data-atlas-route-outlet`  | Active routed app mount point                   | Host contains routed apps                         |
-| `data-atlas-slot="header"` | Apps assigned to named `header` slot            | Catalog contains that slot placement              |
-| hidden `router-outlet`     | Keeps Angular Router synchronized with host URL | Keep in Angular host                              |
-
-Anchors must be real DOM elements. Angular components may wrap them, but placing
-the attribute on a component selector does not guarantee Atlas can use its
-internal DOM as a mount container.
-
-Add any named slot required by app configuration:
+Add one `<atlas-slot>` for each slot name that apps declare:
 
 ```html
-<aside data-atlas-slot="help-panel"></aside>
-<footer data-atlas-slot="footer-tools"></footer>
+<atlas-slot slotId="help-panel" /> <atlas-slot slotId="footer-tools" />
 ```
 
-Missing slot anchors do not crash the host; Atlas logs a warning and cannot mount
-that placement. Duplicate slot names are ambiguous and should be avoided.
+If no matching `<atlas-slot>` is rendered, Atlas does not mount that placement. It mounts it as soon as the anchor appears, for example when a different layout becomes active. Use each slot name once per layout.
 
-Read [Angular routing](routing.md) for custom navigation, route ownership, inner
-app routes, and deep links.
+To give some routes a different layout, add another `*atlasHostLayout` block with its own ID and set `layoutId` on those routes in the app's `atlas.config.ts`. Read [Angular routing](routing.md) for layouts, custom navigation, and deep links.
 
-## 4. Provide Host Services Through The SDK
+## 4. Provide host services through the SDK
 
-Apps must not import host source. Put product-wide capabilities into
-`src/app/host.config.ts`; generated bootstrap passes them to Atlas.
+Apps never import host source code. The host provides shared capabilities through the SDK, which is the object apps receive at mount time. Define them in `src/app/host.config.ts`.
 
-Example extension:
-
-`ordersApi`, `toastService`, and `monitoring` below are
-product-owned placeholders. Replace them with services from the host project.
+In this example, `OrdersApi`, `ToastService`, and `MonitoringService` are placeholders for your own product services:
 
 ```ts
+import type { Injector } from '@angular/core';
+import type { HostSdkOptions } from '@atlas/runtime/angular';
+import { MonitoringService } from './monitoring.service';
+import { OrdersApi } from './orders-api';
+import { ToastService } from './toast.service';
+
 export interface CustomerHostSdk {
   hostData: {
     projectId: string;
@@ -174,101 +206,38 @@ export interface CustomerHostSdk {
 export function createCustomHostSdkOptions(
   injector: Injector,
 ): HostSdkOptions<CustomerHostSdk> {
-  const toastService = injector.get(ToastService);
+  const toast = injector.get(ToastService);
+  const monitoring = injector.get(MonitoringService);
 
   return {
     hostData: { projectId: 'customer-portal' },
-    orders: ordersApi,
-    showToast: (message) => toastService.show(message),
+    orders: injector.get(OrdersApi),
+    showToast: (message) => toast.show(message),
     observe: (event) => monitoring.capture('atlas.runtime', event),
   };
 }
 ```
 
-Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`, plus
-router, location, anchors, Native Federation, runtime config, and catalog.
+Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`. It also supplies the router, location, host anchors, Native Federation loader, runtime config, and catalog, so you do not pass them.
 
-Typical host-provided capabilities:
+Good candidates for the host SDK:
 
-- product API or company client;
-- current tenant, locale, feature policy, or product identity;
-- toast, modal, and other host-owned overlay services;
-- cross-app events and top-level navigation;
-- runtime monitoring and error reporting.
+- product API clients;
+- the current tenant, locale, feature flags, or signed-in user as `hostData`;
+- toasts, modals, and other host-owned overlays;
+- monitoring and error reporting through `observe`.
 
-Use normal Angular services for state private to the host. Expose only stable
-contracts that apps need. Place shared TypeScript interfaces in a package both
-host and apps can compile against; do not share live host implementation code.
+Keep host-private state in normal Angular services. Put the `CustomerHostSdk` interface in a package that both the host and the apps compile against, and never share live host implementation code. Read [Angular SDK](sdk.md) for live host data, events, widgets, and how apps consume these services.
 
-Read [Angular SDK](sdk.md) for app injection, events, loading readiness, widgets,
-and host-owned UI.
+> **Warning:** Never put secrets, access tokens, or publication credentials in `atlas.config.ts`, `hostData`, or anything else that reaches the browser.
 
-## 5. Connect Authentication Deliberately
+## 5. Add loading and error UI
 
-Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.runtime.json`, environment manifests, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
-
-## 6. Run The Host Locally
-
-From workspace root:
-
-```sh
-atlas dev customer-host
-```
-
-CLI starts:
-
-- browser-facing static bootstrap, normally `http://localhost:4200`;
-- internal Angular asset server, normally port `4300`;
-- local catalog/control endpoints used by Columbus.
-
-Open URL printed by CLI. Default product URL stays on port `4200`; internal
-asset-server port does not represent complete Atlas composition.
-
-Verify host alone:
-
-```sh
-curl --fail http://localhost:4200/atlas.runtime.json
-```
-
-Expected browser state:
-
-- the main page layout appears;
-- the Host status message clears after startup;
-- navigation appears when an App has a visible URL;
-- the App area stays empty until an App matches the current URL;
-- Columbus identifies the local Host separately from Apps.
-
-## 7. Mount An App During Development
-
-Configure the app's `package.json` `atlas.previews` with this host page before
-starting it. For example: `"previews": ["http://localhost:4200/orders"]`.
-
-Run app in another terminal:
-
-```sh
-atlas dev orders
-```
-
-Open `/orders`, then verify:
-
-- Orders appears inside the element with `data-atlas-route-outlet`;
-- refreshing `/orders` shows the same page;
-- an App URL such as `/orders/42` stays inside Orders;
-- top-level navigation changes the browser URL without a full reload;
-- stopping the Orders development process shows an error for Orders without
-  removing the main page layout.
-
-The App chooses its URL in its `atlas.config.ts`; do not hard-code the Orders URL
-in Host source code. The Host should not import Orders source code.
-
-## 8. Add Product Loading And Error UI
-
-Generated status elements provide functional defaults. Production hosts often
-connect design-system renderers from `createCustomHostSdkOptions()`:
+The default status UI works without configuration. To use your design system, return renderers from `createCustomHostSdkOptions()`. The `render*` helpers below are placeholders for your own code:
 
 ```ts
 return {
-  // product SDK options
+  hostData: { projectId: 'customer-portal' },
   renderHostLoading: (container) => renderHostSkeleton(container),
   renderHostError: (container, error, retry) =>
     renderHostFailure(container, { error, retry }),
@@ -279,52 +248,93 @@ return {
 };
 ```
 
-Host-level renderers cover Atlas startup. Placement renderers cover one routed or
-slotted app. Keep failures isolated so one app does not replace whole shell.
-Host loading/error renderers may return a disposer; use it to clean up any root
-or subscription they create.
+- `renderHostLoading` and `renderHostError` cover host startup. They may return a function that Atlas calls to clean up.
+- `renderLoading` and `renderError` cover one routed or slotted app. A failure in one app does not replace the rest of the host.
 
-## 9. Test And Build
+## 6. Run the host locally
 
-Add organization-standard Angular tests for:
+Start the host:
 
-- required anchors in `AppComponent`;
-- custom navigation and active state;
-- host SDK wiring for auth, HTTP, overlays, and monitoring;
-- mount and unmount cleanup;
-- host and placement loading/error renderers.
+```sh
+npx atlas dev customer-host
+```
 
-Build host artifact and static bootstrap independently:
+The CLI starts the host page on port 4200 (or the next free port), the Angular dev server on internal port 4300, and a local control server for [Columbus](../columbus.md), the Atlas browser extension for local development. It then opens the host page in your browser.
+
+Always use the host page URL. The internal Angular port serves only the host's JavaScript, not the composed page.
+
+To check that the host page is running, request its runtime config from a second terminal:
+
+```sh
+curl --fail http://localhost:4200/atlas.runtime.json
+```
+
+> **Expected result:** The page layout appears, the host status clears after startup, and the route outlet stays empty because no app is running yet.
+
+## 7. Mount an app during development
+
+Generate an app for this host by following [Build an Angular app](app.md). Then, in the app's `package.json`, list the host page where the app should run:
+
+```json
+{
+  "atlas": {
+    "previews": ["http://localhost:4200/orders"]
+  }
+}
+```
+
+Keep the host running and start the app in a second terminal:
+
+```sh
+npx atlas dev orders
+```
+
+> **Expected result:** `/orders` shows the Orders app inside `<atlas-route-outlet>`. Refreshing `/orders` shows the same page, and an inner URL such as `/orders/details/42` stays inside Orders. If you stop the Orders dev server, Orders shows an error while the rest of the layout keeps working.
+
+The app declares its own route in its `atlas.config.ts`. Do not hard-code app routes or import app source in the host.
+
+## 8. Build the host
+
+Cover these areas with your normal Angular tests:
+
+- the host anchors in `AppComponent`;
+- custom navigation and its active state;
+- the services returned by `createCustomHostSdkOptions()`;
+- your loading and error renderers.
+
+Use [Testing apps and hosts](../testing-apps-and-hosts.md) for Atlas lifecycle and SDK contract tests.
+
+Build the host and its static bootstrap files:
 
 ```sh
 npm --prefix customer-host run build
-atlas bootstrap customer-host
+npx atlas bootstrap customer-host
 ```
 
-Use [Consumer testing](../testing-apps-and-hosts.md) for Atlas lifecycle and SDK
-contract tests.
+> **Expected result:** The Angular build output appears under `customer-host/dist/customer-host`, and the bootstrap files appear in `customer-host/dist/bootstrap`.
 
-## 10. Release And Deploy
+## When you deploy
 
-Build static bootstrap once. Your deployment platform renders the included runtime template:
+Publishing, deployment, the static bootstrap page, Content Security Policy, and server configuration work the same way for every framework. When you are ready, follow:
 
-```sh
-atlas bootstrap customer-host
-```
+- [Angular production deployment](production-deployment.md) for the Angular build and publish commands;
+- [Production deployment](../../deploy/production-deployment.md) for the full release workflow;
+- [Host bootstrap](../../deploy/bootstrap.md) for serving the static entry page;
+- [Security](../../deploy/security.md) for headers, CSP, and authentication boundaries.
 
-Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Bind
-each environment's public host URL through `atlas deploy --host-url`. Routine
-host and app publication uses native workspace `atlas:publish` targets. Atlas
-deployment changes selected UI without rebuilding bootstrap image. Follow
-[Angular production deployment](production-deployment.md).
+## Common mistakes
 
-## Common Mistakes
+- Opening the internal Angular port (4300) instead of the host page URL.
+- Changing the host UUID after apps already target it.
+- Removing `<router-outlet hidden />` or `<atlas-route-outlet />` while you customize the layout.
+- Giving a layout block an ID that no route uses, so its content never renders.
+- Fetching a catalog in `bootstrap.ts` instead of using the mount request.
+- Importing host services into an app instead of exposing them through the SDK.
+- Putting secrets in `hostData` or runtime config.
 
-- Opening Angular asset-server port instead of Atlas bootstrap URL.
-- Changing generated host UUID after apps already target it.
-- Removing hidden `router-outlet` or route outlet while customizing layout.
-- Fetching a second catalog from `bootstrap.ts` instead of using mount request.
-- Importing host services directly into an app instead of exposing SDK contract.
-- Putting API secrets in browser-visible runtime configuration.
-- Hard-coding app routes in host source instead of app `atlas.config.ts`.
-- Expecting host-client release to redeploy static bootstrap.
+## Next steps
+
+- [Build an Angular app](app.md)
+- [Angular routing](routing.md)
+- [Angular SDK](sdk.md)
+- [Angular troubleshooting](troubleshooting.md)

@@ -1,61 +1,73 @@
-# React Examples
+---
+title: React examples
+description: Find the React Host and Apps in the Atlas repository and learn what each one demonstrates.
+---
 
-The repository includes React examples that exercise the same files generated
-for users.
+# React examples
 
-## Host Domain
+The Atlas repository contains a working React Host and two React Apps under `examples/`. This
+page tells you what each one shows, so you can study a running setup before building your own.
 
-`examples/hosts/demo-react-host` is a React host. It reads runtime
-configuration, fetches the active host manifest and its referenced canonical
-manifests, initializes Native Federation, and mounts route apps and widgets into
-Atlas DOM anchors.
+## Host example
 
-Use it to study:
+`examples/hosts/demo-react-host` is a React Host.
 
-- `src/main.tsx` host startup;
-- React Router integration;
-- `data-atlas-route-outlet` and slot anchors;
-- host-provided SDK services;
-- lifecycle loading and error UI.
+| File                                | What to look at                                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/bootstrap.tsx`                 | `defineReactHost()` with `StrictMode` as the providers and no custom SDK options.                         |
+| `src/host-layout.tsx`               | A layout with `AtlasHostStatus`, `AtlasSlot`, `AtlasNavigation`, and `AtlasRouteOutlet`.                  |
+| `src/host-widgets/host-widgets.tsx` | The Host rendering a React Widget and an Angular Widget with `sdk.getWidget()`, and updating their props. |
+| `atlas.bootstrap.html`              | The static entry template.                                                                                |
 
-## App Domain
+## App examples
 
-`examples/apps/dashboard-react` and `examples/apps/catalog-react` are React apps.
-They show:
+`examples/apps/dashboard-react` is an App without inner routing. Its `src/entry.tsx` uses
+`defineApp()`, reads `sdk.hostData.name`, and renders an Angular Widget.
 
-- `atlas.config.ts` route and slot declarations;
-- `src/bootstrap.tsx` lifecycle wiring;
-- inner React Router routes;
-- SDK access through `useAtlasSdk()`;
-- exported widgets under `src/exported-widgets`.
+`examples/apps/catalog-react` is a routed App. Its `src/entry.tsx` uses `createRoutedApp()`
+with a memory router and a `products/:id` route. It also exports the `product-count` Widget
+from `src/exported-widgets/product-count/`.
 
-## Cross-Framework Use
+> **Note:** The example Apps keep their lifecycle in `src/entry.tsx`, the file name that
+> earlier Atlas versions generated. New Apps use `src/bootstrap.tsx`. Atlas supports both.
 
-React apps can run in Angular hosts, and Angular apps can run in React hosts.
-That works because Atlas crosses framework boundaries through DOM mount/unmount
-lifecycles, not through Angular modules or React components.
+## Use apps and widgets across frameworks
 
-A React app consumes an Angular-owned widget as a React component:
+React Apps run in Angular Hosts, and Angular Apps run in React Hosts. Atlas mounts every App
+and Widget through a DOM lifecycle, so neither side depends on the other's framework.
+
+For example, a React component renders an Angular-owned Widget like any other React
+component:
 
 ```tsx
-const OrderSummary = sdk.getWidget<{ orderId: string }>(
-  '98abc74d-a11f-4eca-8255-c6f2f49e3d6e',
-);
+import { useAtlasSdk } from '@atlas/sdk/react';
 
-return <OrderSummary orderId="42" />;
+export function OrderStatusPanel() {
+  const sdk = useAtlasSdk();
+  const OrderStatus = sdk.getWidget<{ status: string }>(
+    '98abc74d-a11f-4eca-8255-c6f2f49e3d6e',
+  );
+
+  return <OrderStatus status="paid" />;
+}
 ```
 
-The React app does not install Angular and does not know the widget URL. The
-Atlas resolves the owner version.
+The React App does not install Angular and does not know where the Widget is published. Atlas
+resolves the Widget's owner and version from the host catalog.
 
-## What To Copy
+## What to copy
 
-Copy product patterns, not generated plumbing:
+Copy the product patterns:
 
-- app route organization under `src/app`;
+- route and slot declarations in `atlas.config.ts`;
 - typed `hostData` usage;
-- SDK event names with domain prefixes;
-- host loading and error fallback patterns;
-- widget props treated as runtime APIs.
+- event names with a domain prefix;
+- Host loading and error UI;
+- Widget props treated as a public API.
 
-Leave Native Federation shims, remote expose names, and manifest paths to Atlas.
+Leave Native Federation setup, remote names, and manifest paths to Atlas.
+
+## Next steps
+
+- [Build a React host](host.md) and [Build a React app](app.md) to create your own projects.
+- [Angular examples](../angular/examples.md) for the Angular side of the same setup.

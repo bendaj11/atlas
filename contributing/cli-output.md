@@ -1,90 +1,91 @@
-# Atlas CLI user experience
+---
+title: CLI output
+description: Learn the output, prompt, and color rules that every Atlas CLI command follows.
+---
 
-Atlas CLI is a text user interface for both people and automation. Every command
-uses the shared presentation and prompting APIs in `packages/cli/src/ui.ts`.
-Command modules must not print human-facing status directly.
+# CLI output
+
+This page defines how Atlas CLI commands write to the terminal. It is for contributors who add or change a command in `packages/cli`, and it describes the contract that both people and automation rely on.
+
+## Use the shared UI module
+
+Every command prints human-facing status through the shared `ui` object and prompts through `TerminalPrompter`, both in `packages/cli/src/shared/ui/ui.ts`. Command modules must not write status lines with `console` directly, because the shared module owns the markers, the output streams, the spinner, and color handling.
 
 ## Output contract
 
-| Kind        | Marker     | Stream | Use                                    |
-| ----------- | ---------- | ------ | -------------------------------------- |
-| Heading     | `Atlas ·`  | stdout | Command and current target             |
-| Information | `i`        | stdout | Progress, decisions, and next steps    |
-| Success     | `✓`        | stdout | Completed operation                    |
-| Warning     | `!`        | stderr | Recoverable problem or degraded result |
-| Error       | `✖`        | stderr | Failed operation                       |
-| Item        | `•`        | stdout | A member of a result list              |
-| Result      | `<label>:` | stdout | A value users may copy or pipe         |
+Each `ui` method prints one kind of line:
 
-Long-running commands such as `publish` and `deploy` report steps. In an
-interactive terminal, the running step is an animated spinner line that updates
-in place (for example `Uploading files 23/68 (4.2 MB)`). When the step
-completes, the spinner line is replaced by a success line. Steps that take one
-second or more show their duration, for example `✓ Uploaded 68 files (4.2 MB)
-· 3.1s`. When output is not a TTY, `CI` is set, or `TERM=dumb`, each step prints
-one `i` line when it starts and one `✓` line when it completes, with no
-animation.
+| Method                                  | Marker       | Stream | Use                                          |
+| --------------------------------------- | ------------ | ------ | -------------------------------------------- |
+| `ui.heading(message)`                   | `Atlas ·`    | stdout | The command and its current target           |
+| `ui.info(message)`                      | `i`          | stdout | Progress, decisions, and next steps          |
+| `ui.success(message)`                   | `✓`          | stdout | A completed operation                        |
+| `ui.warning(message)`                   | `WARN` badge | stderr | A recoverable problem or a degraded result   |
+| `ui.error(message)`                     | `✖`          | stderr | A failed operation and its suggested actions |
+| `ui.item(message)`                      | `•`          | stdout | One member of a result list                  |
+| `ui.result(label, value)`               | `<label>:`   | stdout | A value that users may copy or pipe          |
+| `ui.linkedResult(label, value, target)` | `<label>:`   | stdout | A result that is also a terminal hyperlink   |
 
-Write status messages in plain language that does not need knowledge of Atlas
-internals. Do not end status lines with `...` or with a period after a URL.
+Long-running commands such as `publish` and `deploy` report steps through `ui.progress`. In an interactive terminal, the running step is an animated spinner line that updates in place, for example `Uploading files 23/68 (4.2 MB)`. When the step completes, a success line replaces the spinner line. Steps that take one second or longer show their duration, for example `✓ Uploaded 68 files (4.2 MB) · 3.1s`. When stdout is not a TTY, when `CI` is set, or when `TERM=dumb`, each step prints one `i` line when it starts and one `✓` line when it completes, without animation.
 
-Use one event per line. Keep the first sentence self-contained. Put the most
-important result last unless a labeled result must be followed by a next step.
-Do not add timestamps: CI and log collectors own timestamps.
+## Write status messages
 
-Errors use this shape:
+Write status messages in plain language that does not require knowledge of Atlas internals. Follow these rules:
+
+- Print one event per line, and make the first sentence self-contained.
+- Put the most important result last, unless a labeled result must be followed by a next step.
+- Do not end a status line with `...`, and do not put a period directly after a URL.
+- Do not add timestamps, because CI systems and log collectors add their own.
+
+## Errors
+
+`ui.error()` splits an error message into a summary line and its suggested actions. An error with one action looks like this:
 
 ```text
 ✖ Atlas publish failed: Atlas configuration is invalid.
-  Suggested action: Correct atlas.config.ts, then rerun atlas publish orders.
+  Suggested action: Correct the named configuration or TypeScript diagnostic.
 ```
 
-Expected failures should name the failed subject, explain the condition, and
-give a concrete recovery action. Stack traces remain available to developers
-through the underlying error; they are not normal CLI output.
+An error with several actions prints them as a numbered list under `Suggested actions:`. Expected failures name the failed subject, explain the condition, and give a concrete recovery action. Stack traces stay available to developers through the error `cause`, but they are not part of normal CLI output. See [error handling](error-handling.md) for the rules that apply across the CLI, the browser runtime, and Columbus.
 
-Cross-environment rules: [Atlas error handling](error-handling.md).
+## Command headings
 
-## Command inventory
+The following commands print a heading when they start. Commands that are not listed print no heading.
 
-| Command           | Heading                      | Primary completion                           |
-| ----------------- | ---------------------------- | -------------------------------------------- |
-| `generate host`   | `Generate host · <name>`     | Created project paths                        |
-| `generate app`    | `Generate app · <name>`      | Created project paths                        |
-| `generate widget` | `Generate widget · <name>`   | Created widget                               |
-| `dev`             | `Develop · <project>`        | Labeled app preview URL                      |
-| `bootstrap`       | `Bootstrap · <host>`         | Output path and bootstrap digest             |
-| `publish`         | `Publish · <project>`        | Published immutable manifest                 |
-| `deploy`          | `Deploy · <artifact>`        | Selected release and host convergence        |
-| `remove-preview`  | `Remove preview · #<number>` | Removed selection                            |
-| `prune-previews`  | `Prune previews`             | Checked selections and expired generations   |
-| `verify`          | `Verify deployment`          | Checks followed by verified deployment count |
-| `compile-config`  | none; workspace-internal     | Compiled project configuration               |
-| `help`, `version` | none                         | Plain requested content                      |
+| Command                         | Heading                                           | Primary completion output                                                                  |
+| ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `generate host`, `generate app` | `Generate host · <name>`, `Generate app · <name>` | The created project paths                                                                  |
+| `generate widget`               | `Generate widget · <name>`                        | The created widget                                                                         |
+| `dev`                           | `Develop · <project>`                             | The Atlas logo before the heading, then an `App preview` link                              |
+| `bootstrap`                     | `Bootstrap · <host>`                              | The output directory, a `Bootstrap digest` result, and the files to deploy                 |
+| `publish`                       | `Publish · <project>`                             | A `Manifest` result with the published manifest path                                       |
+| `deploy`                        | `Deploy · <artifact>`                             | The deployed version and environment, then host verification when host URLs are configured |
+| `verify`                        | `Verify deployment`                               | The checks, followed by the number of verified deployments                                 |
+
+`remove-preview`, `prune-previews`, and `compile-config` print only a success or information line. `help` and `version` print only the requested content.
 
 ## Prompts
 
-- Prompt only when stdin and stdout are TTYs and `CI` is unset.
-- `--no-input` always disables prompts.
-- Ask only for missing values; explicit flags always win.
-- Use sentence case, name the requested value, and show defaults in brackets.
-- Use clear affirmative and negative choice labels.
-- On invalid input, explain the accepted range and let the user retry.
-- Ctrl+C must remain an immediate escape path.
-- Non-interactive missing input must fail with the flag or environment variable
-  that supplies it.
+The CLI prompts only when stdin is a TTY, `CI` is unset, and the `--no-input` flag is absent. Follow these rules when you add a prompt:
+
+- Ask only for missing values. Explicit flags always win.
+- Use sentence case, name the requested value, and show the default in brackets.
+- Use clear affirmative and negative labels for choices.
+- On invalid input, explain what is accepted and let the user try again.
+- Keep Ctrl+C as an immediate way out.
+- In non-interactive mode, fail with a message that names the flag or environment variable that supplies the missing value.
 
 ## Color and accessibility
 
-Color reinforces markers but never carries meaning alone. Disable ANSI color
-when output is not a TTY, `TERM=dumb`, or `NO_COLOR` is set. Warnings and errors
-use their own streams even without color.
+Color reinforces markers but never carries meaning on its own. The shared UI module disables ANSI color when the stream is not a TTY, when `TERM=dumb`, or when `NO_COLOR` is set. Warnings and errors still go to stderr when color is off.
 
 ## Design references
 
-- [Command Line Interface Guidelines](https://clig.dev/) for discoverability,
-  stdout/stderr separation, actionable errors, TTY-aware prompts, and
-  `--no-input`.
-- [NO_COLOR](https://no-color.org/) for user-controlled ANSI color.
-- [The Twelve-Factor App: Logs](https://12factor.net/logs) for event-stream
-  logging and leaving routing and storage to the execution environment.
+- [Command Line Interface Guidelines](https://clig.dev/) cover discoverability, stdout and stderr separation, actionable errors, TTY-aware prompts, and `--no-input`.
+- [NO_COLOR](https://no-color.org/) describes user-controlled ANSI color.
+- [The Twelve-Factor App: Logs](https://12factor.net/logs) explains event-stream logging and why routing and storage belong to the execution environment.
+
+## Related
+
+- [Error handling](error-handling.md)
+- [Testing](testing.md)

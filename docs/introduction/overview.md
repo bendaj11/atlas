@@ -1,92 +1,117 @@
-# Atlas Overview
+---
+title: Overview
+description: Learn what Atlas is, the parts it is made of, and which team owns each part.
+---
 
-Atlas is a frontend platform for teams that want independently released feature
-apps without turning every host release into coordination work.
+# Overview
 
-If independently deployed frontend apps are new to you, think of Atlas as three
-parts that work together:
+Atlas is a micro-frontend platform for Angular and React. It lets several teams
+build parts of one web product and release those parts independently, without a
+coordinated release of the whole page. This page introduces the main parts of
+Atlas and who owns them.
 
-- **Host:** the main application page in the browser.
-- **App:** one feature that can be released separately and shown in a Host.
-- **Deployment:** configuration that chooses which App versions a Host loads.
+## The problem Atlas solves
 
-## Vocabulary
+In a single-page application that many teams work on, every change ships
+through one build and one release. A small fix in one feature waits for the
+whole product to be tested and deployed, and one broken feature can block
+everyone else.
 
-| Word       | Meaning                                                                                                                                               | Domain       |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| Host       | The main application users open in the browser. It owns page layout, sign-in, top-level URLs, navigation, shared UI, monitoring, and shared services. | Host         |
-| App        | A feature application shown inside a Host. It owns its UI, feature URLs, tests, and assets.                                                           | App          |
-| Widget     | A small reusable UI part from an App, such as a popup body, counter, or status panel.                                                                 | App          |
-| Manifest   | A JSON file describing one published Host or App version.                                                                                             | Deployment   |
-| Deployment | The Host and App versions selected for one environment, such as staging or production.                                                                | Deployment   |
-| Registry   | `registry.json`, a file listing available versions and the versions selected for each environment.                                                    | Deployment   |
-| SDK        | Typed services that a Host gives Apps: HTTP, events, navigation, Host data, and product extensions.                                                   | Host and App |
-| Runtime    | Atlas code in the Host that reads deployment files, checks downloaded files, and shows selected Apps.                                                 | Host         |
+Atlas splits the product into a **Host**, the page users open, and **Apps**,
+the features shown inside it. Each App is built, versioned, and released by its
+own team. When the page opens, the Host loads the App versions that are
+selected for the current environment. To learn when this trade-off is worth it,
+read [Why Atlas](why-atlas.md).
 
-## Mental Model
+## The main parts
+
+| Term              | Meaning                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Host              | The application users open. It owns the page layout, sign-in, top-level navigation, and shared services.                   |
+| App               | A feature, such as Orders, shown inside a Host. It owns its screens, its inner routes, and its release schedule.           |
+| Widget            | A reusable component that an App exports so that other Apps or the Host can render it.                                     |
+| Artifact manifest | The JSON file that describes one published Host or App version and the digests of its files.                               |
+| Artifact registry | Static storage, such as a bucket behind a CDN, that holds every published version and the release catalog `registry.json`. |
+| Deployment        | The versions selected for one environment, stored in `environments/<environment>/deployment.json`.                         |
+| Runtime config    | `atlas.runtime.json`, served by the Host's domain. It tells the page which host ID, environment, and registry to use.      |
+| Runtime           | The `@atlas/runtime` package. It runs in the Host and mounts the selected Apps.                                            |
+| SDK               | The `@atlas/sdk` package. It gives Apps typed services from the Host: HTTP, events, navigation, and host data.             |
+
+The [Glossary](glossary.md) defines every term in full.
+
+## How the parts fit together
 
 ```mermaid
 flowchart LR
-  AppTeam["App team"] -->|"build, then atlas publish"| Artifact["Canonical manifest + assets"]
-  Artifact --> CDN["Static storage / CDN"]
-  Deploy["atlas deploy"] --> Registry["registry.json environment selection"]
-  Registry --> Active["Environment-qualified active host manifest"]
-  Host["Host app"] --> Runtime["@atlas/runtime"]
-  Runtime --> Active
-  Runtime --> CDN
-  Runtime --> Mounted["Mounted app"]
-  Host --> SDK["@atlas/sdk services"]
-  SDK --> Mounted
+  subgraph Release["Release (CLI in CI)"]
+    Build["Framework build"] --> Publish["npx atlas publish"]
+    Publish --> Artifacts["Artifact registry<br/>apps/&lt;id&gt;/&lt;version&gt;/<br/>hosts/&lt;id&gt;/&lt;version&gt;/<br/>registry.json"]
+    Deploy["npx atlas deploy"] --> EnvState["Environment registry<br/>environments/&lt;env&gt;/deployment.json<br/>environments/&lt;env&gt;/hosts/&lt;hostId&gt;/manifest.json"]
+  end
+  subgraph Browser["Browser"]
+    Page["Bootstrap page<br/>index.html + atlas.loader.js"] --> RuntimeConfig["atlas.runtime.json"]
+    Page --> EnvState
+    Page --> Artifacts
+    Page --> HostApp["Host + @atlas/runtime"]
+    HostApp --> Apps["Mounted Apps"]
+  end
 ```
 
-The Host does not hard-code App URLs. The App does not choose its production
-version. Deployment updates `registry.json`, which tells the browser which Host
-and App versions to use in each environment.
+Publishing and deploying are separate steps:
 
-## What The Host Team Owns
+1. **Publish** records a framework build as an immutable artifact. Nothing
+   changes for users yet.
+2. **Deploy** selects already-published versions for an environment. It writes
+   only the deployment state and the host deployment manifests; it never
+   copies artifact files.
+3. **In the browser**, the loader reads `atlas.runtime.json`, then the host
+   deployment manifest for its environment, then the artifact manifests. It
+   checks each file's digest before it runs any code.
 
-Host teams decide:
+The Host does not hard-code App URLs, and an App does not choose which version
+of itself runs in production. [Architecture](architecture.md) explains the
+full loading and release model.
 
-- host ID, bootstrap metadata, and Atlas-managed discovery;
-- page layout and Atlas DOM mount anchors;
-- top-level routes and navigation surface;
-- authentication and HTTP behavior;
-- modal, popup, toast, and loading UI implementation;
-- monitoring and runtime observability;
-- which CDN origins are trusted.
+## What the Host team owns
 
-Host teams do not edit app source code to release app features.
+The Host team decides:
 
-## What The App Team Owns
+- the host ID, the bootstrap page, and the domain the Host is served from;
+- the page layout and where the host anchors (route outlet, slots, navigation)
+  appear;
+- sign-in, HTTP behavior, and other shared services exposed through the SDK;
+- the loading, error, and notification UI;
+- monitoring of runtime events;
+- the `atlas.runtime.json` file and the security headers the hosting platform
+  serves.
 
-App teams decide:
+The Host team does not edit App source code to release App features.
 
-- app id and display name;
-- which hosts may load the app;
-- route paths, slots, navigation labels, and widgets;
-- framework components, services, hooks, styles, tests, and assets;
-- app-internal router structure.
+## What an App team owns
 
-App teams do not own the browser document, global shell layout, or production
-version selection.
+An App team decides:
 
-## What Deployment And CI Own
+- the App's ID, name, and framework;
+- which Hosts may show the App, and at which routes and slots;
+- the App's components, styles, tests, assets, and inner routes;
+- which widgets the App exports.
 
-CI/CD decides storage environment, public registry URL, affected comparison,
-bootstrap deployment platform, and verification URLs. Existing release tooling
-decides semantic package version.
+An App team does not own the browser document, the global layout, or which
+version runs in production.
 
-Framework build produces output. `atlas publish <project> --version <value>`
-compiles Atlas configuration and records that existing output as one immutable
-release. `atlas deploy <artifact> --to <environment> --version
-<selector>` selects already-published bytes, updates `registry.json`, and
-converges affected active host manifests. Built-in storage supports S3-compatible
-providers through standard AWS SDK credentials; registry contract remains
-provider-neutral.
+## What CI and operations own
 
-## Learn Next
+Your CI pipeline builds each project with its framework tooling, then runs
+`npx atlas publish` with a version your release tooling chooses, and
+`npx atlas deploy` to select versions per environment. Your platform team owns
+the storage, the CDN, the Host domains, and the `atlas.runtime.json` file and
+security headers each domain serves. Atlas includes an S3-compatible storage
+adapter and an Artifactory mode; the registry format itself is plain static
+files.
 
-Continue with [Get Started](../get-started/tutorial.md) to install Atlas and create your
-first host and app. Then choose [Atlas Host](../concepts/hosts.md) or [Atlas App](../concepts/apps.md) for
-role-specific journey. Use [Architecture](architecture.md), [Static registry](../reference/registry.md),
-and [Security](../deploy/security.md) when you need deeper design detail.
+## Next steps
+
+- [Why Atlas](why-atlas.md): decide whether Atlas fits your product.
+- [Tutorial](../get-started/tutorial.md): run a Host and an App on your machine.
+- [Architecture](architecture.md): read how the browser loads a page and how
+  releases work.

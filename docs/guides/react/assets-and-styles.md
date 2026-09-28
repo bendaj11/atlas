@@ -1,15 +1,20 @@
-# React Assets And Styles
+---
+title: React assets and styles
+description: Reference images, fonts, and CSS from a React App so they load from any Host, and keep styles inside the App's isolation boundary.
+---
 
-React apps are deployed under immutable Atlas version paths, so asset URLs must
-work after the app is loaded by a host from a CDN.
+# React assets and styles
 
-## App Domain
+A React App runs inside a Host page, but its files are published under their own versioned
+path, often on a CDN. This guide shows how to reference assets so they resolve from that
+path, and how styles work inside the App's Shadow DOM. Read
+[Styles and isolation](../../concepts/styles-and-isolation.md) for the rules shared by every
+framework.
 
-Generated React apps use Vite with a relative base. Keep app assets in source
-folders or `public` according to normal Vite rules, and prefer relative imports
-from components and CSS.
+## Reference assets from source files
 
-Good:
+Generated React Apps build with a relative Vite `base` (`./`). Import assets relative to the
+file that uses them, and Vite emits the correct URL:
 
 ```tsx
 import heroUrl from './assets/orders-hero.png';
@@ -19,7 +24,7 @@ export function OrdersHero() {
 }
 ```
 
-Good:
+In CSS, use relative URLs. Vite resolves them during the build:
 
 ```css
 .orders-hero {
@@ -27,7 +32,7 @@ Good:
 }
 ```
 
-Risky in an app:
+Avoid root-relative URLs in an App:
 
 ```css
 .orders-hero {
@@ -35,72 +40,86 @@ Risky in an app:
 }
 ```
 
-Absolute `/assets/...` resolves against the host origin, not the app's
-immutable CDN directory.
+`/assets/...` resolves against the Host's origin, not the App's published folder, so the file
+is not found in production.
 
-### Assets in HTML, CSS, and runtime code
+## Pass asset URLs to libraries
 
-Import app-owned assets. Vite replaces the import with the correct emitted URL:
+Some libraries receive a URL string and fetch the file themselves, for example a map or chart
+library. Pass them the imported URL:
 
 ```tsx
 import pointImageUrl from './assets/images/point.png';
 
-export function PointImage() {
-  return <img src={pointImageUrl} alt="Point" />;
+createMarker({ icon: pointImageUrl });
+```
+
+When an import does not fit, `new URL('./assets/images/point.png', import.meta.url).href`
+gives the same result. Do not build URLs from `document.baseURI` or `location.origin`; they
+point at the Host page.
+
+For files in the App's `public/` folder, use `sdk.assetUrl()` and `sdk.assetBaseUrl()`. See
+[Use app assets](sdk.md#use-app-assets).
+
+## Keep styles inside the app
+
+Atlas mounts each App in a Shadow DOM by default (`domIsolation: 'shadow-dom'`) and loads the
+App's stylesheets into that shadow root. Global CSS from a library in your App cannot leak
+into the Host or other Apps, and Host CSS does not restyle your App.
+
+Libraries that inject styles at runtime, such as CSS-in-JS libraries, write to
+`document.head` by default. That is outside the shadow root, so the styles do not apply. Pass
+the node from `useAtlasStyleTarget()` to the library's insertion-target option instead:
+
+```tsx
+import createCache from '@emotion/cache';
+import { CacheProvider } from '@emotion/react';
+import { useMemo, type ReactNode } from 'react';
+import { useAtlasStyleTarget } from '@atlas/sdk/react';
+
+export function StyleBoundary({ children }: { children: ReactNode }) {
+  const container = useAtlasStyleTarget();
+  const cache = useMemo(
+    () => createCache({ key: 'orders', container }),
+    [container],
+  );
+
+  return <CacheProvider value={cache}>{children}</CacheProvider>;
 }
 ```
 
-In CSS, use a relative `url('./assets/images/point.png')`; Vite resolves it
-during the build. Both forms work because Vite owns those source files.
+For styled-components, pass the same node as the `target` of `StyleSheetManager`.
+`useAtlasStyleTarget()` works only inside a mounted App; elsewhere it throws
+`ATLAS_STYLE_TARGET_MISSING`.
 
-Runtime code is different. A library receives a plain URL string and fetches it
-itself, so it cannot rely on an Atlas DOM rewrite. Pass the imported URL to the
-library. `new URL('./assets/images/point.png', import.meta.url).href` is an
-equivalent alternative when an import is not suitable. Do not use
-`document.baseURI` or `location.origin`: they point at the host page or discard
-the app path.
+If a library has no insertion-target option, it cannot style content inside the shadow root.
+In that case, set `domIsolation: 'shared-dom'` in the App's `atlas.config.ts`. The App then
+renders in the page DOM and shares global CSS with the Host, so use it only when you intend
+to share styles.
 
-## Isolation
+## Share styles from the host
 
-Atlas mounts apps in Shadow DOM by default and installs declared standalone
-stylesheets in that shadow root. This prevents global library CSS from leaking
-into the host or other apps. Use `domIsolation: 'shared-dom'` only for an app
-intentionally sharing a documented host design-system contract. Shared DOM mode
-is a DOM wrapper, not CSS isolation.
+The Host owns global layout styles, design-system CSS, fonts, and CSS variables that it
+intentionally shares with Apps. CSS custom properties defined on the Host page inherit into
+Shadow DOM, so they are a good way to share design tokens. Apps should not reset `body`,
+change Host layout, or depend on Host class names unless the Host team documents that
+contract.
 
-React does not own one universal runtime style injector. Static CSS is handled
-by Atlas. For a CSS-in-JS library, pass `useAtlasStyleTarget()` to that library's
-documented insertion-target option, such as Emotion's cache container or
-styled-components' stylesheet manager target. Do not rely on a library default
-that writes to `document.head`; that is outside the app shadow root. A library
-with no supported insertion target cannot run with Shadow DOM isolation; use
-`domIsolation: 'shared-dom'` only when sharing page DOM and CSS is intentional.
+## Use assets in monorepos
 
-## Host Domain
+In Nx, Turborepo, pnpm, Yarn, or npm workspaces, keep assets in the package that owns the
+App. Atlas publishes the framework build output as it is; it does not add a second asset
+pipeline.
 
-The host owns global layout styles, design-system CSS, fonts, and CSS variables
-that are intentionally shared with apps. Apps should not reset `body`, change
-host navigation layout, or depend on host-only class names unless that contract
-is documented by the host team.
+## When you deploy
 
-## Deployment Domain
+Published App files must be served with correct MIME types, CORS headers for every Host
+origin, and long-lived cache headers. `npx atlas verify` checks these. See
+[React production deployment](production-deployment.md#verify) and
+[Security](../../deploy/security.md).
 
-Vite owns framework output. `atlas publish --version` reads that output and
-creates one immutable release-version path plus canonical manifest. It updates
-the compact descriptor in `registry.json` but does not activate the release.
-`atlas deploy` changes an environment selection and converges affected active
-host manifests.
+## Next steps
 
-Your CDN must:
-
-- serve JavaScript modules as JavaScript MIME types;
-- serve `remoteEntry.json` as `application/json`;
-- enable CORS for every host origin;
-- keep app chunks and assets under the same immutable prefix;
-- avoid rewriting missing asset paths to the host `index.html`.
-
-## Monorepos
-
-In Nx, Turborepo, pnpm, Yarn, or npm workspaces, keep assets in the package that
-owns the app. Atlas follows the framework build output; it does not invent a
-second asset pipeline.
+- [Styles and isolation](../../concepts/styles-and-isolation.md) for isolation modes and
+  their limits.
+- [React troubleshooting](troubleshooting.md) if styles or assets do not load.

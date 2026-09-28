@@ -1,389 +1,267 @@
-# SDK Reference
+---
+title: SDK reference
+description: Reference for the Atlas SDK object, host data, events, navigation, widgets, app context, host UI callbacks, and runtime events.
+---
 
-Audience: app and host developers implementing typed communication. Prerequisite:
-generated host/app running locally. New users should read framework guide first:
-[Angular SDK](../guides/angular/sdk.md) or [React SDK](../guides/react/sdk.md).
+# SDK reference
 
-App calls SDK; host constructs/provides it. Deployment tooling never calls SDK.
-Examples below are reference fragments unless imports and setup are shown; use
-framework guides for copy-complete components.
+This page is the reference for the SDK (`@atlas/sdk`): the object a host creates and every mounted app and widget receives. It covers the SDK members, host data, the event bus, `navigateTo`, widgets, the app context, the host UI and observability options, and the SDK error classes. For task-oriented guides, see [React SDK](../guides/react/sdk.md), [Angular SDK](../guides/angular/sdk.md), and [Share host data](../guides/host-data.md). For a list of every export, see [Public API](api.md).
 
-For a concise list of stable imports, see [Public API](api.md).
-For framework onboarding, use [Angular SDK](../guides/angular/sdk.md) or
-[React SDK](../guides/react/sdk.md). This page is shared reference for package contracts.
+## Who uses what
 
-`@atlas/sdk` is the API used by apps to communicate with their host. Catalog loading and federation live in `@atlas/runtime`; manifests live in `@atlas/schema`.
+- **Apps and widgets** read the SDK with `useAtlasSdk()` from `@atlas/sdk/react` or `injectAtlasSdk()` from `@atlas/sdk/angular`. They never create it.
+- **Hosts** configure the SDK through `defineReactHost({ useSdkOptions })` or `defineAngularHost({ sdkOptions })` from `@atlas/runtime/react` and `@atlas/runtime/angular`. Atlas creates the SDK once per host.
+- **Deployment tooling** never uses the SDK.
 
-## `@atlas/schema`
+## The SDK object
 
-Contains TypeScript types and manifest validation.
+`AtlasSdk<THostSdk, TEvents>` combines the core members below with the host-owned members declared in `THostSdk`.
 
-Important exports:
+| Member       | Type                                                    | Description                                                                  |
+| ------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `hostId`     | `string`                                                | ID of the host.                                                              |
+| `hostData`   | `AtlasHostData & Readonly<THostData>`                   | Current host data snapshot. See [Host data](#host-data).                     |
+| `navigateTo` | `(appId: string, state?: AtlasNavigationState) => void` | Navigate to another app by its ID. See [navigateTo](#navigateto).            |
+| `events`     | `AtlasEventBus<TEvents>`                                | Typed in-memory event bus shared by all mounted apps. See [Events](#events). |
+| `getWidget`  | Framework-specific                                      | Resolve an exported widget by UUID. See [Widgets](#widgets).                 |
 
-- `AtlasManifest`
-- `AtlasHostCatalog`
-- `AtlasHostRuntimeConfig`
-- `AtlasHostConfig`
-- `AtlasAppConfig`
-- `AtlasConfig`
-- `createManifestFromConfig`
-- `assertAtlasManifest`
-- `validateAtlasManifest`
+The framework adapters return a facade over the same SDK instance:
 
-## `@atlas/sdk/host`
+| Member                    | React (`useAtlasSdk`)                        | Angular (`injectAtlasSdk`)                     |
+| ------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| `hostData`                | Plain object. The hook re-renders on change. | `Signal`. Call `sdk.hostData()` to read it.    |
+| `getWidget(id, options?)` | Returns a React component.                   | Returns a `WidgetBinding` for `[atlasWidget]`. |
+| `assetBaseUrl()`          | URL of the app's published folder.           | Same.                                          |
+| `assetUrl(path)`          | URL of a file inside that folder.            | Same.                                          |
 
-Creates the object passed from host to app.
+`assetBaseUrl()` and `assetUrl()` work only inside a mounted app or widget. In host code they throw `ATLAS_APP_CONTEXT_MISSING`. `assetUrl()` throws `ATLAS_ASSET_PATH_OUTSIDE_ARTIFACT` for a path that leaves the app folder. Outside a framework, use `createAtlasAppAssets(context)` from `@atlas/sdk`.
+
+### Type parameters
+
+- `THostSdk` declares host-owned members and an optional `hostData` shape. Share one interface between the host and its apps, for example in a shared library.
+- `TEvents` maps event names to payload types. The default, `AtlasEventMap`, is `Record<string, unknown>`.
 
 ```ts
-interface CustomerHostSdk {
-  hostData: { projectId: string };
-  orders: { open(orderId: string): Promise<void> };
+export interface ShopHostSdk {
+  readonly hostData: {
+    readonly tenantId: string;
+    readonly locale: string;
+  };
   showToast(message: string): void;
 }
 
-const sdk = createAtlasSdk<CustomerHostSdk>({
-  hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-  hostData: {
-    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-    name: 'Customer Host',
-    projectId: 'project-42',
-  },
-  navigation,
-  orders: orderService,
-  showToast: (message) => toastService.show(message),
-});
-```
-
-`hostData` always includes `hostId` and `name`. Hosts can add typed product
-fields and product services on the host SDK type. Atlas merges host-data fields
-with `AtlasHostData`. Define clients, authentication, retries, and transport
-semantics in product-owned APIs rather than Atlas core.
-
-### Host data: fixed and live values
-
-`hostData` is the SDK's host-owned shared-state surface. It is for values apps
-read, such as identity, tenant, locale, permissions, feature flags, and selected
-account. Put commands, clients, and services directly on the SDK instead.
-
-Angular hosts accept a fixed value or Angular `Signal` for every top-level
-`hostData` field. Fixed values remain part of every snapshot. When a supplied
-Signal changes, Atlas publishes a new immutable snapshot to all mounted apps.
-Keep reactive fields shallow; replace a complete nested value through its
-top-level Signal rather than placing Signals inside nested objects.
-
-```ts
-interface CustomerHostSdk {
-  readonly hostData: {
-    readonly userName: string;
-    readonly tenantId: string;
-    readonly featureFlags: Readonly<Record<string, boolean>>;
-  };
-  refreshSession(): Promise<void>;
-}
-
-return {
-  hostData: {
-    userName: session.userName, // Signal<string>
-    tenantId: 'tenant-42', // fixed value
-    featureFlags: session.featureFlags, // Signal<Readonly<Record<string, boolean>>>
-  },
-  refreshSession: () => session.refresh(),
+export type ShopEvents = {
+  'orders.updated': { orderId: string };
+  'cart.cleared': undefined;
 };
 ```
 
-Convert RxJS Observables once in Angular host configuration, then pass the
-resulting Signal to `hostData`:
+## Host data
+
+`hostData` is the host's read-only shared state: values such as the tenant, locale, user, permissions, and feature flags. Put commands and services directly on the SDK, not in `hostData`.
+
+- `hostData` always contains `hostId` and `name` (`AtlasHostData`). Atlas sets both from the host's `atlas.config.ts`.
+- Custom fields come from the `hostData` property of `THostSdk`. `AtlasHostDataOf<THostSdk>` extracts them.
+- Each update produces a new immutable snapshot. React consumers re-render; the Angular `hostData` signal emits.
+
+| API                                     | Package           | Description                                                                          |
+| --------------------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `updateAtlasHostData(sdk, updates)`     | `@atlas/sdk/host` | Host only. Merge `updates` into `hostData` and notify every mounted app.             |
+| `subscribeAtlasHostData(sdk, listener)` | `@atlas/sdk/host` | Call `listener` after each update. Returns an unsubscribe function. Adapters use it. |
+
+In an Angular host, each top-level `hostData` field may be a value or a `Signal`. In a React host, return new `hostData` values from `useSdkOptions`. See [Share host data](../guides/host-data.md) for both.
+
+## navigateTo
 
 ```ts
-import { toSignal } from '@angular/core/rxjs-interop';
+navigateTo(appId: string, state?: AtlasNavigationState): void;
 
-const userName = toSignal(session.userName$, {
-  injector,
-  initialValue: '',
-});
+type AtlasNavigationState = Readonly<
+  Record<string, string | number | boolean | null | undefined>
+>;
 ```
 
-Use `requireSync: true` only when the Observable guarantees a synchronous first
-value, for example a `BehaviorSubject`. Handle Observable errors before
-`toSignal`; an errored signal throws when read. Do not make Atlas subscribe to
-arbitrary Observables or recursively discover Signals in custom SDK objects.
+`navigateTo` looks up the route path of the app with ID `appId` in this host and navigates the host there. Atlas adds each `state` entry to the URL as a query parameter: `undefined` entries are skipped, and `null` becomes an empty value.
 
-Framework adapters expose the current snapshot using native reactive patterns:
+- It throws `ATLAS_APP_ROUTE_NOT_FOUND` when the app has no route in this host.
+- It throws `ATLAS_ROUTE_RUNTIME_NOT_READY` when the host has not finished starting.
+
+Use your framework router for navigation inside your own app.
+
+## Events
+
+`sdk.events` is an `AtlasEventBus<TEvents>`: a typed, synchronous, in-memory event bus scoped to one host. Events are notifications between mounted apps; durable workflows belong in your backend.
 
 ```ts
-// Angular app
-const sdk = injectAtlasSdk<CustomerHostSdk>();
-sdk.hostData().userName;
-```
-
-```tsx
-// React app
-const sdk = useAtlasSdk<CustomerHostSdk>();
-sdk.hostData.userName;
-```
-
-React's SDK hook subscribes to Atlas updates and re-renders its consumer. It
-receives plain current values, even when the host is Angular.
-
-```ts
-import type { AtlasEventMap } from '@atlas/sdk';
-
-interface CustomerHostSdk {
-  showToast(message: string): void;
-  openOrder(orderId: string): Promise<void>;
+interface AtlasEventBus<TEvents extends object = AtlasEventMap> {
+  emit<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
+  emit<TKey extends PayloadEventKey<TEvents>>(
+    type: TKey,
+    payload: TEvents[TKey],
+  ): void;
+  addEventListener<TKey extends keyof TEvents & string>(
+    type: TKey,
+    listener: (payload: TEvents[TKey]) => void,
+  ): void;
+  removeEventListener<TKey extends keyof TEvents & string>(
+    type: TKey,
+    listener: (payload: TEvents[TKey]) => void,
+  ): void;
+  once<TKey extends keyof TEvents & string>(
+    type: TKey,
+    listener: (payload: TEvents[TKey]) => void,
+  ): () => void;
 }
-
-const atlas = useAtlasSdk<CustomerHostSdk>();
-atlas.showToast('Order saved');
 ```
 
-Angular apps use `injectAtlasSdk<CustomerHostSdk>()`;
-generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
-Core SDK contains only host identity/data, navigation, events, and widget
-discovery. Add
-product-specific APIs directly to the SDK shape. Atlas does not define toast,
-modal, popup, auth, config, or session contracts.
+| Method                                | Behavior                                                                                                |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `emit(type)` / `emit(type, payload)`  | Call every listener for `type` synchronously. Events whose payload type is `undefined` take no payload. |
+| `addEventListener(type, listener)`    | Register a listener. Remove it with the same function reference when its owner is destroyed.            |
+| `removeEventListener(type, listener)` | Remove a listener registered for `type`.                                                                |
+| `once(type, listener)`                | Register a listener that runs once. Returns a function that removes it before it runs.                  |
 
-### Custom SDK methods
+If a listener throws, the other listeners still run, and Atlas rethrows the failure asynchronously as `AtlasEventListenerError` (`ATLAS_EVENT_LISTENER_FAILED`).
 
-Define each product-specific method in a shared TypeScript contract, implement
-it in the host, and call it from the SDK object returned by the framework
-adapter.
+`createAtlasEventBus<TEvents>()` from `@atlas/sdk/host` creates a standalone bus. Hosts rarely need it; Atlas creates one per SDK.
 
-```ts
-interface CustomerHostSdk {
-  refreshSession(): Promise<void>;
-}
+Prefix event names with the owning domain, such as `orders.updated`.
 
-await startHost<CustomerHostSdk>({
-  // router, federation, and other host options
-  refreshSession: () => sessionService.refresh(),
-});
-```
+## Widgets
 
-Consumers call the method normally:
+`getWidget` resolves an exported widget by its UUID. Consumers do not list widget IDs in `atlas.config.ts`.
 
-```ts
-const atlas = injectAtlasSdk<CustomerHostSdk>();
-await atlas.refreshSession();
-```
+| Framework | Signature                                                                                      | Result                                                                    |
+| --------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| React     | `getWidget<TInputs>(widgetId, options?: { loadingComponent?: ComponentType })`                 | A stable React component. Render it with the widget inputs as props.      |
+| Angular   | `getWidget<TInputs>(widgetId, options: { inputs: TInputs; loadingComponent?: Type<unknown> })` | A `WidgetBinding`. Render it with `[atlasWidget]` from `WidgetOutlet`.    |
+| Core      | `getWidget<TInputs>(widgetId, options?: { renderLoading? })`                                   | An `AtlasWidgetHandle` with `id`, `name`, and `mount(container, inputs)`. |
 
-Framework adapters preserve custom methods and replace framework-sensitive core
-APIs with their framework-native form. If a custom method uses one of those APIs,
-type its receiver from the matching framework subpath. For example, Angular's
-`getWidget` accepts typed inputs and returns a declarative `WidgetBinding`:
+- React caches the returned component per widget ID and loading component. Define `loadingComponent` outside the render function; an inline component remounts the widget on every render.
+- A React widget that fails to mount throws `AtlasWidgetMountError` during render. Wrap it in an error boundary.
+- Angular's `WidgetOutlet` directive updates inputs when the binding changes and unmounts the widget when Angular destroys the element.
+- Without a `loadingComponent`, Atlas uses the host's `renderWidgetLoading`, then its own accessible default.
+
+See [Exported widgets](../guides/exported-widgets.md).
+
+## Custom SDK methods
+
+Hosts add product-specific members by declaring them on `THostSdk` and returning them from `useSdkOptions` (React) or `sdkOptions` (Angular). Atlas copies them onto the SDK unchanged, except that names of core members are reserved: a clash throws `ATLAS_SDK_PROPERTY_CONFLICT`.
+
+When a custom method calls a framework-specific core member, such as `getWidget`, type its `this` receiver with the framework's `AtlasSdk` type. Each consumer framework calls the method with its own facade as `this`:
 
 ```ts
 import type { AtlasSdk, WidgetBinding } from '@atlas/sdk/angular';
 
-interface CustomerHostSdk {
+export interface ShopHostSdk {
   renderOrderSummary(
-    this: AtlasSdk<CustomerHostSdk>,
+    this: AtlasSdk<ShopHostSdk>,
     orderId: string,
   ): WidgetBinding<{ orderId: string }>;
 }
-
-await startHost<CustomerHostSdk>({
-  // router, federation, and other host options
-  renderOrderSummary: function (orderId) {
-    return this.getWidget(ORDER_SUMMARY_WIDGET_ID, {
-      inputs: { orderId },
-    });
-  },
-});
 ```
 
-This receiver behavior is part of method invocation, not dependency injection:
-the host supplies the implementation once, while each consumer framework calls
-it with that framework's SDK facade as the receiver.
+Atlas does not define toast, modal, authentication, session, or HTTP client contracts. Define them on your own `THostSdk`.
 
-Every mounted app receives synchronous, framework-native `sdk.getWidget(...)` access. Widget IDs are UUIDv4 values generated in each producer's `atlas.config.ts`. Consumers never list widget ids in `atlas.config.ts`.
+## App context
 
-React returns a stable component and owns asynchronous mounting internally:
+Each mounted app receives an `AtlasAppContext`. Read it with `injectAtlasAppContext()` in Angular, or from the `context` field of the mount request.
 
-```tsx
-const ProductCount = sdk.getWidget<{ count: number }>(widgetId, {
-  loadingComponent: ProductCountSkeleton,
-});
+| Field        | Type                    | Description                                               |
+| ------------ | ----------------------- | --------------------------------------------------------- |
+| `manifest`   | `AtlasManifest`         | Runtime manifest of this app version.                     |
+| `hostId`     | `string`                | ID of the host that mounted the app.                      |
+| `path`       | `string`                | Host path assigned to this placement, such as `/orders`.  |
+| `navigation` | `AtlasScopedNavigation` | Navigation restricted to `path`.                          |
+| `route`      | `AtlasRouteContext`     | Inner path, query, hash, pattern matching, and tab title. |
+| `loading`    | `AtlasAppLoading`       | Controls the host's loading UI for this placement.        |
 
-return <ProductCount count={24} />;
-```
+`AtlasAppContext` has no `widgets` field. Use `sdk.getWidget` instead.
 
-Angular creates a typed widget binding in component TypeScript:
+### AtlasAppLoading
 
-```ts
-const productCount = sdk.getWidget<{ count: number }>(widgetId, {
-  inputs: { count: 24 },
-  loadingComponent: ProductCountSkeleton,
-});
-```
+| Method             | Description                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `show()`           | Show the host's loading UI again and hide the app content.                                       |
+| `hide()`           | Remove the loading UI.                                                                           |
+| `waitUntilReady()` | Keep the loading UI until you call the returned function. Call it after the first useful render. |
 
-Import `WidgetOutlet` in the standalone component and render the binding on any
-normal element:
+`useAppLoaded()` (React) and `injectAppLoaded()` (Angular) call `waitUntilReady()` for you and return the callback. A widget that calls `waitUntilReady()` must call the callback within `resourcesTimeoutMs` (15 seconds by default), or Atlas unmounts it with `ATLAS_WIDGET_READINESS_TIMEOUT`.
 
-```html
-<section [atlasWidget]="productCount"></section>
-```
+### AtlasRouteContext
 
-Both loading components are optional. Without one, Atlas uses the host's
-`renderWidgetLoading`, then its accessible default. Angular's `WidgetOutlet`
-directive updates inputs when its binding changes and unmounts automatically
-when Angular destroys the host element through `@if`, `@for`, routing, or normal
-component teardown.
+| Member                | Description                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `path`                | Normalized placement path.                                                                     |
+| `getCurrent()`        | Current inner location: `pathname` relative to `path`, parsed `query`, and `hash`.             |
+| `subscribe(listener)` | Call `listener` with the inner location after each change. Returns an unsubscribe function.    |
+| `match(pattern)`      | Match the inner path against `orders/:id` or `files/*`. Returns decoded params or `undefined`. |
+| `setTabTitle(title)`  | Set the browser tab title.                                                                     |
 
-## `@atlas/runtime`
+### AtlasScopedNavigation
 
-Loads active deployments and canonical manifests, then mounts apps.
+`AtlasScopedNavigation` extends `AtlasNavigation` (`navigate`, `replace`, `back`, optional `go`, `createHref`, `subscribe`, `getCurrentLocation`) with:
 
-Important production APIs:
+| Member           | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| `path`           | The placement path.                                        |
+| `toHostPath(to)` | Map an app-relative path to the host path it navigates to. |
 
-| API                                 | Purpose                                                                                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `resolveRuntimeManifests`           | Applies one override per app while enforcing one runtime version.                                                        |
-| `verifyManifestIntegrity`           | Validates SHA-256 remote entries before federation initialization.                                                       |
-| `createRemoteTrustPolicy`           | Trusts manifest origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
-| `startAtlasHostRuntime`             | Owns route/slot mount, timeout, retry, and teardown lifecycle.                                                           |
-| `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design.                              |
-| `context.loading.waitUntilReady()`  | Opts the app into manual readiness and returns the callback the app calls after its first useful render.                 |
-
-## Events between apps
-
-Apps communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
-
-```ts
-type ProductEvents = {
-  'orders.updated': { orderId: string };
-  'cart.cleared': undefined;
-};
-
-const atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
-const onOrderUpdated = ({ orderId }: { orderId: string }) => refresh(orderId);
-atlas.events.addEventListener('orders.updated', onOrderUpdated);
-atlas.events.emit('orders.updated', { orderId: '42' });
-atlas.events.emit('cart.cleared');
-atlas.events.removeEventListener('orders.updated', onOrderUpdated);
-```
-
-`removeEventListener` removes a listener registered with `addEventListener`. `once` automatically removes its listener after the first event and returns a function that removes it earlier. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.
+Relative targets resolve inside the app path. Absolute URLs throw `ATLAS_EXTERNAL_SCOPED_NAVIGATION`.
 
 ## Loading and failure UI
 
-The host configures UI once; individual apps never choose a spinner or fallback.
+A host configures loading and error UI once, in the options it returns from `useSdkOptions` or `sdkOptions`. Apps never choose their own fallback. Every callback is optional; Atlas renders accessible defaults.
 
-- `[data-atlas-host-status]` is the single global outlet shown while Atlas loads runtime configuration, the catalog, and Native Federation. `renderHostLoading` and `renderHostError` replace its defaults. While no status anchor is rendered yet (for example, when it sits inside an inactive `AtlasHostLayout`), hosts defined with `defineAngularHost` or `defineReactHost` show the same status at the top of the host container. The status stays visible until a status or route outlet anchor renders, so the page is never blank between host startup and the first app loader.
-- `renderLoading` is the one renderer shared by every app placement. It appears as soon as a placement starts mounting and stays while Atlas loads the app stylesheets and remote entry and while the app mounts. It is removed when mount completes, when the app calls `context.loading.hide()`, or, for apps that opt into manual readiness, when the app calls the app-loaded callback. `context.loading.show()` brings it back. The app content is hidden while the loader is shown. Slot placements get a compact default loader so header slots keep their height.
-- `renderError` is the one fallback shared by every app placement. Atlas supplies the failed manifest, error, and retry action.
-- `renderWidgetLoading` is the renderer shared by every independent widget card. Atlas supplies the widget id and resolved widget/provider manifests when already known. The loader stays until the widget has mounted. Widgets can call `context.loading.show()`, `hide()`, and `waitUntilReady()` like apps. A widget that calls `waitUntilReady()` must call the returned callback within `resourcesTimeoutMs` (15 seconds by default), or Atlas unmounts it and shows the widget error UI with a retry action.
-- A `loadingComponent` passed to framework SDK `getWidget(...)` replaces `renderWidgetLoading` for that widget mount only. In React, pass a component defined outside the render function: the returned widget component is cached per `(widgetId, loadingComponent)` pair, so an inline arrow creates a new component type on every render and remounts the widget.
-- A React widget component that fails to mount throws an `ATLAS_WIDGET_MOUNT_FAILED` error during render. Wrap it in an error boundary to render a fallback.
-- `renderWidgetError` receives the same context, the error, and a retry action. Failure stays inside that widget card.
+| Option                                         | Called with                                | Description                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `renderHostLoading(container)`                 | Status anchor element                      | Global UI while Atlas loads the runtime config, the catalog, and Native Federation. May return a cleanup function. |
+| `renderHostError(container, error, retry)`     | Status anchor, error, retry callback       | Global startup error. May return a cleanup function.                                                               |
+| `renderLoading(container, event)`              | Placement element, `AtlasHostMountEvent`   | Shared loader for every app placement, from mount start until the app is ready.                                    |
+| `renderError(container, event, retry)`         | Placement element, event, retry callback   | Shared fallback for a failed app placement.                                                                        |
+| `renderWidgetLoading(container, context)`      | Widget element, `AtlasWidgetRenderContext` | Shared loader for every widget. May return a cleanup function.                                                     |
+| `renderWidgetError(container, context, retry)` | Widget element, context, retry callback    | Shared fallback for a failed widget. May return a cleanup function.                                                |
+| `observe(event)`                               | `AtlasRuntimeEvent`                        | Receives runtime events. See [Runtime events](#runtime-events).                                                    |
 
-If an app never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
+The global status UI renders in the status anchor: `AtlasHostStatus` in React, `<atlas-host-status>` in Angular. Until a status or route outlet anchor exists, hosts created with `defineReactHost` or `defineAngularHost` show the status at the top of the host container. Slot placements get a compact default loader. See [Host anchors](../concepts/host-anchors.md).
 
-Both host adapters render accessible defaults. A host can use its own Angular, React, Ionic, or other design system:
+## Runtime events
 
-```ts
-await startHost({
-  // router, federation, SDK providers...
-  renderHostLoading(container) {
-    const view = mountApplicationLoader(container);
-    return () => view.destroy();
-  },
-  renderHostError(container, error, retry) {
-    const view = mountApplicationFallback(container, { error, retry });
-    return () => view.destroy();
-  },
-  renderLoading(container, event) {
-    mountAppLoader(container, event.manifest);
-  },
-  renderError(container, event, retry) {
-    mountAppFallback(container, { error: event.error, retry });
-  },
-  renderWidgetLoading(container, context) {
-    const view = mountWidgetLoader(container, context);
-    return () => view.destroy();
-  },
-  renderWidgetError(container, context, retry) {
-    const view = mountWidgetFallback(container, { ...context, retry });
-    return () => view.destroy();
-  },
-});
-```
+The `observe` callback receives an `AtlasRuntimeEvent`. Every event has a `timestamp`. Errors thrown by the observer are ignored, so a monitoring outage cannot break the host.
 
-Custom global and widget renderers may return a cleanup function, which Atlas calls before replacing or clearing their UI. Generated hosts already contain the global status outlet.
+| `type`                                                    | Extra fields                                                                                 | Emitted when                                                                          |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `host.start`, `host.ready`, `host.error`                  | `hostId?`, `durationMs?`, `error?`                                                           | The host starts, becomes ready, or fails.                                             |
+| `operation.success`, `operation.retry`, `operation.error` | `stage`, `attempt`, `maxAttempts`, `durationMs`, `resource?`, `appId?`, `version?`, `error?` | A catalog, integrity, override, or federation operation succeeds, retries, or fails.  |
+| `app.state`                                               | `hostId`, `appId`, `version`, `placementId`, `state`, `error?`                               | A placement changes state: `mounting`, `loading`, `mounted`, `error`, or `unmounted`. |
 
-## Runtime Observability
+## Host-side SDK functions
 
-Hosts connect Atlas to their existing monitoring provider through one optional
-callback. Atlas does not require a particular logger, Sentry, OpenTelemetry, or
-another vendor.
+Generated hosts do not call these directly; `defineReactHost`, `defineAngularHost`, and `startHost` do. They are listed for custom host integrations.
 
-```ts
-await startHost({
-  // router, federation, SDK providers...
-  observe(event) {
-    monitoring.capture('atlas.runtime', event);
-  },
-});
-```
+| Function                                        | Description                                                                                                          |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `createAtlasSdk<THostSdk, TEvents>(options)`    | Create the SDK. `options` takes `hostId`, `navigation`, optional `eventBus`, `hostData`, and the host-owned members. |
+| `connectAtlasNavigationResolver(sdk, resolver)` | Connect the function that `navigateTo` calls once the runtime knows the routes.                                      |
+| `connectAtlasWidgetResolver(sdk, resolver)`     | Connect the function that `getWidget` calls once the runtime knows the widgets.                                      |
+| `getAtlasNavigation(sdk)`                       | Return the host navigation the SDK was created with. Throws `ATLAS_HOST_NAVIGATION_NOT_READY` otherwise.             |
 
-The callback receives a discriminated `AtlasRuntimeEvent` union:
+## Errors
 
-| Events                                                        | Meaning                                                                           |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `host.start`, `host.ready`, and `host.error`                  | Host bootstrap.                                                                   |
-| `operation.success`, `operation.retry`, and `operation.error` | Catalog, integrity, override, and federation work.                                |
-| `app.state`                                                   | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
+`@atlas/sdk` exports three error classes. All extend `AtlasError` from `@atlas/schema`.
 
-Events include durations and relevant host, app, version, placement, URL,
-attempt, stage, and error fields. Atlas catches errors thrown by the observer,
-so a monitoring outage cannot prevent the application from loading.
+| Class                     | Code                          | Thrown when                                                     |
+| ------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| `AtlasSdkError`           | Varies                        | SDK misuse, or a capability the host has not connected yet.     |
+| `AtlasWidgetMountError`   | `ATLAS_WIDGET_MOUNT_FAILED`   | A React widget fails to mount. Catch it with an error boundary. |
+| `AtlasEventListenerError` | `ATLAS_EVENT_LISTENER_FAILED` | An event listener throws. Reported asynchronously.              |
 
-| API                  | Purpose                                           |
-| -------------------- | ------------------------------------------------- |
-| `createWidgetLoader` | Resolves widgets from the selected owner version. |
+`@atlas/sdk/federation-config` exports `FederationConfigError` for build-time failures. See [Errors](errors.md#sdk-errors) for every code.
 
-Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It reads a Columbus override document from tab or origin storage, or asks the Columbus content bridge for the active local development session, then validates its host and manifests. Columbus fetches the local control server in extension context; the deployed page does not fetch a loopback URL.
+## Related
 
-Infrastructure-only example for custom DOM host runtime:
-
-```ts
-await loadAndMountHostCatalog({
-  hostId: sdk.hostId,
-  manifestUrl:
-    'https://cdn.example.com/atlas/environments/production/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/manifest.json',
-  sdk: sdk,
-  resolveContainer: (manifest) =>
-    document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined,
-});
-```
-
-## Framework Adapters
-
-- `@atlas/sdk/angular`
-- `@atlas/sdk/react`
-
-Vue is a future adapter target and is not currently supported by Atlas generators.
-
-Routed apps use their native router through a thin Atlas bridge:
-
-- React uses `createRoutedApp`, `createRouterOptions`, and React Router's `createMemoryRouter`.
-- Angular uses `provideRouter` and `createLocationStrategy`.
-
-Atlas performs two-way URL synchronization and base-path scoping. The application continues to use normal framework links, outlets, route parameters, guards, loaders, and navigation APIs.
-
-Adapters convert framework-native app bootstrapping into the Atlas `mount/unmount` contract.
-
-Angular hosts use `startHost`. It loads runtime configuration and catalog metadata, applies overrides, verifies integrity, initializes Native Federation, synchronizes Angular Router deep links, creates the host SDK, renders navigation, and starts route/slot lifecycle management.
-
-Angular apps use `defineApp`. Exported widgets stay native Angular components;
-Atlas generates their lifecycle adapters internally. Apps receive
-`AtlasAppContext`, including `navigation`, `route`, and `widgets`; no product app
-bootstraps standalone.
-
-React hosts use `AtlasHostProvider` with React Router and the framework-agnostic Native Federation runtime. The provider makes the host SDK available to host components and starts the runtime after the tree commits. Imperative integrations may still use `startHost`. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
-
-## Testing
-
-`@atlas/testkit` provides `mockAtlasEnvironment()` for app tests, fake
-manifests, and memory navigation. See [Consumer testing](../guides/testing-apps-and-hosts.md#app-domain).
+- [Public API](api.md)
+- [Share host data](../guides/host-data.md)
+- [React SDK guide](../guides/react/sdk.md)
+- [Angular SDK guide](../guides/angular/sdk.md)
+- [Testing apps and hosts](../guides/testing-apps-and-hosts.md)

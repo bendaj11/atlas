@@ -1,19 +1,31 @@
 # @atlas/schema
 
-TypeScript schemas and validation for Atlas manifests, catalogs, registries, and runtime configuration.
+TypeScript types and validators for Atlas configuration, manifests, registries, and the host runtime config. You use its types in `atlas.config.ts`; the Atlas CLI generates the manifests.
 
-Audience: config authors, tooling, and operators. Product developers normally
-write typed `atlas.config.ts`; Atlas CLI generates manifest/catalog JSON.
+## Install
+
+The `@atlas` packages are not on the public npm registry. Point the `@atlas` scope at your organization's registry in `.npmrc` first. Generated hosts and apps already depend on this package; to add it by hand:
 
 ```sh
-# Choose one:
 npm install @atlas/schema
-pnpm add @atlas/schema
-yarn add @atlas/schema
 ```
 
-See the [schema documentation](https://github.com/bendaj11/atlas/blob/main/docs/reference/manifests.md) for supported schemas.
+## Example
 
-Use `AtlasHostConfig` or `AtlasAppConfig` for source config. Use manifest and
-catalog validators only at infrastructure boundaries; never hand-edit generated
-deployment JSON.
+```ts
+import type { AtlasAppConfig } from '@atlas/schema';
+
+export default {
+  type: 'app',
+  id: '7f3c2a8e-6d1b-4e59-9a0c-2b8d4f6e1a37',
+  name: 'Orders',
+  framework: 'react',
+  routes: [{ hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506', path: '/orders' }],
+} satisfies AtlasAppConfig;
+```
+
+## Documentation
+
+- [Configuration reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/configuration.md)
+- [Manifests reference](https://github.com/bendaj11/atlas/blob/main/docs/reference/manifests.md)
+- [Public API](https://github.com/bendaj11/atlas/blob/main/docs/reference/api.md#atlasschema)

@@ -1,88 +1,132 @@
-# Angular Generators
+---
+title: Angular generators
+description: Learn exactly which files the Angular host, app, and widget generators create, and how Atlas picks Angular and Native Federation versions.
+---
 
-Atlas generators create normal Angular projects plus Atlas host or app wiring.
+# Angular generators
 
-## Host Domain
+This page lists what the Atlas generators create for Angular hosts, apps, and widgets, and which files you are expected to edit. Use it as a reference after you have followed [Build an Angular host](host.md) or [Build an Angular app](app.md). For every generator option, see the [CLI reference](../../reference/cli.md).
 
-Create an Angular host:
-
-```sh
-atlas g host customer-host --framework=angular
-```
-
-Generated host files to understand first:
-
-| File                       | Owner          | Purpose                                                                              |
-| -------------------------- | -------------- | ------------------------------------------------------------------------------------ |
-| `atlas.config.ts`          | Host team      | Stable host id, display name, runtime defaults.                                      |
-| `atlas.bootstrap.html`     | Host team      | Product-domain HTML and loading UI used automatically by `atlas bootstrap`.          |
-| `src/bootstrap.ts`         | Atlas/platform | Exports `mount()` from `defineAngularHost()`; do not edit.                           |
-| `src/app/app.config.ts`    | Host team      | Angular providers and version-appropriate zoneless setup; Atlas provides the router. |
-| `src/app/host.config.ts`   | Host team      | Product SDK capabilities and host runtime customization.                             |
-| `src/app/app.component.ts` | Host team      | Replaceable product layout with Atlas DOM anchors.                                   |
-| `federation.config.js`     | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone.          |
-| `dist/bootstrap/`          | Atlas CLI      | Static product-domain files from `atlas bootstrap`.                                  |
-
-The host owns layout, auth, top-level routing, host services, and runtime
-configuration.
-
-## App Domain
-
-Create an Angular app:
+## Generate a host
 
 ```sh
-atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
+npx atlas g host customer-host --framework=angular
 ```
 
-`--host-id` takes stable UUID from host project's `atlas.config.ts` and creates
-an initial `/orders` route for that host. Omit it when app team will define
-routes or slots later.
+| File                                             | Owner     | Purpose                                                                                                           |
+| ------------------------------------------------ | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`                                | Host team | The stable host UUID, display name, and framework.                                                                |
+| `atlas.bootstrap.html`                           | Host team | The HTML template that `npx atlas bootstrap` uses for the static entry page.                                      |
+| `src/app/app.component.ts`                       | Host team | The page layout with host anchors (`<atlas-route-outlet>`, `<atlas-slot>`, and others) inside `*atlasHostLayout`. |
+| `src/app/app.config.ts`                          | Host team | Angular providers. On Angular 20 it adds `provideZonelessChangeDetection()`. Atlas adds the router.               |
+| `src/app/host.config.ts`                         | Host team | `CustomerHostSdk` and `createCustomHostSdkOptions()`, the host SDK capabilities.                                  |
+| `src/bootstrap.ts`                               | Atlas     | Exports `mount` from `defineAngularHost()`. Exposed to Native Federation as `./host`.                             |
+| `src/main.ts`                                    | Atlas     | A placeholder browser entry. Atlas never runs the host from it; start the host with `npx atlas dev`.              |
+| `src/index.html`                                 | Atlas     | Contains the `<atlas-host-root>` element.                                                                         |
+| `src/styles.css`                                 | Host team | Global host styles. The extension follows `--style`.                                                              |
+| `federation.config.mjs`                          | Atlas     | Native Federation config. See [Native Federation config](#native-federation-config).                              |
+| `angular.json`, `tsconfig*.json`, `package.json` | Atlas     | Angular workspace, TypeScript, and package setup.                                                                 |
 
-Generated app files to understand first:
+The generated `package.json` includes `dev`, `build`, `atlas:publish`, and `atlas:bootstrap` scripts.
 
-| File                       | Owner          | Purpose                                                                       |
-| -------------------------- | -------------- | ----------------------------------------------------------------------------- |
-| `atlas.config.ts`          | App team       | App id, name, framework, host routes, slots, widgets, manifest metadata.      |
-| `src/main.ts`              | Atlas/platform | Angular entry plus mount/unmount lifecycle exposed through Native Federation. |
-| `src/app/app.config.ts`    | App team       | Angular and Atlas providers.                                                  |
-| `src/app/app.component.ts` | App team       | App root component.                                                           |
-| `src/app/app.routes.ts`    | App team       | Inner Angular routes scoped under the host path.                              |
-| `federation.config.js`     | Atlas/platform | Native Federation compatibility file.                                         |
-
-Product developers usually edit Angular components, services, styles, tests,
-and `atlas.config.ts`. Angular app bootstrap happens only when Atlas runtime
-mounts `src/main.ts` inside a host. The host supplies SDK and app context;
-generated apps do not create either one.
-Generated app `main.ts` imports federation runtime functions from
-`@atlas/sdk/federation`; host `defineAngularHost()` imports them internally. The required `federation.config.js` delegates to
-`@atlas/sdk/federation-config`; only Angular builder declarations and their
-package dependency remain visible because Angular CLI resolves them by package name.
-
-## Widgets
-
-Create an Angular exported widget inside an app:
+## Generate an app
 
 ```sh
-atlas g widget order-status --app-id=f856e01e-0fc1-4a6d-a4ec-622c68100d14
+npx atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-Atlas creates `atlas.config.ts` (stable UUID and display name) plus `index.ts`
-(Angular implementation). Consumers call `sdk.getWidget("<widget-uuid>")`;
-folder/expose path is internal federation wiring.
+Replace the example UUID with the `id` from your host's `atlas.config.ts`. `--host-id` adds an initial `/orders` route for that host. Omit it when you will define routes or slots later.
+
+| File                                             | Owner    | Purpose                                                                                                                 |
+| ------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`                                | App team | The app UUID, name, framework, and, with `--host-id`, one route.                                                        |
+| `src/entry.ts`                                   | Atlas    | The Atlas lifecycle. Its default export, created with `defineApp()`, mounts and unmounts the app. Exposed as `./entry`. |
+| `src/main.ts`                                    | Atlas    | The Angular browser entry. It runs `initFederation()` from `@atlas/sdk/federation` and re-exports `src/entry.ts`.       |
+| `src/app/app.config.ts`                          | App team | `createAppConfig()`, which returns the Angular providers, including `provideAtlasApp()`.                                |
+| `src/app/app.component.ts`                       | App team | The app root component.                                                                                                 |
+| `src/app/app.routes.ts`                          | App team | Inner Angular routes. Routed apps only.                                                                                 |
+| `src/app/home/`, `src/app/details/`              | App team | Example routed pages. Routed apps only.                                                                                 |
+| `src/exported-widgets/README.md`                 | App team | Explains how to add widgets.                                                                                            |
+| `public/`                                        | App team | Static files copied to the build output.                                                                                |
+| `federation.config.mjs`                          | Atlas    | Native Federation config.                                                                                               |
+| `angular.json`, `tsconfig*.json`, `package.json` | Atlas    | Angular workspace, TypeScript, and package setup. `package.json` has an empty `atlas.previews` list.                    |
+
+Apps are routed by default. Pass `--no-routing` for a single-page app without a router. In interactive mode, the CLI asks.
+
+Atlas mounts the app by loading `src/entry.ts`. It never runs your lifecycle from `src/main.ts`. The host supplies the SDK and app context at mount time, so the generated app does not create either one.
+
+## Generate a widget
+
+```sh
+npx atlas g widget order-status --app-id=2bea9c13-4899-4f93-9211-cd8c55e9c529
+```
+
+Run this inside a workspace that contains the app. Without `--app-id`, the CLI asks you to choose the app. Pass `--force` to replace an existing widget with the same name.
+
+For an Angular app, the generator creates `src/exported-widgets/order-status/` with three files:
+
+| File               | Purpose                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`  | The widget's new UUID and display name. Consumers call `getWidget()` with this UUID.                          |
+| `index.ts`         | A default-exported standalone component with a `title` signal input.                                          |
+| `widget.config.ts` | Exports `widgetConfig: ApplicationConfig` with an empty `providers` list. Add the providers the widget needs. |
+
+At build time, Atlas generates an entry for each widget folder that calls `createExportedWidget(Widget, widgetConfig)` and exposes it as `./widgets/order-status`. The folder name and expose path are internal wiring; consumers use only the UUID. See [Angular SDK](sdk.md#export-a-widget) and [Exported widgets](../exported-widgets.md).
+
+## Native Federation config
+
+The generated federation config delegates to `@atlas/sdk/federation-config`, which adds the Atlas exposes (`./host` for a host; `./entry` plus one `./widgets/<name>` per widget for an app) and shares every dependency as a singleton with `strictVersion: true` and `requiredVersion: 'auto'`.
+
+The file name and helper depend on the Angular major version:
+
+| Angular | Config file             | Module format | Helper                              |
+| ------- | ----------------------- | ------------- | ----------------------------------- |
+| 19      | `federation.config.js`  | CommonJS      | `createAngularFederationConfig()`   |
+| 20+     | `federation.config.mjs` | ES module     | `createAngularV4FederationConfig()` |
+
+The generated file for Angular 20 looks like this:
+
+```js
+import { createAngularV4FederationConfig } from '@atlas/sdk/federation-config';
+
+export default await createAngularV4FederationConfig({
+  projectRoot: import.meta.dirname,
+  name: 'atlas_orders',
+  expose: 'app',
+  nativeFederationPackage: '@angular-architects/native-federation-v4',
+  // Add skip, exposes, shared, or other Native Federation options here.
+  skip: [],
+});
+```
+
+Both helpers accept `AngularFederationConfigOptions`: `projectRoot`, `name`, `expose` (`'host'` or `'app'`), and optional `exposes`, `shared`, and `skip`. Atlas merges your `exposes` and `shared` with its own and adds your `skip` entries to its defaults. Any other field is passed to Native Federation's `withNativeFederation()` unchanged.
+
+If you need the options object without calling `withNativeFederation()`, for example to wrap it yourself, use `createAngularFederationOptions(options, shareAll)` from the CommonJS entry of `@atlas/sdk/federation-config`. You pass `shareAll` from your Native Federation package.
+
+## Framework versions
+
+Atlas generates Angular 20.3.0 by default. Pass `--framework-version` to choose another version. Atlas has verified Angular 19, 20, 21, and 22; other majors require `--allow-unsupported-version`.
+
+| Angular        | Change detection                                  | Native Federation package                                                   |
+| -------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| 19             | Zone.js                                           | `@angular-architects/native-federation`                                     |
+| 20.0 and 20.1  | Zone.js                                           | `@angular-architects/native-federation-v4` and `@softarc/native-federation` |
+| 20.2 and later | Zoneless, with `provideZonelessChangeDetection()` | `@angular-architects/native-federation-v4` and `@softarc/native-federation` |
+| 21             | Zoneless                                          | `@angular-architects/native-federation-v4` and `@softarc/native-federation` |
+| 22             | Zoneless                                          | `@angular-architects/native-federation`                                     |
+
+On Zone.js versions, the generated `src/entry.ts` imports `zone.js` and `package.json` depends on it.
+
+When the workspace already declares `@angular/core`, Atlas uses that version for the new project instead of changing the workspace.
 
 ## Workspaces
 
-In Nx workspaces, Atlas delegates initial Angular project creation to
-`@nx/angular`, then adds Atlas-owned files. In Turborepo, pnpm, Yarn, npm, or
-standalone projects, Atlas creates a package that the workspace discovers
-normally.
+In an Nx workspace, Atlas creates the Angular project with `@nx/angular:application` and then adds the Atlas files. Pass `--skip-workspace-generator` to skip the Nx generator. In Turborepo, pnpm, Yarn, or npm workspaces, and in standalone projects, Atlas creates a package that the workspace discovers normally.
 
-Use [Workspaces and monorepos](../workspaces-and-ci.md) before generating inside a
-large repository.
+Read [Workspaces and CI](../workspaces-and-ci.md) before you generate projects inside a large repository.
 
-## Framework Versions
+## Next steps
 
-Atlas targets Angular `^20.3.0` by default and accepts Angular 19-22 generation
-profiles. In workspaces that already declare `@angular/core`, Atlas aligns
-companion packages to that existing major instead of changing the whole
-workspace.
+- [Angular project structure](project-structure.md)
+- [CLI reference](../../reference/cli.md)
+- [Angular troubleshooting](troubleshooting.md)

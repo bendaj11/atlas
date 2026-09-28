@@ -1,144 +1,111 @@
-# Angular Troubleshooting
+---
+title: Angular troubleshooting
+description: Diagnose problems that only occur in Angular hosts and apps, such as Native Federation warnings, zone and style setup, and router scoping.
+---
 
-Start by identifying the domain:
+# Angular troubleshooting
 
-- **Host domain:** page shell, bootstrap metadata, discovery, active host manifest URL, DOM anchors,
-  `startHost`, host SDK providers.
-- **App domain:** Angular app source, `atlas.config.ts`, `src/main.ts`,
-  inner routes, assets.
-- **Deployment domain:** CDN files, CORS, MIME types, `registry.json`, active and
-  canonical manifests, integrity, cache.
+This page covers problems specific to Angular hosts and apps. For problems that affect every framework, such as an app that does not load, deployment and CDN errors, or Columbus overrides, start with the shared [Troubleshooting](../../troubleshooting.md) page.
 
-## The App Does Not Load
+## Native Federation warns about a missing entry point
 
-Check deployment first:
+**Symptom:** The build or `npx atlas dev` prints `No entry point found for <package>`.
 
-```sh
-atlas verify --host-url=https://customer.example
-```
+**Cause:** Atlas configures Native Federation to share every dependency, so the host and apps can reuse one singleton copy. Native Federation inspects each dependency it shares. The warning means that a package, or one of its secondary entry points, has no JavaScript entry that Native Federation can turn into a shared bundle.
 
-Then check host layout:
+**Fix:** Do not hide every warning. A package that runtime code imports but that cannot be shared may be bundled into the host or app instead, which can duplicate state or cause version conflicts for libraries that must be singletons. Identify the package first:
 
-- `data-atlas-route-outlet` exists;
-- `data-atlas-host-status` exists;
-- the host serves `index.html` for deep links;
-- host discovery selects the expected environment-qualified active host
-  manifest for the page URL.
+- If it is only used for builds, tests, or types, move it to `devDependencies` when appropriate, then add it to `skip`.
+- If it is a secondary entry point that runtime code does not need, skip that entry point.
+- If browser code needs it, check its package metadata and supported entry points before you decide whether it can be bundled locally or must be configured as a shared dependency.
 
-Then check app config:
-
-- `framework: "angular"`;
-- route `hostId` matches the host runtime `hostId`;
-- route `path` matches the URL being opened;
-- `supportedHosts` or route declarations allow the host.
-
-## Angular Remote Entry Does Not Load
-
-Verify `remoteEntryUrl` points to `remoteEntry.json`, not a JavaScript file.
-The CDN must serve every file from the Angular browser output with CORS enabled.
-Atlas loads the Native Federation expose named by the manifest.
-
-## Native Federation Warns `No entry point found for <package>`
-
-Native Federation emits this warning while Atlas builds an Angular host or app.
-Atlas configures `shareAll` so matching host and app dependencies can reuse one
-singleton copy. Native Federation inspects each dependency it intends to share.
-This warning means a package or one of its secondary exports has no JavaScript
-entry point that Native Federation can turn into a shared bundle.
-
-Do not hide every warning. A package that is imported at runtime but cannot be
-shared may be bundled into the host or app instead. That can duplicate state or
-produce a version conflict for libraries that must be singletons.
-
-First identify the warned package:
-
-- If it is build, test, type-only, or otherwise unused in browser runtime code,
-  move it to `devDependencies` when appropriate, then add it to `skip`.
-- If it is a secondary export that is not needed at runtime, skip that export.
-- If browser runtime code needs it, do not suppress the warning blindly. Check
-  its package metadata and supported JavaScript entry point, then decide whether
-  it may safely be bundled locally or must be replaced/configured as a supported
-  shared dependency.
-
-Add only confirmed exclusions to the generated `federation.config.js`:
+Add only confirmed exclusions to the generated federation config. On Angular 20 and later, edit `federation.config.mjs`:
 
 ```js
+import { createAngularV4FederationConfig } from '@atlas/sdk/federation-config';
+
+export default await createAngularV4FederationConfig({
+  projectRoot: import.meta.dirname,
+  name: 'atlas_orders',
+  expose: 'app',
+  nativeFederationPackage: '@angular-architects/native-federation-v4',
+  skip: ['package-name', '@scope/package/internal/*'],
+});
+```
+
+On Angular 19, edit `federation.config.js`:
+
+```js
+const {
+  createAngularFederationConfig,
+} = require('@atlas/sdk/federation-config');
+
 module.exports = createAngularFederationConfig({
   projectRoot: __dirname,
-  name: 'atlas_orders_angular',
+  name: 'atlas_orders',
   expose: 'app',
   skip: ['package-name', '@scope/package/internal/*'],
 });
 ```
 
-For Angular Native Federation v4 projects, make same change in
-`federation.config.mjs`. Both `createAngularFederationConfig` and
-`createAngularV4FederationConfig` accept a typed `AngularFederationConfigOptions`
-object; unknown fields pass through to `withNativeFederation`. Keep Atlas-generated exposes and sharing settings.
-Restart the development server after changing federation configuration. Warning
-gone only when package is excluded or package supplies a shareable entry point.
+Keep the generated `name`, `expose`, and `nativeFederationPackage` values. Restart `npx atlas dev` after you change the federation config. The warning disappears only when the package is skipped or provides a shareable entry point.
 
-## Local Library Changes Do Not Appear
+## Local library changes do not appear
 
-Start with the [local package workflow](../workspaces-and-ci.md#developing-local-packages).
-Then check where the update stops:
+**Symptom:** You edit a local workspace library, but the app in the browser does not change.
 
-1. **Library output:** confirm the dependency links to the intended package and
-   its watcher updates the JavaScript referenced by its package entry points.
-2. **App output:** inspect the local `remoteEntry.json` and the library bundle it
-   identifies. Check that the served JavaScript contains your change.
-3. **Browser:** in developer tools, check the package request URL and the import
-   map that maps package names to URLs. Confirm the browser loads the expected
-   local bundle. Check Federation's build notifications connection if the code
-   is current but the page does not reload.
+**Fix:** Start with [Developing local packages](../workspaces-and-ci.md#developing-local-packages). Then find where the update stops:
 
-Successful rebuild messages do not guarantee that the served code changed.
-If the served bundle is stale, investigate the build before browser caching.
-Keep the library shared unless you intentionally need separate bundled copies;
-restart `atlas dev` after changing its Federation settings.
+1. **Library output:** Confirm that the dependency links to the intended package and that its watcher updates the JavaScript its package entry points reference.
+2. **App output:** Inspect the local `remoteEntry.json` and the library bundle it lists. Check that the served JavaScript contains your change.
+3. **Browser:** In developer tools, check the package request URL and the import map that maps package names to URLs. If the code is current but the page does not reload, check the Native Federation build notifications connection.
 
-If a package loads from a CDN, check which host or remote supplied the shared
-package. Adding it to `skip` changes how it is bundled, not just where it loads
-from. For machine-specific failures, compare the installed dependency versions,
-lockfile, and framework configuration.
+A successful rebuild message does not guarantee that the served code changed. If the served bundle is stale, investigate the build before browser caching. Keep the library shared unless you intentionally need separate copies, and restart `npx atlas dev` after changing its federation settings.
 
-## Angular Compiler Rejects `emitDeclarationOnly`
+## The Angular compiler rejects `emitDeclarationOnly`
 
-If `atlas dev` fails with `NG4006` for `emitDeclarationOnly`, keep
-declaration-only options out of the Angular application tsconfig.
+**Symptom:** `npx atlas dev` fails with `NG4006` for `emitDeclarationOnly`.
 
-Atlas does not generate `tsconfig.atlas.json`. It compiles `atlas.config.ts`
-through the project tsconfig that the framework already owns. Angular projects
-use `tsconfig.app.json`; React projects use `tsconfig.json`; Nx projects use
-the tsconfigs generated by Nx. Atlas applies config-compile overrides in memory
-and emits only `.atlas/atlas.config.js`.
+**Cause:** Atlas compiles `atlas.config.ts` with the project's own tsconfig: `tsconfig.app.json` for Angular projects, or the tsconfigs Nx generated. It applies its overrides in memory and writes only `.atlas/atlas.config.js`. If a base tsconfig enables declaration-only output, for example for library builds in an Nx workspace, the Angular compiler rejects it.
 
-If an Nx Angular workspace base tsconfig enables declaration-only output for
-library builds, set `compilerOptions.emitDeclarationOnly` to `false` in that
-project's `tsconfig.app.json`.
+**Fix:** Set `compilerOptions.emitDeclarationOnly` to `false` in the project's `tsconfig.app.json`.
 
-## Inner Routing Escapes The App
+## Inner routes escape the app
 
-The app should use `createLocationStrategy(context)` through generated
-`src/main.ts`. Do not provide `PathLocationStrategy` inside a mounted Angular
-app. Use Angular Router for app-relative paths and SDK navigation for
-cross-app destinations.
+**Symptom:** Clicking a `routerLink` inside the app changes the browser URL to a path outside the app, or reloads the host.
 
-## Host APIs Are Missing
+**Fix:** Make sure `src/entry.ts` creates the location strategy with `createLocationStrategy(context)` and passes it to `provideAtlasApp()`, as the generated file does. Do not provide `PathLocationStrategy` or `HashLocationStrategy` in the app. Use Angular Router for paths inside the app and `navigateTo()` for other apps. See [Angular routing](routing.md#use-inner-angular-routes).
 
-If `injectAtlasSdk()` returns an SDK without expected product fields, fix the
-host `startHost` call. Product `hostData`, API clients, modals, toasts, events,
-and extensions are supplied by the host, not by the app.
+## Component styles are missing or leak into the host
 
-## Spinner Never Disappears
+**Symptom:** Angular component styles do not apply inside the app, or they appear in the host document's `<head>`.
 
-If the app calls `injectAppLoaded()` or `context.loading.waitUntilReady()`, it
-must call the returned callback after first useful render. Otherwise Atlas times
-out, unmounts the app, and shows the host-owned fallback.
+**Fix:** Keep `provideAtlasApp({ context, sdk, styleTarget, ... })` in the providers you pass to `createApplication()`. It moves Angular's runtime component styles into the app's `styleTarget`, usually its shadow root. See [Angular assets and styles](assets-and-styles.md).
 
-## Install Fails With Peer Conflicts
+## The host throws `ATLAS_SDK_NOT_READY`
 
-In workspaces that already declare `@angular/core`, Atlas aligns companion
-Angular packages to the existing major. Upgrade or downgrade the workspace
-Angular version first, or create a project-level package with its own framework
-version.
+**Symptom:** The host fails at startup with `Atlas SDK is unavailable until the Angular host runtime starts.`
+
+**Cause:** A host component or service called `injectAtlasSdk()` before the runtime created the SDK, for example in the root component's constructor or in `createCustomHostSdkOptions()`.
+
+**Fix:** Inject the SDK in components rendered inside an `*atlasHostLayout` block, or inject it lazily inside an event handler or effect.
+
+## Host SDK members are missing in the app
+
+**Symptom:** `injectAtlasSdk<CustomerHostSdk>()` compiles, but a custom member such as `showToast` is `undefined` at runtime.
+
+**Fix:** The host provides every custom member. Check that `createCustomHostSdkOptions()` in the host's `src/app/host.config.ts` returns it, and that the app runs in the host version you expect. See [Angular SDK](sdk.md#provide-host-capabilities).
+
+## Install fails with peer dependency conflicts
+
+**Symptom:** Installing dependencies after `npx atlas g host` or `npx atlas g app` fails with Angular peer conflicts.
+
+**Cause:** When the workspace already declares `@angular/core`, Atlas generates the new project for that Angular version.
+
+**Fix:** Resolve the conflict in the workspace first, for example by aligning every Angular package to one supported major version, then generate again. Atlas supports Angular 19 to 22. See [Angular generators](generators.md#framework-versions).
+
+## Next steps
+
+- [Troubleshooting](../../troubleshooting.md)
+- [Angular generators](generators.md)
+- [Local development](../local-development.md)

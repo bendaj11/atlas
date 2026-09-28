@@ -1,24 +1,27 @@
-# Angular Assets And Styles
+---
+title: Angular assets and styles
+description: Reference images, fonts, and CSS from an Angular app so they load from the app's own artifact, and keep app styles isolated from the host.
+---
 
-Angular apps are deployed under immutable Atlas version paths, so asset URLs must
-work after the app is loaded by a host from a CDN.
+# Angular assets and styles
 
-## App Domain
+An Atlas app is served from its own versioned artifact directory, not from the host's origin root. This guide shows you how to reference static files and write styles in an Angular app so they work in local development and in production. Read [Styles and isolation](../../concepts/styles-and-isolation.md) for the framework-neutral rules.
 
-Use Angular's normal asset and style configuration:
+## Before you start
 
-- put static files under `public`;
-- keep global styles in the Angular `styles` configuration;
-- prefer component styles for feature UI;
-- reference copied static assets from component CSS with root-relative `/assets/...`
-  URLs. Atlas rewrites Angular-owned component styles to the app's immutable
-  artifact directory before Angular inserts them into the host document.
+- Have an Angular app from [Build an Angular app](app.md).
 
-Do not change these references to `./assets/...` merely to make them relative.
-Angular resolves that form as a CSS source import and fails the build when no
-matching path exists beside the component stylesheet.
+## Put static files in `public/`
 
-Good:
+The generated `angular.json` copies everything in `public/` to the root of the build output. A file at `public/assets/orders-hero.png` is published as `assets/orders-hero.png` next to the app's `remoteEntry.json`.
+
+## Reference assets in templates and component CSS
+
+In templates and component styles, use root-relative `/assets/...` URLs:
+
+```html
+<img src="/assets/images/point.png" alt="Point" />
+```
 
 ```css
 .orders-hero {
@@ -26,102 +29,60 @@ Good:
 }
 ```
 
-For global stylesheets emitted as standalone CSS, configure Angular's deploy URL
-to the published artifact base. Those files load outside the component-style
-ownership boundary and keep normal browser URL resolution.
+While the app is mounted, Atlas rewrites URLs that start with `/assets/`, `assets/`, or `./assets/` in the app's DOM (`src`, `href`, `poster`, `data`, `srcset`, and inline `style` attributes) and in the component styles it inserts. The rewritten URL points into the app's artifact directory. Other root-relative URLs are not rewritten and resolve against the host's origin.
 
-Wrong when `assets` is not beside the component stylesheet:
+Do not change component CSS references to `./assets/...` only to make them relative. Angular treats that form as a build-time import and fails when no matching file exists next to the component stylesheet.
 
-```css
-.orders-hero {
-  background-image: url('./assets/orders-hero.png');
+## Reference assets in TypeScript
+
+Atlas cannot see URLs that your code passes to a library, such as a map or chart library that fetches its own images. Resolve those URLs with the SDK:
+
+```ts
+import { Component } from '@angular/core';
+import { injectAtlasSdk } from '@atlas/sdk/angular';
+
+@Component({
+  selector: 'orders-map',
+  standalone: true,
+  template: `<div id="map"></div>`,
+})
+export class OrdersMapComponent {
+  private readonly atlas = injectAtlasSdk();
+  readonly markerUrl = this.atlas.assetUrl('assets/images/point.png');
+  readonly libraryBaseUrl = this.atlas.assetBaseUrl();
 }
 ```
 
-### Assets in HTML, CSS, and runtime code
+Pass paths relative to the build output, without a leading `/`. Do not build asset URLs from `document.baseURI` or `location.origin`; they point at the host page. See [Angular SDK](sdk.md#use-app-assets) for `createAtlasAppAssets()`, which works in `app.config.ts`.
 
-Use the asset path configured by the Angular build. In a template, use the
-root-relative path for copied assets:
+## Reference assets in global stylesheets
 
-```html
-<img src="/assets/images/point.png" alt="Point" />
-```
+The app's global stylesheet (`src/styles.css`, listed under `styles` in `angular.json`) is published with the app and loaded from its artifact URL, so relative URLs in it resolve against the artifact directory. Reference files with a path relative to the stylesheet source, which Angular copies into the build output at build time. Root-relative URLs such as `/assets/...` in a global stylesheet resolve against the host's origin instead.
 
-In component CSS, use that same root-relative path. Atlas sees the HTML and
-component CSS it inserts for a mounted app, then rewrites those asset URLs to
-the app's immutable artifact directory.
+## Understand style isolation
 
-Runtime code is different. A library receives only a string and fetches it
-itself; Atlas cannot see or rewrite that request. Resolve the asset against the
-module that uses it:
+By default, Atlas mounts each app in a Shadow DOM and loads the app's declared stylesheets into its shadow root. Global library CSS, including Ionic resets and CSS variables, stays inside the app and does not leak into the host or other apps. Atlas adapts `:root` selectors in those stylesheets to the app's shadow host, including rules inside imports, layers, and media queries, so sibling apps can use different values for the same variable.
 
-```ts
-const pointImageUrl = new URL('images/point.png', import.meta.url).href;
-```
+Angular component styles need one more step. `provideAtlasApp()` in the generated `src/app/app.config.ts` redirects Angular's runtime component styles from the document `<head>` to the app's `styleTarget`. Keep `provideAtlasApp()` in your providers; without it, component styles go to the host document instead of the app.
 
-Use an emitted path relative to the module URL, without a leading `/`. For
-example, files copied from `src/assets` normally use `assets/images/point.png`.
-This keeps the URL under the app's immutable deployment path.
-Do not use `document.baseURI` or `location.origin`: they point at the host page
-or discard the app path.
+Shadow DOM isolation has limits:
 
-## Isolation
+- Libraries that insert CSS directly into `document.head`, or change `document.documentElement`, are not redirected. Use a library option that sets the insertion target if one exists.
+- Overlays that a library attaches to `document.body` render outside the app's shadow root and lose its styles.
+- Cross-origin stylesheets and their `@import` rules must allow CORS, because Atlas fetches imports to adapt them. With a Content Security Policy, `connect-src` must allow those URLs.
 
-Atlas mounts apps in Shadow DOM by default and installs declared standalone
-stylesheets in that shadow root. This prevents global library CSS, including
-Ionic resets and variables, from leaking into the host or other apps. Atlas adapts
-`:root` selectors in these stylesheets to the app's shadow host, including rules
-inside CSS imports, layers, and media queries. Keep package variable declarations
-and global stylesheet imports unchanged; sibling apps can use different values
-for the same variable. Cross-origin stylesheets and their imports must allow CORS.
-Runtime CSS imports are fetched for adaptation; when using CSP, `connect-src` must
-also permit those import URLs.
+For an app that intentionally shares the host's documented design-system CSS, set `domIsolation: 'shared-dom'` in its `atlas.config.ts`. Shared DOM mode wraps the app in a DOM element but does not isolate CSS.
 
-Atlas-generated Angular app entries also direct Angular's runtime component
-styles into that same shadow root. This covers every component library using
-Angular's standard style host. Keep generated entry code on the current Atlas
-SDK so this integration remains active, including for unscoped styles without
-Angular `_ngcontent` or `_nghost` markers.
+## Keep host styles in the host
 
-Apps keep ownership of Angular bootstrap. Add `provideAtlasApp({ context, sdk,
-styleTarget, locationStrategy })` to `ApplicationConfig.providers`; it groups
-Atlas context, SDK, style hosting, and optional router strategy without replacing
-`createApplication`.
+The host owns global layout styles, design-system CSS, fonts, and CSS variables that it shares with apps on purpose. Apps should not reset `body`, change the host's navigation layout, or depend on host-only class names unless the host team documents that contract.
 
-This adaptation applies to declared standalone stylesheets. It does not relocate
-library overlays, CSS injected directly into `document.head`, or JavaScript
-operations on `document.documentElement`. A library that writes directly to
-`document.head` must provide a supported insertion-target option; otherwise it
-cannot run with Shadow DOM isolation. Use
-`domIsolation: 'shared-dom'` only for an app intentionally sharing a documented
-host design-system contract. Shared DOM mode is a DOM wrapper, not CSS
-isolation.
+## Serve assets correctly
 
-## Host Domain
+Your CDN or registry server must serve JavaScript with a JavaScript MIME type, serve `remoteEntry.json` as `application/json`, allow CORS for every host origin, and return a real 404 for missing files instead of the host's `index.html`. See [Production deployment](../../deploy/production-deployment.md) and [Security](../../deploy/security.md) for the full server requirements.
 
-The host owns global layout styles, design-system CSS, fonts, and CSS variables
-that are intentionally shared with apps. Apps should not reset `body`, change
-host navigation layout, or depend on host-only class names unless that contract
-is documented by the host team.
+## Next steps
 
-## Deployment Domain
-
-Angular build owns browser output. `atlas publish --version` reads that output
-and creates one immutable release-version path plus canonical manifest. It
-updates the compact descriptor in `registry.json` but does not activate the
-release. `atlas deploy` changes an environment selection and converges affected
-active host manifests.
-
-Your CDN must:
-
-- serve JavaScript as module-compatible JavaScript MIME types;
-- serve `remoteEntry.json` as `application/json`;
-- enable CORS for every host origin;
-- keep app chunks and assets under the same immutable prefix;
-- avoid rewriting missing asset paths to the host `index.html`.
-
-## Monorepos
-
-In Nx or Angular CLI workspaces, keep assets in the project that owns the app.
-Atlas follows the framework build output; it does not invent a second asset
-pipeline.
+- [Styles and isolation](../../concepts/styles-and-isolation.md)
+- [Angular SDK](sdk.md)
+- [Angular troubleshooting](troubleshooting.md)

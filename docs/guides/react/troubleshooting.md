@@ -1,123 +1,125 @@
-# React Troubleshooting
+---
+title: React troubleshooting
+description: Diagnose and fix problems that only affect React Hosts and React Apps.
+---
 
-Start by identifying the domain:
+# React troubleshooting
 
-- **Host domain:** page shell, bootstrap metadata, discovery, active host manifest URL, DOM anchors,
-  `startHost`, host SDK providers.
-- **App domain:** React app source, `atlas.config.ts`, `src/bootstrap.tsx`,
-  inner routes, assets.
-- **Deployment domain:** CDN files, CORS, MIME types, `registry.json`, active and
-  canonical manifests, integrity, cache.
+This page covers problems specific to React Hosts and Apps. For problems that affect every
+framework, such as an App that does not load, deployment verification failures, or Columbus
+overrides, start with [Troubleshooting](../../troubleshooting.md).
 
-## The App Does Not Load
+## The host page only says "Start this Atlas host with atlas dev."
 
-Check deployment first:
+You opened the Vite dev server of the Host (port `4300` by default). That page only renders
+the `src/main.tsx` stub. Open the bootstrap URL that `npx atlas dev customer-host` prints,
+usually `http://localhost:4200`.
 
-```sh
-atlas verify --host-url=https://customer.example
-```
+## Host anchors throw `ATLAS_HOST_PROVIDER_MISSING`
 
-Then check host layout:
+`AtlasHostLayout`, `AtlasHostStatus`, `AtlasNavigation`, `AtlasRouteOutlet`, and `AtlasSlot`
+must render inside the tree that `defineReactHost()` creates. This error means an anchor
+rendered somewhere else, for example in a second React root or in a portal to a separately
+created root. Move the anchor into `HostLayout` or a component that `HostLayout` renders.
 
-- `data-atlas-route-outlet` exists;
-- `data-atlas-host-status` exists;
-- the host serves `index.html` for deep links;
-- host discovery selects the expected environment-qualified active host
-  manifest for the page URL.
+## An app does not appear, but the host layout renders
 
-Then check app config:
+Check the React Host layout:
 
-- `framework: "react"`;
-- route `hostId` matches the host runtime `hostId`;
-- route `path` matches the URL being opened;
-- `supportedHosts` or route declarations allow the host.
+- An `AtlasRouteOutlet` exists inside an `AtlasHostLayout` whose `layoutId` matches the
+  route's `layoutId` (`"default"` when the route does not set one).
+- For slot Apps, an `AtlasSlot` with the same `slotId` is rendered on the current page.
 
-## Inner Routing Escapes The App
+If the layout is correct, follow the checks in [Troubleshooting](../../troubleshooting.md).
 
-Mounted React apps should use `createMemoryRouter` with
-`createRouterOptions(context)`. Do not use `createBrowserRouter` inside a
-mounted app. Use React Router for app-relative paths and SDK navigation for
-cross-app destinations.
+## `useAtlasSdk()` throws `ATLAS_SDK_CONTEXT_MISSING`
 
-## Host APIs Are Missing
+The component rendered outside an Atlas-rendered tree. Common causes are a separate
+`createRoot()` call for a dialog or a test that renders the component without a provider.
+Render the content inside the existing tree (use `createPortal` instead of a new root), or wrap
+it in `AtlasSdkProvider`. In tests, use `MockAtlasEnvironmentProvider`; see
+[Test components that use the SDK](sdk.md#test-components-that-use-the-sdk).
 
-If `useAtlasSdk()` returns an SDK without expected product fields, fix the host
-`startHost` call. Product `hostData`, API clients, modals, toasts, events, and
-extensions are supplied by the host, not by the app.
+## A host SDK member does not update
 
-## Spinner Never Disappears
+Atlas creates the Host SDK from the options returned on the first render of
+`useCustomHostSdkOptions()`. Later changes reach Apps only through `hostData`. Move changing
+values into `hostData`, or make the SDK member a stable function that reads the current value
+when it is called.
 
-If the app calls `useAppLoaded()` or `context.loading.waitUntilReady()`, it must
-call the returned callback after first useful render. Otherwise Atlas times out,
-unmounts the app, and shows the host-owned fallback.
+## Inner routing escapes the app
 
-## Asset URLs Break In Production
+A mounted React App must use `createMemoryRouter` with `createRouterOptions(context)`, and
+its lifecycle must come from `createRoutedApp()`. Do not use `createBrowserRouter` or
+`BrowserRouter` inside an App. Use React Router for App-relative paths and
+`sdk.navigateTo()` for other Apps. See [Define inner routes](routing.md#define-inner-routes).
 
-Use Vite imports or relative URLs. Do not use `/assets/...` in a mounted app
-unless the host deliberately serves that path.
+## The loading indicator never disappears
 
-## Local Development Reports A Missing Named Export
+If a component calls `useAppLoaded()`, it must call the returned function once the first
+useful screen renders. Otherwise Atlas waits until the Host's resource timeout and then shows
+the error UI. Check that every code path, including errors, calls it.
 
-When a React app runs locally inside a deployed Host, a valid named export can
-occasionally fail to resolve through a barrel module. The browser reports a
-temporary `blob:` module that does not provide the requested export. This is a
-local-development module-loading limitation; it does not indicate that the
-component itself is missing or that the production build will fail.
+## CSS-in-JS styles are missing
+
+Libraries that inject styles into `document.head` do not style content inside the App's
+Shadow DOM. Pass `useAtlasStyleTarget()` to the library's insertion-target option. See
+[Keep styles inside the app](assets-and-styles.md#keep-styles-inside-the-app).
+
+## Local development reports a missing named export
+
+When a React App runs locally inside a deployed Host, a valid named export can occasionally
+fail to resolve through a barrel module. The browser reports that a temporary `blob:` module
+does not provide the requested export. This is a local development module-loading limitation.
+It does not mean that the component is missing or that the production build will fail.
 
 Use explicit re-exports in public barrel modules instead of `export *`:
 
 ```ts
-// src/components/index.ts
 export { Component } from './Component';
 export type { ComponentProps } from './Component';
 ```
 
-Consumers can keep importing from the barrel. Import types separately:
+Consumers can keep importing from the barrel, with types imported separately:
 
 ```ts
 import { Component } from '../components';
 import type { ComponentProps } from '../components';
 ```
 
-Restart `atlas dev` and hard-refresh the preview after the change. Do not
-replace barrel imports with deep imports unless deep imports are part of the
-intended public API.
+Restart `npx atlas dev` and hard-refresh the preview after the change.
 
-## A Local Workspace Package Loads From The CDN
+## A local workspace package loads from the CDN
 
-Atlas shares imported runtime dependencies by default. Sharing does not by itself
-mean that a package must load from a CDN. In browser developer tools, check the
-package request URL and the import map that maps package names to URLs. Identify
-which host or remote supplied the package.
+Atlas shares the packages your exposed code imports. In the browser developer tools, check
+the request URL of the package and the import map, and identify which Host or App supplied
+it. If the package should come from your local workspace, confirm that it resolves there. If
+its entry points reference compiled output, run the package's build watcher alongside
+`npx atlas dev`. See [Workspaces and monorepos](../workspaces-and-ci.md).
 
-Confirm that the dependency resolves to the intended local workspace package.
-If its entry points reference compiled output, run the package's build watcher
-alongside `atlas dev`. See [Developing local packages](../workspaces-and-ci.md#developing-local-packages).
+Add a package to `skip` in `vite.config.ts` only when you intend to bundle it into the App.
+Packages that need one instance across the Host and Apps must stay shared.
 
-Use `skip` only when you intend to bundle a package separately from shared
-dependencies. Libraries that need one instance across the host and apps must
-remain shared. Verify rebuild behavior with your React federation adapter after
-changing sharing settings.
+## Federation config fails at build time
 
-## Federation Config Fails At Build Time
+`createReactAppViteConfig` and `createReactHostViteConfig` throw a `FederationConfigError`
+with a `code`, `suggestedActions`, and `cause`:
 
-`createReactAppViteConfig` and `createReactHostViteConfig` throw an
-`AtlasError`-shaped error (`code`, `suggestedActions`, `cause`) instead of a
-bare message:
+| Code                                       | Cause                                                                                  | Fix                                                                            |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `ATLAS_SHARED_ENTRY_NOT_EXPORTED`          | Source imports a subpath that the package does not list in its `exports`.              | Import an exported subpath, or add the specifier to `skip` so Vite bundles it. |
+| `ATLAS_SHARED_PACKAGE_NOT_INSTALLED`       | A declared dependency has no resolvable `package.json`.                                | Install the package in the project, then rebuild.                              |
+| `ATLAS_FEDERATION_TYPESCRIPT_MISSING`      | Neither the project nor Atlas can load `typescript`, which Atlas uses to find imports. | Add `typescript` to `devDependencies` and reinstall.                           |
+| `ATLAS_FEDERATION_TSCONFIG_INVALID`        | The project's `tsconfig.json` does not parse.                                          | Fix the reported syntax error.                                                 |
+| `ATLAS_SHARED_COMMONJS_EXPORTS_UNREADABLE` | Atlas cannot read the named exports of a shared CommonJS entry.                        | Check that the package installed correctly, or add it to `skip`.               |
 
-| Code                                       | Cause                                                                                | Action                                                                        |
-| ------------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `ATLAS_SHARED_ENTRY_NOT_EXPORTED`          | Source imports a subpath the package does not list in its `exports`                  | Import an exported subpath, or add the specifier to `skip` so Vite bundles it |
-| `ATLAS_SHARED_PACKAGE_NOT_INSTALLED`       | A declared dependency has no resolvable `package.json`                               | Install the package in the project, then rebuild                              |
-| `ATLAS_FEDERATION_TYPESCRIPT_MISSING`      | Neither the project nor Atlas can load `typescript`, which discovers runtime imports | Add `typescript` to `devDependencies` and reinstall                           |
-| `ATLAS_FEDERATION_TSCONFIG_INVALID`        | The project `tsconfig.json` does not parse                                           | Fix the reported syntax error                                                 |
-| `ATLAS_SHARED_COMMONJS_EXPORTS_UNREADABLE` | A shared CommonJS entry cannot be read or lexed for its named exports                | Verify the package installs correctly, or add it to `skip`                    |
+## Install fails with peer dependency conflicts
 
-Both factories accept a typed `ReactFederationConfigOptions` object; `skip`
-entries are strings, regular expressions, or `(specifier) => boolean` functions.
+In workspaces that already declare `react`, the generator aligns companion React packages to
+the existing major version. Upgrade or downgrade the workspace React version first, or
+generate the project as a package with its own React version.
 
-## Install Fails With Peer Conflicts
+## Next steps
 
-In workspaces that already declare `react`, Atlas aligns companion React
-packages to the existing major. Upgrade or downgrade the workspace React version
-first, or create a project-level package with its own framework version.
+- [Troubleshooting](../../troubleshooting.md) for problems shared by all frameworks.
+- [Error codes](../../reference/errors.md) for every Atlas error code.
