@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",

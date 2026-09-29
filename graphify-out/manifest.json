@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/package.json": {
-    "mtime": 1790343285.1779134,
-    "ast_hash": "a7d85326184bf26d7a1e6cb8b18b3650",
+    "mtime": 1790673571.4102414,
+    "ast_hash": "9c07a14e535ee1653500c9c4229445e7",
     "semantic_hash": ""
   },
   "apps/columbus/tsconfig.json": {
@@ -255,13 +255,13 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790668465.5114942,
-    "ast_hash": "0145345f70f9d9558e11bfb75de6a567",
+    "mtime": 1790673534.41218,
+    "ast_hash": "c155121503325255284d16e3ced5a133",
     "semantic_hash": ""
   },
   "packages/bootstrap/package.json": {
-    "mtime": 1790668465.513094,
-    "ast_hash": "a2e573e8164818b230619228351e6e9d",
+    "mtime": 1790673534.413705,
+    "ast_hash": "6d19889573ffc7cd9b2619e29d23b67c",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/index.ts": {
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "packages/cli/package.json": {
-    "mtime": 1790668465.5137303,
-    "ast_hash": "2f1b7d25f502740cfef2814f7b965837",
+    "mtime": 1790673534.4144893,
+    "ast_hash": "eae1812366464803f72c972a27bf5128",
     "semantic_hash": ""
   },
   "packages/cli/src/index.ts": {
@@ -290,8 +290,8 @@
     "semantic_hash": ""
   },
   "packages/generators/package.json": {
-    "mtime": 1790668465.5133164,
-    "ast_hash": "ad7a4d79591d152684918ee718516dce",
+    "mtime": 1790673534.4139423,
+    "ast_hash": "0355468ae879f8ed5644ef2dac210748",
     "semantic_hash": ""
   },
   "packages/generators/src/index.ts": {
@@ -305,8 +305,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/package.json": {
-    "mtime": 1790668465.51282,
-    "ast_hash": "2bcd24536a769d4d78c14e68e92f8ccb",
+    "mtime": 1790673534.4133177,
+    "ast_hash": "e4b71543b66560041cfa624cd45b9fb6",
     "semantic_hash": ""
   },
   "packages/runtime/src/angular.ts": {
@@ -335,8 +335,8 @@
     "semantic_hash": ""
   },
   "packages/schema/package.json": {
-    "mtime": 1790668465.5117383,
-    "ast_hash": "2524db205073ef75a96fb5c6428aa5a3",
+    "mtime": 1790673534.412749,
+    "ast_hash": "7f717942d63d3a6abb5e2f3d60d9c6bc",
     "semantic_hash": ""
   },
   "packages/schema/src/index.ts": {
@@ -350,8 +350,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/package.json": {
-    "mtime": 1790668465.5122259,
-    "ast_hash": "6fb831fdac6782b2d90dce6302cb9567",
+    "mtime": 1790673534.4130456,
+    "ast_hash": "3ad48119f963189f91c0290f18938562",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular.ts": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "packages/testkit/package.json": {
-    "mtime": 1790668465.5135267,
-    "ast_hash": "7347db1fb841e47ebfdf88154963e543",
+    "mtime": 1790673534.414228,
+    "ast_hash": "bcea9edbb50728043c4ba6cf6b00620c",
     "semantic_hash": ""
   },
   "packages/testkit/src/index.ts": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1784707662.2928805,
-    "ast_hash": "5fca042f9dffe4a23ebe07791cb15718",
+    "mtime": 1790673580.8569965,
+    "ast_hash": "11e7dd2692f3b201d9d7d00521a7bca0",
     "semantic_hash": ""
   },
   "CONTRIBUTING.md": {
@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/public/manifest.json": {
-    "mtime": 1790343285.178499,
-    "ast_hash": "db09a0f69f62cdb099b95f05fd068d09",
+    "mtime": 1790673571.410854,
+    "ast_hash": "9b64339aab7ece91fafbeeca463b186d",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/App/App.driver.tsx": {
@@ -2210,8 +2210,8 @@
     "semantic_hash": ""
   },
   "packages/generators/src/shared/versions/generator-versions.ts": {
-    "mtime": 1790668465.5143049,
-    "ast_hash": "00d96c97a5f009f98ebbd2b9076b6782",
+    "mtime": 1790673534.414976,
+    "ast_hash": "3607830c56dbfe25ec08dd1b1e9be24e",
     "semantic_hash": ""
   },
   "packages/generators/src/shared/widgets-readme/widgets-readme.ts": {

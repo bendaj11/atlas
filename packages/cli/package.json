@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",

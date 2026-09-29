@@ -434,5 +434,15 @@
   "432": "deployment-catalog.specs.ts",
   "433": "zone.js",
   "434": "bootstrap-html.specs.ts",
-  "435": "host-runtime.specs.ts"
+  "435": "host-runtime.specs.ts",
+  "436": "AtlasHostCatalog",
+  "437": "mount-app.ts",
+  "438": "ports.ts",
+  "439": "badge-refresh.ts",
+  "440": "preflight.driver.ts",
+  "441": "deployment.testkit.ts",
+  "442": "AtlasProgressReporter",
+  "443": "React examples",
+  "444": "atlas-placement.driver.ts",
+  "445": "ts-jest"
 }

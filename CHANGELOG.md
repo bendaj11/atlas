@@ -5,7 +5,11 @@ All notable changes to Atlas are documented in this file. Atlas follows
 
 ## [Unreleased]
 
+## [1.0.0]
+
 ### Changed
+
+- Released Atlas packages and the Columbus extension as 1.0.0.
 
 - Migrated the source workspace and CI from Yarn 1 to pnpm 10 with a committed
   cross-platform lockfile.
