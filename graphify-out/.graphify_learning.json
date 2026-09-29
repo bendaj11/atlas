@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-28T18:26:37.409158+00:00",
+  "generated_at": "2026-09-29T07:55:38.654391+00:00",
   "nodes": {
     "packages_cli_src_development_service_dev_service_atlasdevservice": {
       "code_fingerprint": "0a97d21947b6dfe14cda7c7bd4217873f14e7d94e0333c10927e83b0e88789eb",
@@ -17,7 +17,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.39426876,
+      "score": 0.389183912,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -44,7 +44,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.197151771,
+      "score": 0.194609123,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
@@ -61,13 +61,13 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.225804071,
+      "score": 0.222891896,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_cli_src_workspace_config_compiler_config_compiler": {
-      "code_fingerprint": "de7cd1670fa7ece88b2352ab29724c2bda0975641adf984833c27a69af7ad70b",
+      "code_fingerprint": "ac1e4e05f24067c357b88978d131677da4d0d7c86978b0bf16d3e5005807010f",
       "label": "config-compiler.ts",
       "last": "2026-07-26T08:42:25.107357+00:00",
       "provenance": [
@@ -77,13 +77,13 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.225804071,
+      "score": 0.222891896,
       "source_file": "packages/cli/src/workspace/config-compiler/config-compiler.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_angular_types_angularhostdatainput": {
-      "code_fingerprint": "52d692d825a426a4cdbefdcf4ab45828edaff7703685005df3f480a94ab60451",
+      "code_fingerprint": "ca470a1fcc1afc587ab849701702551ca48520742d7da613d8660a3d94e8bf76",
       "label": "AngularHostDataInput",
       "last": "2026-09-03T09:15:08.124244+00:00",
       "provenance": [
@@ -93,13 +93,13 @@
           "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
         }
       ],
-      "score": 0.556286785,
+      "score": 0.549112404,
       "source_file": "packages/runtime/src/angular.types.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_host_runtime_host_runtime_startatlashostruntime": {
-      "code_fingerprint": "8fb5e9ec3029ed7d47cfda21b18973e6acfa3207dffe74a7a889bad3448c4114",
+      "code_fingerprint": "0429afc2cd318583ba3f18af6ca5ef08d1668ecbd9f259fe0df675e17c474783",
       "label": "startAtlasHostRuntime()",
       "last": "2026-07-27T11:29:00.276809+00:00",
       "provenance": [
@@ -109,13 +109,13 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.231700473,
+      "score": 0.228712253,
       "source_file": "packages/runtime/src/host-runtime/host-runtime.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_mount_app_mount_app_mountapp": {
-      "code_fingerprint": "51ef7bd8bb6b8df5a40450f8bf40a775f44daf471f57b4149c1d56b8fdad2b84",
+      "code_fingerprint": "1f72d8a0aa2b13702baa0be2a81afc372c0ce33143b2e0aee6af551996b53236",
       "label": "mountApp()",
       "last": "2026-09-03T10:15:04.926233+00:00",
       "provenance": [
@@ -125,7 +125,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.556822106,
+      "score": 0.549640822,
       "source_file": "packages/runtime/src/mount-app/mount-app.ts",
       "status": "tentative",
       "uses": 1
@@ -141,7 +141,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.556822106,
+      "score": 0.549640822,
       "source_file": "packages/runtime/src/remote-assets/document-styles.ts",
       "status": "tentative",
       "uses": 1
@@ -157,7 +157,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.197110958,
+      "score": 0.194568835,
       "source_file": "packages/schema/src/config/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -184,7 +184,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.197166295,
+      "score": 0.194623459,
       "source_file": "packages/schema/src/runtime/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -201,7 +201,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.197125481,
+      "score": 0.194583172,
       "source_file": "packages/schema/src/runtime/atlas-runtime-override.ts",
       "status": "tentative",
       "uses": 1
@@ -217,7 +217,7 @@
           "q": "in angular app.config.ts the sdk doesnt have assetsUrl. why?"
         }
       ],
-      "score": 0.556791965,
+      "score": 0.549611069,
       "source_file": "packages/sdk/src/core/app-assets/app-assets.ts",
       "status": "tentative",
       "uses": 1
@@ -233,7 +233,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.231700473,
+      "score": 0.228712253,
       "source_file": "packages/sdk/src/navigation/route-context/route-context.ts",
       "status": "tentative",
       "uses": 1
