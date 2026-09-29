@@ -1,6 +1,7 @@
 import type {
   AtlasEnvironmentDeployment,
   AtlasHostDeploymentManifest,
+  AtlasPublishedArtifactManifest,
 } from '@atlas/schema';
 import type { AtlasPublicationStorage } from '../publication/index.js';
 
@@ -20,6 +21,7 @@ export interface RegistryLocations {
 export interface RegistryAccess {
   storage: AtlasPublicationStorage;
   locations: RegistryLocations;
+  manifests: Map<string, AtlasPublishedArtifactManifest>;
 }
 
 export type ArtifactKind = 'app' | 'host';

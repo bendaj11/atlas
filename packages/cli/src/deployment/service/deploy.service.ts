@@ -62,6 +62,7 @@ export class AtlasDeployService {
     const access: RegistryAccess = {
       storage,
       locations: resolveRegistryLocations(this.args),
+      manifests: new Map(),
     };
     const registry = await readSourceRegistry(access);
     const selected = await selectArtifactVersion({
@@ -75,9 +76,14 @@ export class AtlasDeployService {
     );
     const dryRun = this.args.hasFlag('dry-run');
     const plan = () =>
-      planDeployment({ access, registry, environment, selected });
+      planDeployment({ access, registry, environment, selected, concurrency });
 
-    if (!dryRun) this.progress.start('Waiting for publish lock');
+    if (!dryRun) {
+      this.progress.start(`Planning ${environment} deployment`);
+      await plan();
+      this.progress.succeed(`Planned ${environment} deployment`);
+      this.progress.start('Waiting for publish lock');
+    }
 
     const deployment = dryRun
       ? await plan()
@@ -91,6 +97,7 @@ export class AtlasDeployService {
             lease,
             environment,
             deployment: planned,
+            concurrency,
           });
           this.progress.succeed(`Updated ${environment} registry`);
 

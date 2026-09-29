@@ -65,6 +65,22 @@ describe('compileAtlasConfig', () => {
     await expect(driver.when.compiled()).rejects.toThrow(/missingConfig/);
   });
 
+  it('should reject again on the next run when atlas.config.ts still has type errors', async () => {
+    await driver.given.projectFile(
+      'tsconfig.json',
+      JSON.stringify(testTypeScriptConfig()),
+    );
+    await driver.when.compiled();
+    await driver.given.projectFile(
+      'atlas.config.ts',
+      'export default missingConfig;\n',
+    );
+    await driver.given.touchedProjectFile('atlas.config.ts');
+    await expect(driver.when.compiled()).rejects.toThrow(/missingConfig/);
+
+    await expect(driver.when.compiled()).rejects.toThrow(/missingConfig/);
+  });
+
   it('should emit into .atlas when an nx workspace tsconfig sets another outDir', async () => {
     driver.given.workspaceKind('nx');
     await driver.given.projectFile(
@@ -75,5 +91,58 @@ describe('compileAtlasConfig', () => {
     await driver.when.compiled();
 
     expect(await driver.get.emitted()).toBe(true);
+  });
+
+  describe('when the config was already compiled', () => {
+    const MARKER = '// marker';
+
+    beforeEach(async () => {
+      await driver.given.projectFile(
+        'tsconfig.json',
+        JSON.stringify(testTypeScriptConfig()),
+      );
+      await driver.when.compiled();
+      await driver.given.emittedConfig(MARKER);
+    });
+
+    it('should not recompile when no input changed', async () => {
+      await driver.when.compiled();
+
+      expect(await driver.get.emittedContents()).toBe(MARKER);
+    });
+
+    it('should recompile when atlas.config.ts changed', async () => {
+      await driver.given.touchedProjectFile('atlas.config.ts');
+
+      await driver.when.compiled();
+
+      expect(await driver.get.emittedContents()).not.toBe(MARKER);
+    });
+
+    it('should recompile when an extended tsconfig changed', async () => {
+      await driver.given.projectFile(
+        'tsconfig.base.json',
+        JSON.stringify(testTypeScriptConfig()),
+      );
+      await driver.given.projectFile(
+        'tsconfig.json',
+        JSON.stringify({ extends: './tsconfig.base.json' }),
+      );
+      await driver.when.compiled();
+      await driver.given.emittedConfig(MARKER);
+      await driver.given.touchedProjectFile('tsconfig.base.json');
+
+      await driver.when.compiled();
+
+      expect(await driver.get.emittedContents()).not.toBe(MARKER);
+    });
+
+    it('should recompile when tsconfig.json changed', async () => {
+      await driver.given.touchedProjectFile('tsconfig.json');
+
+      await driver.when.compiled();
+
+      expect(await driver.get.emittedContents()).not.toBe(MARKER);
+    });
   });
 });

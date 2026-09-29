@@ -8,7 +8,10 @@ import {
 import {
   resolvePublicationContentType,
   computeSha256Digest,
+  forEachConcurrently,
 } from '../../shared/index.js';
+
+const PAYLOAD_READ_CONCURRENCY = 16;
 
 export function normalizeArtifactPath(path: string): string {
   const normalized = convertToPosixPath(path);
@@ -52,20 +55,25 @@ export async function describePayloadFiles(options: {
   entryPath: string;
 }): Promise<AtlasPayloadFileDescriptor[]> {
   const normalizedEntry = normalizeArtifactPath(options.entryPath);
+  const descriptorsByPath = new Map<string, AtlasPayloadFileDescriptor>();
 
-  return Promise.all(
-    options.paths.map(async (path) => {
+  await forEachConcurrently({
+    items: options.paths,
+    concurrency: PAYLOAD_READ_CONCURRENCY,
+    operation: async (path) => {
       const normalized = normalizeArtifactPath(path);
       const bytes = await readFile(join(options.root, path));
 
-      return {
+      descriptorsByPath.set(path, {
         path: normalized,
         digest: computeSha256Digest(bytes),
         size: bytes.byteLength,
         mediaType: resolvePublicationContentType(normalized),
         cacheControl: ATLAS_IMMUTABLE_CACHE_CONTROL,
         role: classifyPayloadRole(normalized, normalizedEntry),
-      };
-    }),
-  );
+      });
+    },
+  });
+
+  return options.paths.map((path) => descriptorsByPath.get(path)!);
 }

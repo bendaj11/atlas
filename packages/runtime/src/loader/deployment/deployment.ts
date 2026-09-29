@@ -54,6 +54,9 @@ export async function loadHostDeployment(
         loadPublishedManifest({
           reference: resolveManifestReferenceUrl(reference, options),
           fetchBytes,
+          ...(options.manifestCache
+            ? { manifestCache: options.manifestCache }
+            : {}),
           ...(options.requestPolicy
             ? { requestPolicy: options.requestPolicy }
             : {}),
@@ -126,7 +129,12 @@ export async function loadPublishedManifest(
   options: LoadPublishedManifestOptions,
 ): Promise<PublishedManifest> {
   const fetchBytes = options.fetchBytes ?? fetchBytesFromNetwork;
-  const { reference } = options;
+  const { reference, manifestCache } = options;
+  const cacheKey = `${reference.url}\0${reference.digest}`;
+  const cached = manifestCache?.get(cacheKey);
+
+  if (cached) return cached;
+
   const bytes = await runResiliently({
     operation: (signal) => fetchBytes(reference.url, signal),
     context: { stage: 'manifest', resource: reference.url },
@@ -135,7 +143,11 @@ export async function loadPublishedManifest(
 
   await assertBytesMatchDescriptor(reference, bytes);
 
-  return parseArtifactManifestFromBytes(bytes, reference.url);
+  const manifest = parseArtifactManifestFromBytes(bytes, reference.url);
+
+  manifestCache?.set(cacheKey, manifest);
+
+  return manifest;
 }
 
 function resolveManifestReferenceUrl(

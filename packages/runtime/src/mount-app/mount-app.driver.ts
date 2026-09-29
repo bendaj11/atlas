@@ -71,6 +71,11 @@ export class MountAppDriver {
 
       return this;
     },
+    importFailing: (error: Error) => {
+      this.importRemote.mockRejectedValue(error);
+
+      return this;
+    },
     entryFailing: (error: Error) => {
       this.importRemote.mockResolvedValue({
         mount: () => {
@@ -124,6 +129,7 @@ export class MountAppDriver {
   };
 
   readonly get = {
+    requests: () => this.requests,
     lastRequest: () => this.requests.at(-1)!,
     container: () => this.container,
     boundaryDisplay: () =>

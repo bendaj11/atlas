@@ -68,9 +68,9 @@ export class AtlasRuntimeController {
         await this.unmountPlacement(key);
 
       if (container && this.mountsByKey.get(key)?.container !== container)
-        await this.mountPlacement(
+        void this.mountPlacement(
           createPlacementMountRecord(selected, container),
-        );
+        ).catch((error) => this.reportRouteError(error));
     });
   }
 

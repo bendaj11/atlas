@@ -60,6 +60,7 @@ interface PreparedPublication {
   readonly immutable: PublicationFiles;
   readonly config: AtlasRegistryConfig | undefined;
   readonly concurrency: number;
+  readonly uploaded: Set<string>;
 }
 
 interface CommitOptions {
@@ -69,7 +70,6 @@ interface CommitOptions {
   readonly descriptor: AtlasManifestDescriptor;
   readonly immutable: PublicationFiles;
   readonly config: AtlasRegistryConfig | undefined;
-  readonly concurrency: number;
   readonly registryState?: RegistryState;
 }
 
@@ -93,7 +93,7 @@ export class AtlasPublishService {
     const build = await this.builds.publication(projectName);
     await assertPreviewIsCurrent({ manifest: build.manifest, config });
 
-    const immutable = await preparePublicationFiles(build);
+    const immutable = await preparePublicationFiles({ build, concurrency });
     const { count, bytes } = measurePublicationFiles(immutable);
 
     this.progress.succeed(
@@ -101,8 +101,17 @@ export class AtlasPublishService {
     );
     assertPublicRegistryConfigured(this.args, config);
 
+    const uploaded = new Set<string>();
+
     return withExponentialRetry(
-      () => this.publishPrepared({ build, immutable, config, concurrency }),
+      () =>
+        this.publishPrepared({
+          build,
+          immutable,
+          config,
+          concurrency,
+          uploaded,
+        }),
       {
         onRetry: (attempt, delayMs) =>
           this.progress.warn(
@@ -172,6 +181,7 @@ export class AtlasPublishService {
     immutable,
     config,
     concurrency,
+    uploaded,
   }: PreparedPublication): Promise<AtlasPublishResult> {
     const descriptor = createManifestDescriptor(
       immutable.manifest.path,
@@ -208,7 +218,6 @@ export class AtlasPublishService {
         descriptor,
         immutable,
         config,
-        concurrency,
         ...(registryState ? { registryState } : {}),
       });
 
@@ -218,6 +227,13 @@ export class AtlasPublishService {
         files: immutable,
         concurrency,
         progress: this.progress,
+        uploaded,
+      });
+      await this.verifyImmutableDelivery({
+        storage,
+        immutable,
+        config,
+        concurrency,
       });
       this.progress.start('Waiting for publish lock');
 
@@ -244,10 +260,49 @@ export class AtlasPublishService {
         concurrency,
         lease,
         progress: this.progress,
+        uploaded,
+      });
+      await this.verifyImmutableDelivery({
+        storage,
+        lease,
+        immutable,
+        config,
+        concurrency,
       });
 
       return commit(lease, registryState);
     });
+  }
+
+  private async verifyImmutableDelivery({
+    storage,
+    lease,
+    immutable,
+    config,
+    concurrency,
+  }: {
+    storage: AtlasPublicationStorage;
+    lease?: AtlasPublicationLease;
+    immutable: PublicationFiles;
+    config: AtlasRegistryConfig | undefined;
+    concurrency: number;
+  }): Promise<void> {
+    if (!storage.verifyDelivery) return;
+
+    const paths = listArtifactPaths(immutable);
+
+    this.progress.start(
+      `Checking public delivery of ${pluralize(paths.length, 'file')}`,
+    );
+    await config?.invalidate?.(paths);
+
+    if (lease)
+      await verifyDeliveryWhileHeld({ storage, lease, paths, concurrency });
+    else await storage.verifyDelivery(paths, { concurrency });
+
+    this.progress.succeed(
+      `Public URLs serve all ${pluralize(paths.length, 'file')}`,
+    );
   }
 
   private async commitPublication({
@@ -257,33 +312,13 @@ export class AtlasPublishService {
     descriptor,
     immutable,
     config,
-    concurrency,
     registryState,
   }: CommitOptions): Promise<AtlasPublishResult> {
     const version = describeVersion(manifest);
     const state = registryState ?? (await readRegistryState(storage));
     assertExpectedRegistryRevision(this.args, state.registry);
     const mutation = publishArtifact(state.registry, manifest, descriptor);
-    const artifactPaths = [
-      ...immutable.payloads.map(({ path }) => path),
-      immutable.manifest.path,
-    ];
-
-    if (storage.verifyDelivery) {
-      this.progress.start(
-        `Checking public delivery of ${pluralize(artifactPaths.length, 'file')}`,
-      );
-      await config?.invalidate?.(artifactPaths);
-      await verifyDeliveryWhileHeld({
-        storage,
-        lease,
-        paths: artifactPaths,
-        concurrency,
-      });
-      this.progress.succeed(
-        `Public URLs serve all ${pluralize(artifactPaths.length, 'file')}`,
-      );
-    }
+    const artifactPaths = listArtifactPaths(immutable);
 
     this.progress.start('Updating registry');
 
@@ -326,6 +361,13 @@ export class AtlasPublishService {
       registryRevision: mutation.registryRevision,
     };
   }
+}
+
+function listArtifactPaths(immutable: PublicationFiles): string[] {
+  return [
+    ...immutable.payloads.map(({ path }) => path),
+    immutable.manifest.path,
+  ];
 }
 
 function describeVersion(manifest: AtlasPublishedArtifactManifest): string {

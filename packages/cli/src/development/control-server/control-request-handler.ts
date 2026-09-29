@@ -9,12 +9,14 @@ import {
 import type {
   AtlasDevOverrideDocument,
   DevSessionStore,
+  PublishedCatalogLoader,
   StartControlServerOptions,
 } from '../types.js';
 import { previewLauncherPage } from './preview-launcher.js';
 import {
   readPublishedCatalog,
   warnPublishedCatalogOnce,
+  withCatalogCache,
 } from './published-catalog.js';
 
 const OVERRIDES_PATH = '/atlas.dev-session/overrides';
@@ -39,6 +41,10 @@ export function createControlRequestHandler({
   session: DevSessionStore;
   options: StartControlServerOptions;
 }): ControlRequestHandler {
+  const loadPublishedCatalog = withCatalogCache(
+    options.loadPublishedCatalog ?? readPublishedCatalog,
+  );
+
   return (request, response) => {
     const control = parseControlRequest(request);
 
@@ -132,6 +138,7 @@ export function createControlRequestHandler({
         session,
         control,
         options,
+        loadPublishedCatalog,
       });
 
       return;
@@ -204,11 +211,13 @@ async function respondWithDevelopmentSession({
   session,
   control,
   options,
+  loadPublishedCatalog,
 }: {
   response: ServerResponse;
   session: DevSessionStore;
   control: ControlRequest;
   options: StartControlServerOptions;
+  loadPublishedCatalog: PublishedCatalogLoader;
 }): Promise<void> {
   if (
     control.previewUrl &&
@@ -219,9 +228,10 @@ async function respondWithDevelopmentSession({
     return;
   }
 
-  const publishedCatalog = await loadPublishedCatalog({
+  const publishedCatalog = await readCachedPublishedCatalog({
     hostId: control.hostId,
     options,
+    load: loadPublishedCatalog,
   });
   respondWithSession({
     response,
@@ -229,18 +239,18 @@ async function respondWithDevelopmentSession({
   });
 }
 
-async function loadPublishedCatalog({
+async function readCachedPublishedCatalog({
   hostId,
   options,
+  load,
 }: {
   hostId: string | undefined;
   options: StartControlServerOptions;
+  load: PublishedCatalogLoader;
 }) {
   const { registryUrl, environment = 'production' } = options;
 
   if (!registryUrl || !hostId) return undefined;
-
-  const load = options.loadPublishedCatalog ?? readPublishedCatalog;
 
   try {
     return await load({ registryUrl, hostId, environment });

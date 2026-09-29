@@ -549,6 +549,91 @@ describe('startAtlasHostRuntime', () => {
     expect(driver.get.states('page')).toContain('mounted');
   });
 
+  it('should finish starting while a slot app is still mounting', async () => {
+    const slot = faker.word.noun();
+    driver.given
+      .manifests([
+        anAppManifest({
+          id: 'header',
+          channel: 'production',
+          placements: [aSlotPlacement({ hostId: driver.hostId, slot })],
+        }),
+        anAppManifest({
+          id: 'page',
+          channel: 'production',
+          placements: [
+            aRoutePlacement({
+              hostId: driver.hostId,
+              route: { path: driver.get.currentPathname() },
+            }),
+          ],
+        }),
+      ])
+      .given.slotAnchor(slot)
+      .given.mountBlockedFor('header');
+
+    await driver.when.started();
+
+    expect(driver.get.states('page')).toContain('mounted');
+  });
+
+  describe('when one slot app fails to mount while another slot app and the route app are healthy', () => {
+    beforeEach(async () => {
+      const first = faker.word.noun();
+      const second = faker.word.noun();
+      driver.given
+        .manifests([
+          anAppManifest({
+            id: 'broken',
+            channel: 'production',
+            placements: [
+              aSlotPlacement({ hostId: driver.hostId, slot: first }),
+            ],
+          }),
+          anAppManifest({
+            id: 'healthy',
+            channel: 'production',
+            placements: [
+              aSlotPlacement({ hostId: driver.hostId, slot: second }),
+            ],
+          }),
+          anAppManifest({
+            id: 'page',
+            channel: 'production',
+            placements: [
+              aRoutePlacement({
+                hostId: driver.hostId,
+                route: { path: driver.get.currentPathname() },
+              }),
+            ],
+          }),
+        ])
+        .given.slotAnchor(first)
+        .given.slotAnchor(second)
+        .given.entryBehavior('broken', () => {
+          throw new Error(faker.lorem.sentence());
+        });
+
+      await driver.when.startAttempted();
+    });
+
+    it('should start without rejecting', () => {
+      expect(driver.get.startError()).toBeUndefined();
+    });
+
+    it('should report the failed slot app as an error', () => {
+      expect(driver.get.states('broken')).toContain('error');
+    });
+
+    it('should mount the healthy slot app', () => {
+      expect(driver.get.states('healthy')).toContain('mounted');
+    });
+
+    it('should mount the route app', () => {
+      expect(driver.get.states('page')).toContain('mounted');
+    });
+  });
+
   it('should mount a slot app whose anchor appears while the route app mounts', async () => {
     const slot = faker.word.noun();
     driver.given

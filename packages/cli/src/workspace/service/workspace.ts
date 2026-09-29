@@ -16,7 +16,7 @@ import {
   findWorkspaceRoot,
 } from '../detection/detection.js';
 import { findAtlasProject, listAtlasProjects } from '../discovery/discovery.js';
-import type { AtlasWorkspace } from '../types.js';
+import type { AtlasProject, AtlasWorkspace } from '../types.js';
 import { runProcess, spawnProcess } from '../../shared/index.js';
 
 export async function detectWorkspace(
@@ -31,12 +31,27 @@ export async function detectWorkspace(
     start: currentDirectory,
   });
 
+  const projects = new Map<string, Promise<AtlasProject>>();
+
   return {
     kind,
     root,
     packageManager: manager,
-    findProject: (name) =>
-      findAtlasProject({ workspaceRoot: root, name, currentDirectory }),
+    findProject: (name) => {
+      const cached = projects.get(name);
+
+      if (cached) return cached;
+
+      const project = findAtlasProject({
+        workspaceRoot: root,
+        name,
+        currentDirectory,
+      });
+      projects.set(name, project);
+      project.catch(() => projects.delete(name));
+
+      return project;
+    },
     listProjects: () => listAtlasProjects(root),
     run: (project, task, args) =>
       runProcess(

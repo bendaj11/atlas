@@ -4,6 +4,9 @@ import { BootstrapHtmlDriver } from './bootstrap-html.driver.js';
 const VERSIONED_LOADER_SCRIPT =
   /<script type="module" src="\/atlas\.loader\.js\?v=[0-9a-f]{12}"><\/script>/;
 
+const VERSIONED_LOADER_PRELOAD_AND_SCRIPT =
+  /<link rel="modulepreload" href="\/atlas\.loader\.js\?v=([0-9a-f]{12})"><script type="module" src="\/atlas\.loader\.js\?v=\1"><\/script>/;
+
 describe('createBootstrapHtml', () => {
   let driver: BootstrapHtmlDriver;
 
@@ -41,6 +44,22 @@ describe('createBootstrapHtml', () => {
     );
   });
 
+  it('should preload the unversioned loader module when created', () => {
+    driver.when.htmlCreated();
+
+    expect(driver.get.html()).toContain(
+      '<link rel="modulepreload" href="/atlas.loader.js">',
+    );
+  });
+
+  it('should preload the module shim when created', () => {
+    driver.when.htmlCreated();
+
+    expect(driver.get.html()).toContain(
+      '<link rel="modulepreload" href="/es-module-shims.js">',
+    );
+  });
+
   it('should escape the title when a title is given', () => {
     driver.given.title('<b>Orders & "Admin"</b>').when.htmlCreated();
 
@@ -72,6 +91,16 @@ describe('applyVersionedLoaderSource', () => {
       .when.loaderSourceVersioned();
 
     expect(driver.get.html()).toMatch(VERSIONED_LOADER_SCRIPT);
+  });
+
+  it('should append the same version query to the loader preload when the template preloads it', () => {
+    driver.given
+      .html(
+        '<link rel="modulepreload" href="/atlas.loader.js"><script type="module" src="/atlas.loader.js"></script>',
+      )
+      .when.loaderSourceVersioned();
+
+    expect(driver.get.html()).toMatch(VERSIONED_LOADER_PRELOAD_AND_SCRIPT);
   });
 
   it('should replace an existing version query when the template loads a versioned loader', () => {

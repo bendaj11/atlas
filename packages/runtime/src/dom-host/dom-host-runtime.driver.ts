@@ -8,7 +8,10 @@ import {
 } from '@atlas/testkit';
 import { flushAsyncWork } from '@atlas/testkit/internal';
 import type { AtlasHostRuntime } from '../host-runtime/host-runtime.types.js';
-import type { LoadRemoteModule } from '../loader/native-federation.types.js';
+import type {
+  InitFederation,
+  LoadRemoteModule,
+} from '../loader/native-federation.types.js';
 import type { AtlasRuntimeObserver } from '../observability/observability.types.js';
 import { startDomHostRuntime } from './dom-host-runtime.js';
 import type {
@@ -25,8 +28,12 @@ export class DomHostRuntimeDriver {
   private readonly runtimeConfig = aHostRuntimeConfig({
     hostId: this.hostId,
     artifactRegistryUrl: 'http://localhost:4173/atlas',
+    resourcesRetryCount: 0,
   });
   private catalog: AtlasHostCatalog = aHostCatalog({ hostId: this.hostId });
+  private readonly initFederation = jest
+    .fn<InitFederation>()
+    .mockResolvedValue(undefined);
   private readonly loadRemoteModule = jest
     .fn<LoadRemoteModule>()
     .mockResolvedValue({ mount() {} });
@@ -82,7 +89,7 @@ export class DomHostRuntimeDriver {
             runtimeConfig: this.runtimeConfig,
             catalog: this.catalog,
             federation: {
-              initFederation: async () => undefined,
+              initFederation: this.initFederation,
               loadRemoteModule: this.loadRemoteModule,
             },
             observe: this.observe,
@@ -121,6 +128,10 @@ export class DomHostRuntimeDriver {
   };
 
   readonly get = {
+    initializedRemoteUrls: () =>
+      this.initFederation.mock.calls.flatMap(([remotes]) =>
+        Object.values(remotes),
+      ),
     loadRemoteModuleMock: () => this.loadRemoteModule,
     observeMock: () => this.observe,
     appStates: () =>

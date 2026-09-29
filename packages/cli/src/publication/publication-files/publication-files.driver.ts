@@ -87,11 +87,12 @@ export class PublicationFilesDriver {
           release: async () => undefined,
         },
       }),
-    uploaded: (files: PublicationFiles) =>
+    uploaded: (files: PublicationFiles, uploaded?: Set<string>) =>
       uploadAndVerify({
         storage: this.storage,
         files,
         concurrency: 2,
+        ...(uploaded ? { uploaded } : {}),
         progress: {
           start: (message) => this.progress.push(message),
           update: (message) => this.progress.push(message),
@@ -103,7 +104,8 @@ export class PublicationFilesDriver {
   };
 
   readonly get = {
-    files: () => preparePublicationFiles(this.build()),
+    files: () =>
+      preparePublicationFiles({ build: this.build(), concurrency: 2 }),
     identity: () => derivePublicationIdentity(this.manifest()),
     manifest: () => this.manifest(),
     storedPaths: () => [...this.storage.objects.keys()],

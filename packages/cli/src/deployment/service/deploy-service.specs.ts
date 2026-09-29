@@ -130,6 +130,8 @@ describe('AtlasDeployService', () => {
     expect(driver.get.progress()).toStrictEqual([
       'start: Reading registry',
       `succeed: Selected ${driver.get.appId()} version 1.4.0`,
+      'start: Planning production deployment',
+      'succeed: Planned production deployment',
       'start: Waiting for publish lock',
       'succeed: Acquired publish lock',
       'start: Updating production registry',
@@ -137,6 +139,16 @@ describe('AtlasDeployService', () => {
       'start: Checking public delivery',
       'succeed: Public URLs serve the deployment',
     ]);
+  });
+
+  it('should write the environment state after every host manifest when deploying', async () => {
+    await driver.given.catalog();
+
+    await driver.when.deploy();
+
+    expect(driver.get.replacedPaths().at(-1)).toBe(
+      'environments/production/deployment.json',
+    );
   });
 
   it('should warn about the retry when cache invalidation is transiently unavailable', async () => {

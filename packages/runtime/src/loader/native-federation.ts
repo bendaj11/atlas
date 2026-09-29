@@ -156,18 +156,14 @@ export async function createTrustedNativeFederationImporters(
 
   return {
     async initialize(selectedManifests) {
-      const trusted: AtlasManifest[] = [];
-
       await mapWithConcurrency(selectedManifests, async (manifest) => {
         try {
           await ensureManifestIsTrusted(manifest);
-          trusted.push(manifest);
+          await importers.initialize([manifest]);
         } catch {
           return;
         }
       });
-
-      await importers.initialize(trusted);
     },
     async importRemote(manifest) {
       await ensureManifestIsTrusted(manifest);

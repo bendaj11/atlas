@@ -5,9 +5,15 @@ import {
   type NxProjectConfiguration,
 } from '../nx-output-paths/nx-output-paths.js';
 import type { AtlasProject } from '../types.js';
-import { CliError, doesPathExist, readJsonFile } from '../../shared/index.js';
+import {
+  CliError,
+  doesPathExist,
+  forEachConcurrently,
+  readJsonFile,
+} from '../../shared/index.js';
 
 const MAX_DISCOVERY_DEPTH = 5;
+const DISCOVERY_CONCURRENCY = 8;
 const IGNORED_DIRECTORIES = new Set([
   'node_modules',
   '.git',
@@ -115,25 +121,30 @@ async function walkProjectDirectories(options: {
   const entries = await readdir(directory, { withFileTypes: true }).catch(
     () => [],
   );
-  const nested = await Promise.all(
-    entries
-      .filter(
-        (entry) =>
-          entry.isDirectory() &&
-          !IGNORED_DIRECTORIES.has(entry.name) &&
-          !entry.name.startsWith('.'),
-      )
-      .map((entry) =>
-        walkProjectDirectories({
+  const directories = entries.filter(
+    (entry) =>
+      entry.isDirectory() &&
+      !IGNORED_DIRECTORIES.has(entry.name) &&
+      !entry.name.startsWith('.'),
+  );
+  const projects: AtlasProject[] = [];
+
+  await forEachConcurrently({
+    items: directories,
+    concurrency: DISCOVERY_CONCURRENCY,
+    operation: async (entry) => {
+      projects.push(
+        ...(await walkProjectDirectories({
           directory: join(directory, entry.name),
           workspaceRoot,
           depth: depth + 1,
           read,
-        }),
-      ),
-  );
+        })),
+      );
+    },
+  });
 
-  return nested.flat();
+  return projects;
 }
 
 async function readProjectAt(options: {

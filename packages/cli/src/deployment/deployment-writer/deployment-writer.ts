@@ -3,7 +3,10 @@ import {
   type AtlasPublicationLease,
   type AtlasPublicationStorage,
 } from '../../publication/index.js';
-import { MUTABLE_CACHE_CONTROL } from '../../shared/index.js';
+import {
+  forEachConcurrently,
+  MUTABLE_CACHE_CONTROL,
+} from '../../shared/index.js';
 import {
   buildEnvironmentStatePath,
   buildHostManifestPath,
@@ -15,26 +18,31 @@ export async function writeDeployment({
   lease,
   environment,
   deployment,
+  concurrency,
 }: {
   storage: AtlasPublicationStorage;
   lease: AtlasPublicationLease;
   environment: string;
   deployment: DeploymentWrite;
+  concurrency: number;
 }): Promise<void> {
+  await forEachConcurrently({
+    items: deployment.manifests,
+    concurrency,
+    operation: (manifest) =>
+      writeJsonObject({
+        storage,
+        lease,
+        path: buildHostManifestPath({ environment, hostId: manifest.hostId }),
+        value: manifest,
+      }),
+  });
   await writeJsonObject({
     storage,
     lease,
     path: buildEnvironmentStatePath(environment),
     value: deployment.state,
   });
-
-  for (const manifest of deployment.manifests)
-    await writeJsonObject({
-      storage,
-      lease,
-      path: buildHostManifestPath({ environment, hostId: manifest.hostId }),
-      value: manifest,
-    });
 }
 
 async function writeJsonObject({

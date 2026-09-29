@@ -195,18 +195,18 @@ describe('loadDeploymentCatalog', () => {
       expect(driver.get.catalog()).not.toHaveProperty('widgetProviders');
     });
 
-    it('should load at most six artifacts at once when the deployment has many references', async () => {
+    it('should load at most sixteen artifacts at once when the deployment has many references', async () => {
       const many = aHostDeploymentManifest({
         hostId: runtime.hostId,
         environment: runtime.environment,
-        apps: Array.from({ length: 8 }, () => aManifestDescriptor()),
+        apps: Array.from({ length: 20 }, () => aManifestDescriptor()),
       });
       driver.given
         .deployment(many)
         .given.publishedArtifactLoad(new Promise(() => undefined));
       await driver.when.loadStarted();
 
-      expect(driver.get.loadPublishedArtifactMock()).toHaveBeenCalledTimes(6);
+      expect(driver.get.loadPublishedArtifactMock()).toHaveBeenCalledTimes(16);
     });
 
     it('should reject when the deployment manifest fails schema validation', async () => {

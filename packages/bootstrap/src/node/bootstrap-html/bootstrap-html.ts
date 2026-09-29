@@ -14,6 +14,8 @@ export function createBootstrapHtml(
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(options.title ?? DEFAULT_TITLE)}</title>
+    <link rel="modulepreload" href="/atlas.loader.js">
+    <link rel="modulepreload" href="/es-module-shims.js">
   </head>
   <body>
     <div id="atlas-host-root">
@@ -26,7 +28,7 @@ ${options.loadingHtml ?? indentMarkup({ html: ATLAS_PAGE_LOADER_HTML, depth: 3 }
 
 export function applyVersionedLoaderSource(html: string): string {
   return html.replace(
-    /(\bsrc\s*=\s*)(["'])\/atlas\.loader\.js(?:\?[^"']*)?\2/i,
+    /(\b(?:src|href)\s*=\s*)(["'])\/atlas\.loader\.js(?:\?[^"']*)?\2/gi,
     `$1$2${VERSIONED_LOADER_SOURCE}$2`,
   );
 }

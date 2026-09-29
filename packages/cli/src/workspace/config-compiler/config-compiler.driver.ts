@@ -1,3 +1,4 @@
+import { readFile, utimes } from 'node:fs/promises';
 import { faker } from '@faker-js/faker';
 import { doesPathExist } from '../../shared/index.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
@@ -38,6 +39,24 @@ export class ConfigCompilerDriver {
 
       return this;
     },
+    emittedConfig: async (contents: string) => {
+      await this.directory.writeFile(
+        `${this.projectName}/.atlas/atlas.config.js`,
+        contents,
+      );
+
+      return this;
+    },
+    touchedProjectFile: async (relativePath: string) => {
+      const future = new Date(Date.now() + 60_000);
+      await utimes(
+        this.directory.path(`${this.projectName}/${relativePath}`),
+        future,
+        future,
+      );
+
+      return this;
+    },
   };
 
   readonly when = {
@@ -53,6 +72,11 @@ export class ConfigCompilerDriver {
   };
 
   readonly get = {
+    emittedContents: () =>
+      readFile(
+        this.directory.path(`${this.projectName}/.atlas/atlas.config.js`),
+        'utf8',
+      ),
     emitted: () =>
       doesPathExist(
         this.directory.path(`${this.projectName}/.atlas/atlas.config.js`),

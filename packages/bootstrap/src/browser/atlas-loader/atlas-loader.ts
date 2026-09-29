@@ -20,6 +20,7 @@ import { validateCatalog } from '../validation/index.js';
 import { HOST_ROOT_ELEMENT_ID } from './atlas-loader.constants.js';
 import type { AtlasLoaderDependencies } from './atlas-loader.types.js';
 import { preconnectArtifactRegistry } from './artifact-registry-preconnect/artifact-registry-preconnect.js';
+import { preloadActiveRouteApp } from './route-app-preload/route-app-preload.js';
 import { publishRuntimeSnapshot } from './runtime-snapshot/runtime-snapshot.js';
 import { loadStartupCatalog } from './startup-catalog/startup-catalog.js';
 
@@ -28,7 +29,7 @@ export async function startAtlasLoader(
 ): Promise<void> {
   const [, { runtime, catalog, hostRemoteEntry }] = await Promise.all([
     dependencies.installModuleShim(),
-    resolveHostCatalog(dependencies),
+    resolveHostCatalog({ dependencies }),
   ]);
 
   const root = dependencies.document.getElementById(HOST_ROOT_ELEMENT_ID);
@@ -59,9 +60,11 @@ export async function startAtlasLoader(
   for (const node of placeholder) if (node.parentNode === root) node.remove();
 }
 
-async function resolveHostCatalog(
-  dependencies: AtlasLoaderDependencies,
-): Promise<{
+async function resolveHostCatalog({
+  dependencies,
+}: {
+  dependencies: AtlasLoaderDependencies;
+}): Promise<{
   runtime: AtlasHostRuntimeConfig;
   catalog: AtlasHostCatalog;
   hostRemoteEntry?: PrefetchedHostRemoteEntry;
@@ -100,6 +103,13 @@ async function resolveHostCatalog(
   });
 
   dependencies.validateCatalog({ runtime, catalog });
+
+  if (pageUrl)
+    preloadActiveRouteApp({
+      document: dependencies.document,
+      catalog,
+      pageUrl,
+    });
 
   publishRuntimeSnapshot({
     document: dependencies.document,

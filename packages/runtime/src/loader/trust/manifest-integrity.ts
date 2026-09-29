@@ -16,6 +16,7 @@ import {
 
 const networkIntegrityChecks = new Map<string, Promise<void>>();
 const MAX_CACHED_INTEGRITY_CHECKS = 256;
+const networkBackedFetchers = new WeakSet<FetchBytes>();
 
 export async function verifyManifestIntegrity(
   options: VerifyManifestIntegrityOptions,
@@ -29,13 +30,16 @@ export async function verifyManifestIntegrity(
 
     if (!manifest.integrity) continue;
 
-    if (fetchBytes !== fetchBytesFromNetwork) {
-      await verifyRemoteEntryIntegrity(manifest, fetchBytes);
+    if (
+      fetchBytes === fetchBytesFromNetwork ||
+      networkBackedFetchers.has(fetchBytes)
+    ) {
+      await verifyRemoteEntryIntegrityOnce(manifest, fetchBytes);
 
       continue;
     }
 
-    await verifyRemoteEntryIntegrityOnce(manifest, fetchBytes);
+    await verifyRemoteEntryIntegrity(manifest, fetchBytes);
   }
 }
 
@@ -48,13 +52,16 @@ function verifyRemoteEntryIntegrityOnce(
 
   if (existing) return existing;
 
-  const checking = verifyRemoteEntryIntegrity(manifest, fetchBytes).catch(
-    (error) => {
+  const checking: Promise<void> = verifyRemoteEntryIntegrity(
+    manifest,
+    fetchBytes,
+  ).catch((error) => {
+    if (networkIntegrityChecks.get(key) === checking) {
       networkIntegrityChecks.delete(key);
+    }
 
-      throw error;
-    },
-  );
+    throw error;
+  });
 
   networkIntegrityChecks.set(key, checking);
 
@@ -121,7 +128,7 @@ export function createFetchBytesWithRetry(
 ): FetchBytes {
   const fetchBytes = input.fetchBytes ?? fetchBytesFromNetwork;
 
-  return (url) =>
+  const fetchWithRetry: FetchBytes = (url) =>
     runResiliently({
       operation: (signal) => fetchBytes(url, signal),
       context: {
@@ -132,6 +139,10 @@ export function createFetchBytesWithRetry(
       },
       ...(input.requestPolicy ? { policy: input.requestPolicy } : {}),
     });
+
+  if (!input.fetchBytes) networkBackedFetchers.add(fetchWithRetry);
+
+  return fetchWithRetry;
 }
 
 function convertBytesToBase64(bytes: Uint8Array): string {

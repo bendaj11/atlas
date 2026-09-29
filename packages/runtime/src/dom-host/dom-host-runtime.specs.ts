@@ -46,6 +46,14 @@ describe('startDomHostRuntime', () => {
       expect(driver.get.loadRemoteModuleMock()).not.toHaveBeenCalled();
     });
 
+    it('should initialize the slot app remote when the slot anchor is missing at start', async () => {
+      await driver.when.started();
+
+      expect(driver.get.initializedRemoteUrls()).toEqual([
+        'http://localhost:4173/atlas/apps/widget/remoteEntry.json',
+      ]);
+    });
+
     it('should load the remote module when the slot anchor is registered after start', async () => {
       await driver.when.started();
 

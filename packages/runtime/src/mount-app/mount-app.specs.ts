@@ -62,7 +62,10 @@ describe('mountApp', () => {
   });
 
   describe('when a scoped manifest is mounted by an entry that records the boundary display', () => {
-    const manifest = anAppManifest({ isolation: 'scoped' });
+    const manifest = anAppManifest({
+      channel: 'production',
+      isolation: 'scoped',
+    });
     let displayDuringMount: string | undefined;
 
     beforeEach(async () => {
@@ -83,7 +86,10 @@ describe('mountApp', () => {
   });
 
   describe('when a scoped manifest is mounted by an entry that defers readiness', () => {
-    const manifest = anAppManifest({ isolation: 'scoped' });
+    const manifest = anAppManifest({
+      channel: 'production',
+      isolation: 'scoped',
+    });
     let markReady: () => void = () => undefined;
 
     beforeEach(async () => {
@@ -189,10 +195,48 @@ describe('mountApp', () => {
       });
     });
 
-    it('should not import the remote when the stylesheet fails to load', async () => {
+    it('should not mount the entry when the stylesheet fails to load', async () => {
+      await driver.given.stylesheetOutcome('error').when.mounted(manifest);
+
+      expect(driver.get.requests()).toHaveLength(0);
+    });
+
+    it('should not import the remote when the stylesheet declaring integrity fails to load', async () => {
       await driver.given.stylesheetOutcome('error').when.mounted(manifest);
 
       expect(driver.get.importRemoteMock()).not.toHaveBeenCalled();
+    });
+
+    it('should import the remote before the stylesheet settles when the stylesheet declares no integrity', async () => {
+      const mounting = driver.when.mounted(
+        anAppManifest({
+          channel: 'production',
+          isolation: 'scoped',
+          styles: [{ href: faker.internet.url() }],
+        }),
+      );
+
+      expect(driver.get.importRemoteMock()).toHaveBeenCalledTimes(1);
+
+      await mounting;
+    });
+
+    it('should release the stylesheet when the remote import fails', async () => {
+      await driver.given
+        .importFailing(new Error('import failed'))
+        .when.mounted(manifest);
+
+      await Promise.resolve();
+
+      expect(driver.get.headLinks()).toHaveLength(0);
+    });
+
+    it('should remove the boundary when the remote import fails', async () => {
+      await driver.given
+        .importFailing(new Error('import failed'))
+        .when.mounted(manifest);
+
+      expect(driver.get.container().children).toHaveLength(0);
     });
   });
 
@@ -207,6 +251,7 @@ describe('mountApp', () => {
     expect(driver.get.error()).toMatchObject({
       code: 'ATLAS_REMOTE_TRUST_REJECTED',
     });
+    expect(driver.get.importRemoteMock()).not.toHaveBeenCalled();
   });
 
   it('should reject with ATLAS_REMOTE_TRUST_REJECTED when a trust policy is given and the remote entry origin is not allowed', async () => {

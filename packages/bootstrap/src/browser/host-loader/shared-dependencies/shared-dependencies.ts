@@ -17,8 +17,8 @@ export function installHostSharedDependencies({
 }: Pick<HostLoadContext, 'manifest'> & {
   metadata: RemoteMetadata;
   dependencies: SharedDependenciesDependencies;
-}): void {
-  if (!metadata.shared?.length) return;
+}): () => void {
+  if (!metadata.shared?.length) return () => undefined;
 
   const { remoteEntryUrl } = manifest;
   const { document } = dependencies;
@@ -45,4 +45,6 @@ export function installHostSharedDependencies({
   importMap.textContent = JSON.stringify({ imports });
 
   document.head.append(importMap);
+
+  return () => importMap.remove();
 }

@@ -1,6 +1,10 @@
 /** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
-import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
+import {
+  aHostCatalog,
+  aHostManifest,
+  aHostRuntimeConfig,
+} from '@atlas/testkit';
 import { AtlasLoaderDriver } from './atlas-loader.driver.js';
 
 describe('startAtlasLoader', () => {
@@ -219,6 +223,34 @@ describe('startAtlasLoader', () => {
         manifest: catalog.host,
         runtime,
         prefetchedRemoteEntry: hostRemoteEntry,
+      });
+    });
+
+    it('should load the host module once when the effective host is the reported host manifest', () => {
+      expect(driver.get.loadHostModuleMock()).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when overrides replace the host reported by the startup catalog', () => {
+    const runtime = aHostRuntimeConfig();
+    const reported = aHostManifest();
+    const overridden = aHostCatalog({ hostId: runtime.hostId });
+
+    beforeEach(async () => {
+      driver.given
+        .runtimeConfig(runtime)
+        .given.startupCatalogReportingHost(
+          { catalog: aHostCatalog({ hostId: runtime.hostId, host: reported }) },
+          reported,
+        )
+        .given.overriddenCatalog(overridden);
+      await driver.when.started();
+    });
+
+    it('should load the host module of the overridden host when started', () => {
+      expect(driver.get.loadHostModuleMock()).toHaveBeenLastCalledWith({
+        manifest: overridden.host,
+        runtime,
       });
     });
   });

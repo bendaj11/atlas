@@ -1,16 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["scripts/clean-package-output.ts"],
   "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "env": ["NG_BUILD_MAX_WORKERS"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!dist/**", "!*.tsbuildinfo"],
       "outputs": ["dist/**"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
-      "outputs": ["dist/**", "*.tsbuildinfo"]
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!dist/**", "!*.tsbuildinfo"],
+      "outputs": []
     },
     "lint": {
       "dependsOn": ["^typecheck"],

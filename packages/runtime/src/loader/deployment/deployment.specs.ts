@@ -41,6 +41,21 @@ describe('loadHostDeployment', () => {
       });
     });
 
+    it('should fetch each artifact manifest once when loaded twice with the same manifest cache', async () => {
+      const host = await aReferenceTo(hostArtifact);
+      const app = await aReferenceTo(appArtifact);
+      await driver.given
+        .manifestCache(new Map())
+        .given.deployment(aDeploymentWith({ host, apps: [app] }))
+        .given.artifactAt(host.url!, hostArtifact)
+        .given.artifactAt(app.url!, appArtifact)
+        .when.loaded();
+
+      await driver.when.loaded();
+
+      expect(driver.get.fetchBytesMock()).toHaveBeenCalledTimes(4);
+    });
+
     it('should resolve a reference path against artifactRegistryUrl when the reference has no url', async () => {
       const registryUrl = faker.internet.url({ appendSlash: false });
       const host = await aReferenceTo(hostArtifact, { url: undefined });

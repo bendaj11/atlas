@@ -179,6 +179,7 @@ export class DeployServiceDriver {
 
   get = {
     deliveryEvents: () => this.deliveryEvents,
+    replacedPaths: () => this.storage.replaced,
     progress: () => this.progress,
     appId: () => this.appId,
     result: () => this.result,
@@ -270,6 +271,7 @@ export class DeployServiceDriver {
 class MemoryStorage implements AtlasPublicationStorage {
   verifyDelivery?: AtlasPublicationStorage['verifyDelivery'];
   private readonly objects = new Map<string, Uint8Array>();
+  readonly replaced: string[] = [];
   async read(path: string): Promise<Uint8Array | undefined> {
     return this.objects.get(path);
   }
@@ -311,6 +313,7 @@ class MemoryStorage implements AtlasPublicationStorage {
     _metadata: AtlasPublicationObjectMetadata,
     _condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
+    this.replaced.push(path);
     await this.seed(path, await collect(body));
   }
   async remove(path: string): Promise<void> {

@@ -49,6 +49,7 @@ export class HostLoaderDriver {
   private readonly validateHostManifest =
     jest.fn<typeof validateHostManifest>();
   private readonly removeHostStyles = jest.fn<() => void>();
+  private readonly removeSharedDependencies = jest.fn<() => void>();
   private module: HostModule | undefined;
   private error: unknown;
   private prefetchedRemoteEntry: PrefetchedHostRemoteEntry | undefined;
@@ -58,6 +59,9 @@ export class HostLoaderDriver {
     loadHostStyles.mockReset();
     installHostSharedDependencies.mockReset();
     loadHostStyles.mockReturnValue(this.removeHostStyles);
+    installHostSharedDependencies.mockReturnValue(
+      this.removeSharedDependencies,
+    );
   }
 
   readonly given = {

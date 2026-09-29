@@ -8,6 +8,7 @@ import type { AtlasMountedApp } from '../host-runtime/host-runtime.types.js';
 import { importNativeFederationRemote } from '../loader/native-federation.js';
 import {
   assertManifestAssetTrust,
+  assertManifestStylesTrust,
   PERMISSIVE_TRUST_POLICY,
 } from '../loader/trust/trust-policy.js';
 import { startRemoteAssetRewrite } from '../remote-assets/index.js';
@@ -31,6 +32,8 @@ export async function mountApp(
       options.manifest,
       options.trustPolicy ?? PERMISSIVE_TRUST_POLICY,
     );
+  } else {
+    assertManifestStylesTrust(options.manifest);
   }
 
   const boundary = createMountBoundary({
@@ -39,10 +42,44 @@ export async function mountApp(
     isolation: options.manifest.isolation ?? 'shadow-dom',
     kind: 'app',
   });
-  const releaseStyles = await loadManifestStyles(options.manifest, document, {
+
+  boundary.setHidden(true);
+
+  const stylesLoading = loadManifestStyles(options.manifest, document, {
     ...(options.trustPolicy ? { policy: options.trustPolicy } : {}),
     target: boundary.styleTarget,
   });
+  const stylesDeclareIntegrity = Boolean(
+    options.manifest.styles?.some(({ integrity }) => integrity),
+  );
+
+  if (stylesDeclareIntegrity) {
+    try {
+      await stylesLoading;
+    } catch (error) {
+      boundary.remove();
+
+      throw error;
+    }
+  }
+
+  const entryImporting = importAppEntryFromRemote(options);
+  let releaseStyles: () => void;
+  let entry: AtlasAppEntry;
+
+  try {
+    [releaseStyles, entry] = await Promise.all([stylesLoading, entryImporting]);
+  } catch (error) {
+    boundary.remove();
+
+    void stylesLoading.then(
+      (release) => release(),
+      () => undefined,
+    );
+
+    throw error;
+  }
+
   const releaseAssetRewrite = startRemoteAssetRewrite(
     options.manifest,
     boundary.container,
@@ -63,10 +100,7 @@ export async function mountApp(
   let mounted = false;
   let failure: { error: unknown } | undefined;
 
-  boundary.setHidden(true);
-
   try {
-    const entry = await importAppEntryFromRemote(options);
     const hostNavigation = getAtlasNavigation(options.sdk);
     const navigation = createScopedNavigation(
       options.path ?? findDefaultRoutePathOfManifest(options.manifest),
@@ -159,7 +193,7 @@ export async function mountApp(
   };
 }
 
-function importAppEntryFromRemote(
+async function importAppEntryFromRemote(
   options: Pick<
     AtlasMountAppOptions,
     'importRemote' | 'trustPolicy' | 'manifest'

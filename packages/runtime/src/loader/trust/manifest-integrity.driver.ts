@@ -46,6 +46,21 @@ export class ManifestIntegrityDriver {
         this.error = error;
       }
     },
+    verifiedOverNetwork: async (manifests: AtlasManifest[]) => {
+      const fetchSpy = jest
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(
+          async (input) => new Response(await this.fetchBytes(String(input))),
+        );
+
+      try {
+        await verifyManifestIntegrity({ manifests, policy: this.policy });
+      } catch (error) {
+        this.error = error;
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    },
     trustErrorsCollected: async (manifests: AtlasManifest[]) => {
       this.trustErrors = await findManifestTrustErrors({
         manifests,

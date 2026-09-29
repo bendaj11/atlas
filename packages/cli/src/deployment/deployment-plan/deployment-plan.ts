@@ -7,7 +7,10 @@ import {
   type AtlasStaticRegistry,
 } from '@atlas/schema';
 import { stringifyCanonicalJson } from '../../publication/index.js';
-import { computeSha256Digest } from '../../shared/index.js';
+import {
+  computeSha256Digest,
+  forEachConcurrently,
+} from '../../shared/index.js';
 import {
   buildEnvironmentStatePath,
   buildHostManifestPath,
@@ -32,11 +35,13 @@ export async function planDeployment({
   registry,
   environment,
   selected,
+  concurrency,
 }: {
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   environment: string;
   selected: ArtifactSelection;
+  concurrency: number;
 }): Promise<DeploymentWrite> {
   const current = await readTargetEnvironmentState({ access, environment });
   const state = applySelection({ current, environment, selected });
@@ -45,6 +50,7 @@ export async function planDeployment({
     registry,
     state,
     selected,
+    concurrency,
   });
 
   return { state, manifests };
@@ -96,13 +102,20 @@ async function buildHostDeploymentManifests({
   registry,
   state,
   selected,
+  concurrency,
 }: {
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   state: AtlasEnvironmentDeployment;
   selected: ArtifactSelection;
+  concurrency: number;
 }): Promise<AtlasHostDeploymentManifest[]> {
-  const apps = await readSelectedAppReleases({ access, registry, state });
+  const apps = await readSelectedAppReleases({
+    access,
+    registry,
+    state,
+    concurrency,
+  });
   const hostIds =
     selected.kind === 'host'
       ? [selected.id]
@@ -121,13 +134,19 @@ async function readSelectedAppReleases({
   access,
   registry,
   state,
+  concurrency,
 }: {
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   state: AtlasEnvironmentDeployment;
+  concurrency: number;
 }): Promise<SelectedAppRelease[]> {
-  return Promise.all(
-    Object.entries(state.apps).map(async ([id, entry]) => {
+  const releases = new Map<string, SelectedAppRelease>();
+
+  await forEachConcurrently({
+    items: Object.entries(state.apps),
+    concurrency,
+    operation: async ([id, entry]) => {
       const descriptor = findReleaseDescriptor({
         registry,
         kind: 'app',
@@ -141,9 +160,11 @@ async function readSelectedAppReleases({
           `Atlas deployment state lists "${id}" as an app, but ${descriptor.path} is a host artifact.`,
         );
 
-      return { id, descriptor, manifest };
-    }),
-  );
+      releases.set(id, { id, descriptor, manifest });
+    },
+  });
+
+  return Object.keys(state.apps).map((id) => releases.get(id)!);
 }
 
 function buildHostDeploymentManifest({

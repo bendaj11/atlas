@@ -6,7 +6,7 @@ export type UnknownRecord = Record<string, unknown>;
 const SEMANTIC_VERSION =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$/;
 const SEMANTIC_VERSION_RANGE =
-  /^(?:[*xX]|(?:[~^]|[<>]=?|=)?\s*(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?)(?:\s*(?:-\s*|\|\|\s*|\s+)(?:[~^]|[<>]=?|=)?\s*(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?)*$/;
+  /^(?:[*xX]|(?:(?:[~^]|[<>]=?|=)\s*)?(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?)(?:(?:\s*\|\|\s*|\s+(?:-\s+)?)(?:(?:[~^]|[<>]=?|=)\s*)?(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?)*$/;
 const SHA_256_INTEGRITY = /^sha256-[A-Za-z0-9+/]{43}=$/;
 const SHA_256_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const SAFE_IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9_-]|\.(?=[A-Za-z0-9_-]))*$/;

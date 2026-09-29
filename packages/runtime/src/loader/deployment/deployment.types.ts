@@ -27,10 +27,13 @@ export interface LoadHostDeploymentOptions {
   fetchBytes?: FetchBytes;
   requestPolicy?: AtlasRetryPolicy;
   logError?: LogError;
+  /** Digest-keyed store of verified manifests; lets long-lived callers skip refetching unchanged artifacts. */
+  manifestCache?: Map<string, PublishedManifest>;
 }
 
 export interface LoadPublishedManifestOptions {
   reference: ResolvedManifestReference;
   fetchBytes?: FetchBytes;
+  manifestCache?: Map<string, PublishedManifest>;
   requestPolicy?: AtlasRetryPolicy;
 }

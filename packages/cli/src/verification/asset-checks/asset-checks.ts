@@ -2,6 +2,7 @@ import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import { extractErrorMessage } from '../../shared/index.js';
 import { parseFederationMetadata } from '../federation-metadata/federation-metadata.js';
 import {
+  checkCompression,
   checkContentType,
   checkCors,
   checkImmutableCache,
@@ -88,6 +89,12 @@ async function verifyAsset({
     channel: manifest.channel,
   });
 
+  checkCompression({
+    checks: context.checks,
+    response,
+    subject: asset.subject,
+  });
+
   if (!bytes) return;
 
   checkIntegrity({
@@ -167,6 +174,7 @@ async function verifyFederationReferences({
         subject,
         expected: 'javascript',
       });
+      checkCompression({ checks: context.checks, response, subject });
       checkImmutableCache({
         checks: context.checks,
         response,

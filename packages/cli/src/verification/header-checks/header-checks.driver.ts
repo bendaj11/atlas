@@ -1,6 +1,7 @@
 import type { AtlasManifest } from '@atlas/schema';
 import { VerificationChecks } from '../checks/checks.js';
 import {
+  checkCompression,
   checkContentType,
   checkCors,
   checkImmutableCache,
@@ -50,6 +51,12 @@ export class HeaderChecksDriver {
         response: this.response(),
         subject: 'asset',
         expected,
+      }),
+    compressionChecked: () =>
+      checkCompression({
+        checks: this.checks,
+        response: this.response(),
+        subject: 'asset',
       }),
     integrityChecked: (options: {
       bytes: Uint8Array;

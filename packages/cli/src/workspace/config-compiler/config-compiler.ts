@@ -1,10 +1,12 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type TypeScript from 'typescript';
 import {
   doesPathExist,
   formatTypeScriptDiagnostics,
   loadTypeScript,
+  readJsonFile,
+  writeJsonFile,
 } from '../../shared/index.js';
 import type { AtlasProject, AtlasWorkspace } from '../types.js';
 
@@ -16,11 +18,16 @@ export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
   ];
 }
 
+interface CompileInputs {
+  files: string[];
+}
+
 export async function compileAtlasConfig(
   workspace: AtlasWorkspace,
   project: AtlasProject,
 ): Promise<void> {
-  await compileAtlasConfigFile(project.root);
+  if (!(await isCompiledConfigFresh(project.root)))
+    await compileAtlasConfigFile(project.root);
 
   if (
     workspace.kind === 'nx' &&
@@ -35,14 +42,12 @@ export async function compileAtlasConfig(
 async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const ts = await loadTypeScript();
   const configPath = findCompilerConfig({ ts, projectRoot });
-  const raw = ts.readConfigFile(configPath, ts.sys.readFile);
-
-  if (raw.error)
-    throw new Error(
-      await formatTypeScriptDiagnostics([raw.error], projectRoot),
-    );
-
-  const parsed = ts.parseJsonConfigFileContent(raw.config, ts.sys, projectRoot);
+  const configSource = ts.readJsonConfigFile(configPath, ts.sys.readFile);
+  const parsed = ts.parseJsonSourceFileConfigFileContent(
+    configSource,
+    ts.sys,
+    projectRoot,
+  );
   const atlasConfigPath = join(projectRoot, 'atlas.config.ts');
   const options: TypeScript.CompilerOptions = {
     ...parsed.options,
@@ -59,9 +64,21 @@ async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
     outDir: join(projectRoot, '.atlas'),
     rootDir: projectRoot,
   };
+  await rm(compileInputsPath(projectRoot), { force: true });
   await mkdir(options.outDir!, { recursive: true });
 
   const program = ts.createProgram([atlasConfigPath], options);
+  const inputFiles = [
+    configPath,
+    ...(configSource.extendedSourceFiles ?? []),
+    ...program
+      .getSourceFiles()
+      .filter(
+        (file) =>
+          !file.isDeclarationFile && !file.fileName.includes('/node_modules/'),
+      )
+      .map((file) => file.fileName),
+  ];
   const emitResult = program.emit();
   const diagnostics = [
     ...parsed.errors,
@@ -79,6 +96,31 @@ async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
         projectRoot,
       ),
     );
+
+  await writeJsonFile(compileInputsPath(projectRoot), {
+    files: inputFiles,
+  } satisfies CompileInputs);
+}
+
+function compileInputsPath(projectRoot: string): string {
+  return join(projectRoot, '.atlas', 'atlas.config.inputs.json');
+}
+
+async function isCompiledConfigFresh(projectRoot: string): Promise<boolean> {
+  try {
+    const inputs = await readJsonFile<CompileInputs>(
+      compileInputsPath(projectRoot),
+    );
+
+    if (!inputs?.files.length) return false;
+
+    const output = await stat(join(projectRoot, '.atlas', 'atlas.config.js'));
+    const sources = await Promise.all(inputs.files.map((file) => stat(file)));
+
+    return sources.every((source) => source.mtimeMs <= output.mtimeMs);
+  } catch {
+    return false;
+  }
 }
 
 function findCompilerConfig({

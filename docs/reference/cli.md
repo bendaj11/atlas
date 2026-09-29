@@ -199,7 +199,7 @@ Compile a project's `atlas.config.ts` into `.atlas/atlas.config.js` inside the p
 npx atlas compile-config [project]
 ```
 
-`project` is an Atlas project name or directory and defaults to the current directory. The `dev`, `bootstrap`, and `publish` commands compile the config automatically. You need this command only for workspace targets such as `atlas:config`, or before you run a command with `--skip-compile`.
+`project` is an Atlas project name or directory and defaults to the current directory. The `dev`, `bootstrap`, and `publish` commands compile the config automatically. Atlas skips recompiling when `.atlas/atlas.config.js` is newer than `atlas.config.ts`, the files it imports, and the tsconfig. Type errors surface when it recompiles; run your project's own type check to see them at any time. You need this command only for workspace targets such as `atlas:config`, or before you run a command with `--skip-compile`.
 
 ## bootstrap
 

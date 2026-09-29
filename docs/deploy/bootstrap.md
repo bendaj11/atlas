@@ -17,7 +17,7 @@ atlas.loader.js
 es-module-shims.js
 ```
 
-- `index.html` contains the `atlas-host-root` element, a loading placeholder, and a module script that loads `/atlas.loader.js?v=<hash>`. The hash changes when the loader changes.
+- `index.html` contains the `atlas-host-root` element, a loading placeholder, and a module script that loads `/atlas.loader.js?v=<hash>`. The hash changes when the loader changes. The generated `<head>` also preloads the loader (`modulepreload`) and `es-module-shims.js` (`modulepreload`) so the browser starts those requests before it runs the loader. The version hash is applied to the loader's `modulepreload` link too.
 - `atlas.loader.js` is the Atlas [loader](../introduction/glossary.md#loader). It reads the runtime config, resolves the deployed Host and Apps, verifies them, and mounts the Host.
 - `es-module-shims.js` is the ES module shim the loader runs in shim mode to load Native Federation modules.
 
@@ -71,13 +71,13 @@ The file is public. Never put secrets, tokens, or private storage URLs in it.
 1. The browser loads `index.html` and `atlas.loader.js` from the Host origin. The loader starts loading `es-module-shims.js` in parallel with the next steps.
 2. The loader reads `/atlas.runtime.json`.
 3. The loader reads the host deployment manifest from `<environmentRegistryUrl>/environments/<environment>/hosts/<hostId>/manifest.json`. If the [Columbus](../guides/columbus.md) extension is installed, the loader asks it for local overrides at the same time.
-4. The loader downloads the referenced published artifact manifests from `artifactRegistryUrl` and checks each one against the size and SHA-256 digest recorded in the deployment. When the artifact registry uses its own origin, the loader opens a connection to it early.
-5. The loader applies any overrides, validates the resulting host catalog, adds the Host stylesheets, verifies the Host remote entry against its integrity value when the manifest declares one, and imports the Host.
+4. The loader downloads the referenced published artifact manifests from `artifactRegistryUrl` (16 at a time) and checks each one against the size and SHA-256 digest recorded in the deployment. When the artifact registry uses its own origin, the loader opens a connection to it early.
+5. The loader applies any overrides, validates the resulting host catalog, adds the Host stylesheets, verifies the Host remote entry against its integrity value when the manifest declares one, and imports the Host. The Host remote entry starts downloading as soon as the Host manifest arrives, in parallel with the App manifests. The Host is imported only after this step, so overrides and validation always come before any Host code runs. After validation, the loader preloads the remote entry of the App whose route matches the current URL.
 6. The Host runtime mounts slot Apps and the current route App in parallel.
 
 The bootstrap placeholder inside `atlas-host-root` stays until Atlas is ready to show the Host layout, not only until the Host renders. After that, each App and Widget shows its own loading state until it has mounted.
 
-The loader always revalidates `atlas.runtime.json` and the host deployment manifest. It lets the browser HTTP cache serve content it can verify itself: published artifact manifests (checked against their digest) and Host remote entries that carry an integrity value. If cached bytes fail verification, the loader fetches them again from the network before it reports an error.
+The loader always revalidates `atlas.runtime.json` and the host deployment manifest. It lets the browser HTTP cache serve content it can verify itself: published artifact manifests (checked against their digest) and Host remote entries that carry an integrity value. If cached bytes fail verification, the loader fetches them again from the network once before it reports an error. The loader retries a failed request only for network errors, timeouts, and HTTP 408, 425, 429, and 5xx responses; other 4xx responses and digest mismatches fail immediately.
 
 ### Startup failures
 
@@ -96,14 +96,20 @@ Your platform owns the web server, routing, response headers, and CDN. Atlas can
 
 ### Set cache headers
 
-| Files                                                 | Cache-Control                          | Why                                                                                            |
-| ----------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `index.html`, `atlas.loader.js`, `es-module-shims.js` | `no-cache`                             | The files are small, and `es-module-shims.js` has no version in its URL.                       |
-| `atlas.runtime.json`                                  | `no-cache`                             | The platform can change it at any time.                                                        |
-| `registry.json`, `environments/**`                    | `no-cache, max-age=0, must-revalidate` | Deploys replace these files in place. `npx atlas verify` fails if they are marked `immutable`. |
-| `apps/<id>/<version>/**`, `hosts/<id>/<version>/**`   | `public, max-age=31536000, immutable`  | Release paths never change. `npx atlas verify` warns if they are not cached as immutable.      |
+| Files                                                 | Cache-Control                          | Why                                                                                                                                                                                                         |
+| ----------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`, `atlas.loader.js`, `es-module-shims.js` | `no-cache`                             | The files are small. `es-module-shims.js` has no version in its URL, so it must revalidate. `atlas.loader.js?v=<hash>` could be cached as immutable, but a template can still request it without the query. |
+| `atlas.runtime.json`                                  | `no-cache`                             | The platform can change it at any time.                                                                                                                                                                     |
+| `registry.json`, `environments/**`                    | `no-cache, max-age=0, must-revalidate` | Deploys replace these files in place. `npx atlas verify` fails if they are marked `immutable`.                                                                                                              |
+| `apps/<id>/<version>/**`, `hosts/<id>/<version>/**`   | `public, max-age=31536000, immutable`  | Release paths never change. `npx atlas verify` warns if they are not cached as immutable.                                                                                                                   |
 
 Atlas stores these `Cache-Control` values as object metadata when it uploads to the registry. Make sure your CDN passes them through, and invalidate `registry.json` and `environments/**` after a deploy if your CDN caches them.
+
+Do not add `stale-while-revalidate` or a positive `max-age` to `registry.json` or `environments/**`. A stale deployment manifest keeps serving the previous versions after a deploy or rollback, and `atlas publish` and `atlas deploy` verify the public URLs against the new content right after writing it. Keep the `must-revalidate` value. Conditional requests already return `304` with no body when nothing changed.
+
+### Compress responses
+
+Serve text responses (`.js`, `.css`, `.json`, `.svg`, `.map`, `.txt`) with `Content-Encoding: br` or `gzip`, negotiated through `Accept-Encoding`, and add `Vary: Accept-Encoding`. Atlas uploads the uncompressed bytes and its integrity values cover those bytes, so let the CDN or web server compress on the fly instead of uploading pre-compressed objects. Do not store `Content-Encoding` as object metadata: Atlas verifies stored objects byte for byte. Skip already compressed formats such as `.woff2`, `.png`, `.webp`, and `.avif`.
 
 ### Allow cross-origin reads from the registries
 

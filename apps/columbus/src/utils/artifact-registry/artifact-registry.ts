@@ -6,6 +6,7 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { versionKey } from '../artifact-version-keys/artifact-version-keys';
+import { mapWithConcurrency } from '../concurrency/concurrency';
 import { messageFromError } from '../errors/errors';
 import { isRecord } from '../messages/messages';
 import {
@@ -40,6 +41,7 @@ export interface ArtifactRegistry {
 }
 
 const CANONICAL_BUILD_ID = 'canonical';
+const PREVIEW_CONCURRENCY = 6;
 
 export function registryRootFor(
   config: AtlasHostRuntimeConfig,
@@ -107,24 +109,28 @@ export function createArtifactRegistry(): ArtifactRegistry {
         manifestReference(root, descriptor),
       ),
     );
-    const previews: ArtifactVersion[] = [];
-    const errors: string[] = [];
-    for (const [previewNumber, descriptor] of orderedPreviews(artifact)) {
-      const reference = manifestReference(root, descriptor);
-      try {
-        previews.push(
-          rememberVersion(
+    const previewResults = await mapWithConcurrency(
+      orderedPreviews(artifact),
+      async ([previewNumber, descriptor]) => {
+        const reference = manifestReference(root, descriptor);
+        try {
+          return rememberVersion(
             artifactKey,
             await loadManifest(reference),
             reference,
-          ),
-        );
-      } catch (error) {
-        errors.push(
-          `Preview ${previewNumber} is unavailable: ${messageFromError(error)}`,
-        );
-      }
-    }
+          );
+        } catch (error) {
+          return `Preview ${previewNumber} is unavailable: ${messageFromError(error)}`;
+        }
+      },
+      PREVIEW_CONCURRENCY,
+    );
+    const previews = previewResults.filter(
+      (result): result is ArtifactVersion => typeof result !== 'string',
+    );
+    const errors = previewResults.filter(
+      (result): result is string => typeof result === 'string',
+    );
 
     return {
       manifests: uniqueManifests([...releases, ...previews]),

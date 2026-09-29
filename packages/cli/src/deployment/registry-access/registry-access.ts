@@ -74,6 +74,10 @@ export async function readPublishedManifest({
   access: RegistryAccess;
   descriptor: AtlasManifestDescriptor;
 }): Promise<AtlasPublishedArtifactManifest> {
+  const cached = access.manifests.get(descriptor.digest);
+
+  if (cached) return cached;
+
   const bytes = await readSourceBytes({ access, path: descriptor.path });
 
   if (
@@ -90,6 +94,7 @@ export async function readPublishedManifest({
     subject: `artifact descriptor ${descriptor.path}`,
   });
   assertPublishedArtifactManifest(manifest);
+  access.manifests.set(descriptor.digest, manifest);
 
   return manifest;
 }

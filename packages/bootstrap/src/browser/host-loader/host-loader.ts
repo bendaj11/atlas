@@ -45,17 +45,21 @@ export async function loadHostModule({
 }: LoadHostModuleOptions): Promise<HostModule> {
   dependencies.validateHostManifest({ manifest, runtime });
 
-  const removeHostStyles = loadHostStyles({ manifest, runtime, dependencies });
+  const removals = [loadHostStyles({ manifest, runtime, dependencies })];
+  const discard = () => {
+    for (const remove of removals) remove();
+  };
 
   try {
     return await importHostEntry({
       manifest,
       runtime,
       dependencies,
+      onSharedDependenciesInstalled: (remove) => removals.push(remove),
       ...(prefetchedRemoteEntry ? { prefetchedRemoteEntry } : {}),
     });
   } catch (error) {
-    removeHostStyles();
+    discard();
 
     throw error;
   }
@@ -66,8 +70,10 @@ async function importHostEntry({
   runtime,
   dependencies,
   prefetchedRemoteEntry,
+  onSharedDependenciesInstalled,
 }: HostLoadContext & {
   prefetchedRemoteEntry?: PrefetchedHostRemoteEntry;
+  onSharedDependenciesInstalled: (remove: () => void) => void;
 }): Promise<HostModule> {
   const metadata = await readRemoteEntry({
     manifest,
@@ -86,7 +92,9 @@ async function importHostEntry({
   }
 
   watchHostBuildNotifications({ metadata, manifest, dependencies });
-  installHostSharedDependencies({ metadata, manifest, dependencies });
+  onSharedDependenciesInstalled(
+    installHostSharedDependencies({ metadata, manifest, dependencies }),
+  );
 
   const moduleUrl = new URL(expose.outFileName, manifest.remoteEntryUrl);
 

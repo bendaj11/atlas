@@ -41,12 +41,13 @@ sequenceDiagram
   Note over B: hostId, environment,<br/>artifactRegistryUrl
   B->>E: GET environments/<env>/hosts/<hostId>/manifest.json
   Note over B: References to the selected Host<br/>and App artifact manifests
-  par Up to six at a time
+  par Up to sixteen at a time
     B->>A: GET hosts/<id>/<version>/manifest.json
     B->>A: GET apps/<id>/<version>/manifest.json
   end
   Note over B: Check each manifest's bytes<br/>against its digest
   Note over B: Apply Columbus or atlas dev overrides,<br/>then validate the host catalog
+  Note over B: The Host remote entry starts loading as soon as<br/>the Host manifest arrives, in parallel with the App manifests
   B->>A: GET Host remote entry
   Note over B: Check the Host remote entry<br/>against its SHA-256 digest
   B->>B: Host mount() renders the layout
@@ -59,9 +60,9 @@ In words:
 
 1. The loader fetches `atlas.runtime.json` from the page's own origin. This file names the Host ID, the environment, and the registry URLs. Your platform serves it, so the same bootstrap files work in every environment.
 2. The loader fetches the host deployment manifest for that Host ID and environment. It rejects the file if the Host ID or environment inside it do not match the runtime config.
-3. The loader downloads the referenced published artifact manifests in parallel (up to six at a time) and checks each one against the digest recorded in the host deployment manifest.
+3. The loader downloads the referenced published artifact manifests in parallel (up to sixteen at a time) and checks each one against the digest recorded in the host deployment manifest.
 4. If Columbus or a running `npx atlas dev` session provides overrides, the loader applies them now. It then validates the resulting [host catalog](glossary.md#host-catalog).
-5. The loader downloads the Host's remote entry, checks it against the SHA-256 integrity value from the Host's artifact manifest, and calls the Host's `mount()` function.
+5. As soon as the Host's own artifact manifest arrives, the loader starts downloading the Host's remote entry and importing the Host, without waiting for the App manifests. If overrides replace the Host, the loader discards that early load and loads the override. Once the catalog is validated, the loader also preloads the remote entry of the App whose route matches the current URL. The loader checks the Host remote entry against it against the SHA-256 integrity value from the Host's artifact manifest, and calls the Host's `mount()` function.
 6. The runtime inside the Host matches the URL against the Apps' routes and slots. For each App it needs to show, it checks the App's remote entry against its integrity value, imports the App through Native Federation, and calls the App's `mount()` function inside an isolated container.
 
 When the artifact registry is on a different origin than the page, the loader adds a `preconnect` hint for it so that the TLS handshake overlaps with the first requests.
@@ -171,9 +172,9 @@ Shadow DOM isolates markup and styles, not scripts. Plan for these limits before
 
 Compared with a single bundled application, Atlas adds these steps before the first App renders:
 
-- **Sequential requests before the Host runs.** `atlas.runtime.json`, then the host deployment manifest, then the artifact manifests, then the Host remote entry. The runtime config and host deployment manifest are small, and artifact manifests load in parallel, but these are round trips you pay on every cold load. Serve the registry from a CDN close to your users, and let browsers cache immutable artifact files.
+- **Sequential requests before the Host runs.** `atlas.runtime.json`, then the host deployment manifest, then the artifact manifests. The Host remote entry starts downloading as soon as the Host manifest arrives, so it overlaps with the App manifests. The Host module is imported only after overrides are applied and the catalog is validated, so an overridden or invalid Host never runs. The runtime config and host deployment manifest are small, and artifact manifests load in parallel, but these are round trips you pay on every cold load. The bootstrap page preloads the loader and the module shim so those downloads overlap with the page download. Serve the registry from a CDN close to your users, and let browsers cache immutable artifact files.
 - **Digest verification.** The loader and the runtime hash each artifact manifest and each remote entry with the Web Crypto API before running it. This is fast compared with the network, but it is not free on low-end devices.
-- **Lazy App loading.** The runtime imports an App's code only when a route or slot needs it, so the number of deployed Apps does not change the size of the first page.
+- **Lazy App loading.** The runtime imports an App's code only when a route or slot needs it, so the number of deployed Apps does not change the size of the first page. It does change the number of requests: the loader fetches one small manifest for every deployed App and widget provider (16 at a time) before it mounts the Host, so a catalog with hundreds of Apps adds many small requests to a cold load. A failed manifest request is retried only for network errors, timeouts, and HTTP 408, 425, 429, and 5xx responses; other 4xx responses and digest mismatches fail at once.
 - **Shared dependencies.** Atlas marks shared packages, such as the framework and `@atlas/sdk`, as `singleton: true` and `strictVersion: true` in the Native Federation build metadata, but the Native Federation runtime that loads Apps (`@softarc/native-federation-runtime` 3.5) never reads those flags. It matches shared packages by name and exact installed version. The Host's shared packages go into the root import map, and an App reuses the Host's copy only when its version matches exactly. On any mismatch, even a patch version, the App's scoped import map points at the copy bundled in its own artifact, and a second copy loads with no error or warning. The page then downloads more code, and anything shared across the boundary, such as React context and hooks or Angular dependency injection, can break. Use identical exact versions across teams; see [Shared dependencies](../deploy/governance.md#shared-dependencies).
 - **Mixed frameworks cost more.** An Angular Host showing a React App loads both frameworks.
 

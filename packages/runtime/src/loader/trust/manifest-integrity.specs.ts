@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import type { AtlasManifest } from '@atlas/schema';
 import { anAppManifest } from '@atlas/testkit';
 import { ManifestIntegrityDriver } from './manifest-integrity.driver.js';
 
@@ -12,9 +13,13 @@ describe('verifyManifestIntegrity', () => {
   });
 
   describe('when a production manifest declares a sha256 integrity', () => {
-    const manifest = anAppManifest({
-      channel: 'production',
-      integrity: HELLO_INTEGRITY,
+    let manifest: AtlasManifest;
+
+    beforeEach(() => {
+      manifest = anAppManifest({
+        channel: 'production',
+        integrity: HELLO_INTEGRITY,
+      });
     });
 
     it('should accept the manifest when the remote entry bytes match', async () => {
@@ -38,6 +43,31 @@ describe('verifyManifestIntegrity', () => {
         code: 'ATLAS_REMOTE_TRUST_REJECTED',
         message: expect.stringContaining('remote entry bytes do not match'),
       });
+    });
+
+    it('should fetch the remote entry once when the same manifest is verified twice over the network', async () => {
+      await driver.given
+        .remoteBytes('hello')
+        .when.verifiedOverNetwork([manifest]);
+      await driver.when.verifiedOverNetwork([manifest]);
+
+      expect(driver.get.fetchBytesMock()).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fetch the remote entry again when the same manifest is verified twice through a caller supplied fetch', async () => {
+      await driver.given.remoteBytes('hello').when.verified([manifest]);
+      await driver.when.verified([manifest]);
+
+      expect(driver.get.fetchBytesMock()).toHaveBeenCalledTimes(2);
+    });
+
+    it('should fetch the remote entry again when the first verification failed', async () => {
+      await driver.given
+        .remoteBytes('changed')
+        .when.verifiedOverNetwork([manifest]);
+      await driver.when.verifiedOverNetwork([manifest]);
+
+      expect(driver.get.fetchBytesMock()).toHaveBeenCalledTimes(2);
     });
   });
 

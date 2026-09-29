@@ -1,5 +1,12 @@
 import { assertAtlasHostCatalog } from '@atlas/schema';
 import { startAtlasHostRuntime } from '../host-runtime/host-runtime.js';
+import {
+  collectPlacementsForHost,
+  createRoutePlacementPlan,
+  filterRoutePlacements,
+  filterSlotPlacements,
+  findRoutePlacementForPathname,
+} from '../host-runtime/route-plan.js';
 import type { AtlasHostRuntime } from '../host-runtime/host-runtime.types.js';
 import { resolveRuntimeCatalog } from '../loader/catalog/catalog-resolution.js';
 import { loadHostDeployment } from '../loader/deployment/deployment.js';
@@ -23,6 +30,8 @@ import {
   createHostNavigationItems,
   publishAtlasNavigationItems,
 } from './host-navigation.js';
+
+const INACTIVE_PREFETCH_DELAY_MS = 1_000;
 
 export async function startDomHostRuntime<THostSdk extends object>(
   input: DomHostRuntimeInput<THostSdk>,
@@ -76,117 +85,149 @@ export async function startDomHostRuntime<THostSdk extends object>(
     hostRemoteEntryUrl: catalog.host.remoteEntryUrl,
   });
 
-  await services.beforeNavigation?.();
+  const placements = collectPlacementsForHost(manifests, config.hostId);
+  const routePlacements = createRoutePlacementPlan(
+    filterRoutePlacements(placements),
+  ).available;
+  const activeRoute = findRoutePlacementForPathname(
+    routePlacements,
+    document.defaultView?.location.pathname ?? '/',
+  );
+  const activeManifests = new Set([
+    ...(activeRoute ? [activeRoute.manifest] : []),
+    ...filterSlotPlacements(placements).map(({ manifest }) => manifest),
+  ]);
+  const inactiveManifests = new Set(
+    routePlacements
+      .map(({ manifest }) => manifest)
+      .filter((manifest) => !activeManifests.has(manifest)),
+  );
 
-  const navigation = await services.createNavigation();
-  const { sdk, widgetLoader } = createSdkProviders({
-    options,
-    hostId: config.hostId,
-    navigation,
-    manifests,
-    ui,
-    importWidget: federation.importWidget,
-    resolveWidget: createRegistryWidgetResolver({ catalog: resolvedCatalog }),
-    trustPolicy,
-  });
+  void federation.initialize([...activeManifests]);
 
-  services.onSdkCreated?.(sdk);
+  const inactivePrefetchTimer = setTimeout(
+    () => void federation.initialize([...inactiveManifests]),
+    INACTIVE_PREFETCH_DELAY_MS,
+  );
 
-  let navigationItems = createHostNavigationItems({
-    manifests,
-    hostId: config.hostId,
-    navigation,
-  });
-  let renderedNav: HTMLElement | undefined;
+  try {
+    await services.beforeNavigation?.();
 
-  const renderNavigationItems = () => {
-    renderedNav = anchors.get('navigation');
-
-    renderHostNavigation({
-      document,
-      nav: renderedNav,
-      items: navigationItems,
+    const navigation = await services.createNavigation();
+    const { sdk, widgetLoader } = createSdkProviders({
+      options,
+      hostId: config.hostId,
+      navigation,
+      manifests,
+      ui,
+      importWidget: federation.importWidget,
+      resolveWidget: createRegistryWidgetResolver({ catalog: resolvedCatalog }),
+      trustPolicy,
     });
-  };
 
-  const publishNavigationItems = () => {
-    navigationItems = createHostNavigationItems({
+    services.onSdkCreated?.(sdk);
+
+    let navigationItems = createHostNavigationItems({
       manifests,
       hostId: config.hostId,
       navigation,
     });
+    let renderedNav: HTMLElement | undefined;
 
-    renderNavigationItems();
-    publishAtlasNavigationItems(document, navigationItems);
+    const renderNavigationItems = () => {
+      renderedNav = anchors.get('navigation');
 
-    options.onNavigationChange?.(navigationItems);
-  };
-
-  publishNavigationItems();
-
-  const stopNavigationItems = navigation.subscribe(publishNavigationItems);
-  const stopNavigationAnchor = anchors.subscribe(() => {
-    if (anchors.get('navigation') !== renderedNav) renderNavigationItems();
-  });
-
-  onInfrastructureReady();
-
-  const renderMountState = createHostMountStateRenderer({ document, ui });
-  let runtime: AtlasHostRuntime<THostSdk> | undefined;
-  runtime = await startAtlasHostRuntime({
-    hostId: config.hostId,
-    manifests,
-    sdk,
-    importRemote: federation.importRemote,
-    importWidget: federation.importWidget,
-    widgetLoader,
-    trustPolicy,
-    resolveRouteContainer: () => anchors.get('route-outlet'),
-    resolveSlotContainer: (manifest, placement) =>
-      findOrCreateSlotMountContainer({
-        anchors,
+      renderHostNavigation({
         document,
-        appId: manifest.id,
-        placementId: placement.id,
-        slot: placement.slot!,
-      }),
-    subscribeAnchors: (listener) => anchors.subscribe(listener),
-    setActiveLayout: (layoutId) => anchors.setActiveLayout(layoutId),
-    setRouteNotFound: (routeNotFound) =>
-      anchors.setRouteNotFound(routeNotFound),
-    ...(config.resourcesTimeoutMs
-      ? { resourcesTimeoutMs: config.resourcesTimeoutMs }
-      : {}),
-    onMountStateChange(event) {
-      if (event.state === 'error' && event.error) {
-        logBrowserError(
-          `Atlas app "${event.manifest.id}" failed to load.`,
-          new AtlasAppLoadError(event.manifest.id, event.error),
-        );
-      }
+        nav: renderedNav,
+        items: navigationItems,
+      });
+    };
 
-      onPlacementStateChange?.();
-
-      renderMountState(event, () => {
-        void runtime?.retry(event.manifest.id);
+    const publishNavigationItems = () => {
+      navigationItems = createHostNavigationItems({
+        manifests,
+        hostId: config.hostId,
+        navigation,
       });
 
-      emitMountState(options.observe, config.hostId, event);
-    },
-  });
+      renderNavigationItems();
+      publishAtlasNavigationItems(document, navigationItems);
 
-  return {
-    hostId: runtime.hostId,
-    manifests: runtime.manifests,
-    retry: (appId) => runtime.retry(appId),
-    updateHostData: (updates) => runtime.updateHostData(updates),
-    async stop() {
-      stopNavigationItems();
-      stopNavigationAnchor();
+      options.onNavigationChange?.(navigationItems);
+    };
 
-      await runtime.stop();
-    },
-  };
+    publishNavigationItems();
+
+    const stopNavigationItems = navigation.subscribe(publishNavigationItems);
+    const stopNavigationAnchor = anchors.subscribe(() => {
+      if (anchors.get('navigation') !== renderedNav) renderNavigationItems();
+    });
+
+    onInfrastructureReady();
+
+    const renderMountState = createHostMountStateRenderer({ document, ui });
+    let runtime: AtlasHostRuntime<THostSdk> | undefined;
+    runtime = await startAtlasHostRuntime({
+      hostId: config.hostId,
+      manifests,
+      sdk,
+      importRemote: federation.importRemote,
+      importWidget: federation.importWidget,
+      widgetLoader,
+      trustPolicy,
+      resolveRouteContainer: () => anchors.get('route-outlet'),
+      resolveSlotContainer: (manifest, placement) =>
+        findOrCreateSlotMountContainer({
+          anchors,
+          document,
+          appId: manifest.id,
+          placementId: placement.id,
+          slot: placement.slot!,
+        }),
+      subscribeAnchors: (listener) => anchors.subscribe(listener),
+      setActiveLayout: (layoutId) => anchors.setActiveLayout(layoutId),
+      setRouteNotFound: (routeNotFound) =>
+        anchors.setRouteNotFound(routeNotFound),
+      ...(config.resourcesTimeoutMs
+        ? { resourcesTimeoutMs: config.resourcesTimeoutMs }
+        : {}),
+      onMountStateChange(event) {
+        if (event.state === 'error' && event.error) {
+          logBrowserError(
+            `Atlas app "${event.manifest.id}" failed to load.`,
+            new AtlasAppLoadError(event.manifest.id, event.error),
+          );
+        }
+
+        onPlacementStateChange?.();
+
+        renderMountState(event, () => {
+          void runtime?.retry(event.manifest.id);
+        });
+
+        emitMountState(options.observe, config.hostId, event);
+      },
+    });
+
+    return {
+      hostId: runtime.hostId,
+      manifests: runtime.manifests,
+      retry: (appId) => runtime.retry(appId),
+      updateHostData: (updates) => runtime.updateHostData(updates),
+      async stop() {
+        clearTimeout(inactivePrefetchTimer);
+        stopNavigationItems();
+        stopNavigationAnchor();
+
+        await runtime.stop();
+      },
+    };
+  } catch (error) {
+    clearTimeout(inactivePrefetchTimer);
+
+    throw error;
+  }
 }
 
 function buildDefaultManifestUrl(config: {

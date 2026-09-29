@@ -3,29 +3,43 @@ import generate from 'css-tree/generator';
 import parse from 'css-tree/parser';
 import walk from 'css-tree/walker';
 
+interface FetchedCss {
+  text: string;
+  baseUrl: string;
+}
+
+type CssFetchCache = Map<string, Promise<FetchedCss>>;
+
 /** Read imports with CORS; browser CSSOM access does not propagate through @import. */
 export async function prepareShadowImports(
   sheet: CSSStyleSheet,
   document: Document,
 ): Promise<void> {
   const rules = Array.from(sheet.cssRules);
+  const cache: CssFetchCache = new Map();
+  const imports = rules.flatMap((rule, index) =>
+    isImportRule(rule) ? [{ rule, index }] : [],
+  );
+  const replacements = await Promise.all(
+    imports.map(async ({ rule }) => {
+      const href = new URL(rule.href, sheet.href ?? document.baseURI).href;
+      const css = await fetchAndInlineCssImport({
+        href,
+        ancestors: new Set(sheet.href ? [sheet.href] : []),
+        cache,
+      });
 
-  for (let index = rules.length - 1; index >= 0; index -= 1) {
-    const rule = rules[index];
+      return wrapCssInImportConditions(css, rule);
+    }),
+  );
 
-    if (!rule || !isImportRule(rule)) continue;
-
-    const href = new URL(rule.href, sheet.href ?? document.baseURI).href;
-    const css = await fetchAndInlineCssImport(
-      href,
-      new Set(sheet.href ? [sheet.href] : []),
-    );
-    const replacement = wrapCssInImportConditions(css, rule);
+  for (let position = imports.length - 1; position >= 0; position -= 1) {
+    const { rule, index } = imports[position]!;
 
     sheet.deleteRule(index);
 
     try {
-      sheet.insertRule(replacement, index);
+      sheet.insertRule(replacements[position]!, index);
     } catch (error) {
       sheet.insertRule(rule.cssText, index);
 
@@ -34,51 +48,69 @@ export async function prepareShadowImports(
   }
 }
 
-async function fetchAndInlineCssImport(
-  href: string,
-  ancestors: ReadonlySet<string>,
-): Promise<string> {
+function fetchCssOnce(href: string, cache: CssFetchCache): Promise<FetchedCss> {
+  const cached = cache.get(href);
+
+  if (cached) return cached;
+
+  const fetching = fetch(href).then(async (response) => {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    return { text: await response.text(), baseUrl: response.url || href };
+  });
+
+  cache.set(href, fetching);
+
+  return fetching;
+}
+
+async function fetchAndInlineCssImport(input: {
+  href: string;
+  ancestors: ReadonlySet<string>;
+  cache: CssFetchCache;
+}): Promise<string> {
+  const { href, ancestors, cache } = input;
+
   if (ancestors.has(href)) return '';
 
   try {
-    const response = await fetch(href);
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const baseUrl = response.url || href;
+    const { text, baseUrl } = await fetchCssOnce(href, cache);
     const visited = new Set([...ancestors, href, baseUrl]);
-    const tree = parse(await response.text(), { parseCustomProperty: true });
+    const tree = parse(text, { parseCustomProperty: true });
 
     if (tree.type !== 'StyleSheet') throw new Error('Expected a stylesheet');
 
     absolutizeUrlsInTree(tree, baseUrl);
 
-    for (const item of tree.children.toArray()) {
-      if (item.type !== 'Atrule' || item.name.toLowerCase() !== 'import')
-        continue;
-      const prelude = extractImportPrelude(item);
-      const source = prelude[0];
+    const nodes = tree.children.toArray();
+    const inlined = await Promise.all(
+      nodes.map(async (item) => {
+        if (item.type !== 'Atrule' || item.name.toLowerCase() !== 'import')
+          return [item];
 
-      if (!source || (source.type !== 'String' && source.type !== 'Url'))
-        throw new Error('Invalid CSS import');
-      const css = await fetchAndInlineCssImport(
-        new URL(source.value, baseUrl).href,
-        visited,
-      );
-      const replacement = parse(
-        wrapCssInPreludeConditions(css, prelude.slice(1)),
-      );
-      const entry = tree.children.toArray().indexOf(item);
-      const nodes = tree.children.toArray();
-      nodes.splice(
-        entry,
-        1,
-        ...(replacement.type === 'StyleSheet'
+        const prelude = extractImportPrelude(item);
+        const source = prelude[0];
+
+        if (!source || (source.type !== 'String' && source.type !== 'Url'))
+          throw new Error('Invalid CSS import');
+
+        const css = await fetchAndInlineCssImport({
+          href: new URL(source.value, baseUrl).href,
+          ancestors: visited,
+          cache,
+        });
+        const replacement = parse(
+          wrapCssInPreludeConditions(css, prelude.slice(1)),
+        );
+
+        return replacement.type === 'StyleSheet'
           ? replacement.children.toArray()
-          : []),
-      );
+          : [];
+      }),
+    );
 
-      tree.children.fromArray(nodes);
-    }
+    tree.children.fromArray(inlined.flat());
+
     return generate(tree);
   } catch (cause) {
     throw new Error(`Could not load CSS import: ${href}`, { cause });

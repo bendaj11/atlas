@@ -7,7 +7,7 @@ import type {
 import { encodeTextAsBytes } from '../../shared/bytes.testkit.js';
 import type { FetchBytes } from '../fetch-bytes.js';
 import { loadHostDeployment } from './deployment.js';
-import type { LogError } from './deployment.types.js';
+import type { LogError, PublishedManifest } from './deployment.types.js';
 
 export class DeploymentDriver {
   private readonly manifestUrl = faker.internet.url();
@@ -23,6 +23,7 @@ export class DeploymentDriver {
     return bytes;
   });
   private readonly logError = jest.fn<LogError>();
+  private manifestCache: Map<string, PublishedManifest> | undefined;
   private catalog: AtlasHostCatalog | undefined;
   private error: unknown;
 
@@ -39,6 +40,11 @@ export class DeploymentDriver {
     },
     expectedEnvironment: (environment: string) => {
       this.expectedEnvironment = environment;
+
+      return this;
+    },
+    manifestCache: (cache: Map<string, PublishedManifest>) => {
+      this.manifestCache = cache;
 
       return this;
     },
@@ -70,6 +76,7 @@ export class DeploymentDriver {
           fetchBytes: this.fetchBytes,
           logError: this.logError,
           requestPolicy: { retryCount: 0, timeoutMs: 1_000 },
+          ...(this.manifestCache ? { manifestCache: this.manifestCache } : {}),
           ...(this.artifactRegistryUrl
             ? { artifactRegistryUrl: this.artifactRegistryUrl }
             : {}),

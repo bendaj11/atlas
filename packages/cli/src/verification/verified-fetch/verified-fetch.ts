@@ -66,7 +66,10 @@ export class VerifiedFetch {
   }): Promise<Response> {
     const request = async (): Promise<Response> => {
       const response = await this.fetchResource(url, {
-        headers: { Origin: context.hostOrigin },
+        headers: {
+          Origin: context.hostOrigin,
+          'Accept-Encoding': 'br, gzip',
+        },
         cache: 'no-store',
         signal: AbortSignal.timeout(context.timeoutMs),
       });

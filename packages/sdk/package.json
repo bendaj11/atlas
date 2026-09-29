@@ -71,7 +71,7 @@
     "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
+    "build": "ngc -p tsconfig.angular.json",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/src/' --testTimeout=30000",
     "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/e2e/' --testTimeout=60000",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"

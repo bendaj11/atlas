@@ -50,6 +50,13 @@ describe('installHostSharedDependencies', () => {
       ]);
     });
 
+    it('should remove the import map when the returned removal is called', () => {
+      driver.when.installed({ metadata: { shared: [shared] }, manifest });
+      driver.when.removed();
+
+      expect(driver.get.importMapScripts()).toEqual([]);
+    });
+
     it('should reject when a shared dependency lacks its file name', () => {
       const invalid = { packageName: shared.packageName };
       driver.when.installed({ metadata: { shared: [invalid] }, manifest });

@@ -9,6 +9,9 @@ const REQUEST_URLS = [
   '/atlas.runtime.json',
 ];
 
+const RETRYABLE_STATUSES = [408, 425, 429, 500, 503];
+const FINAL_STATUSES = [400, 401, 403, 404, 410];
+
 describe('fetchJson', () => {
   let driver: FetchJsonDriver;
 
@@ -113,6 +116,38 @@ describe('fetchJson', () => {
     });
   });
 
+  describe('when several retries are allowed', () => {
+    beforeEach(() => {
+      driver.given.retryCount(2);
+    });
+
+    it.each(RETRYABLE_STATUSES)(
+      'should retry when the response status is %s',
+      async (status) => {
+        driver.given
+          .response('', status)
+          .given.response('{}')
+          .when.jsonRequested();
+        await driver.get.result();
+
+        expect(driver.get.fetchMock()).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    it.each(FINAL_STATUSES)(
+      'should not retry when the response status is %s',
+      async (status) => {
+        driver.given
+          .response('', status)
+          .given.response('{}')
+          .when.jsonRequested();
+        await driver.get.result().catch(() => undefined);
+
+        expect(driver.get.fetchMock()).toHaveBeenCalledTimes(1);
+      },
+    );
+  });
+
   describe('when the response bytes are verified', () => {
     const body = JSON.stringify({ name: faker.person.fullName() });
 
@@ -158,22 +193,28 @@ describe('fetchJson', () => {
       await expect(driver.get.result()).resolves.toEqual(fresh);
     });
 
-    it('should keep bypassing the HTTP cache when a retry follows a failed verification', async () => {
+    it('should not retry when network bytes also fail verification', async () => {
+      driver.given
+        .retryCount(2)
+        .given.verificationFailure(new Error(faker.lorem.sentence()))
+        .given.verificationFailure(new Error(faker.lorem.sentence()))
+        .given.response(body)
+        .given.response(body)
+        .when.jsonRequested();
+      await driver.get.result().catch(() => undefined);
+
+      expect(driver.get.fetchMock()).toHaveBeenCalledTimes(2);
+    });
+
+    it('should bypass the HTTP cache when a retry follows a network failure', async () => {
       driver.given
         .retryCount(1)
-        .given.verificationFailure(new Error(faker.lorem.sentence()))
-        .given.verificationFailure(new Error(faker.lorem.sentence()))
-        .given.response(body)
-        .given.response(body)
+        .given.failure(new Error(faker.lorem.sentence()))
         .given.response(body)
         .when.jsonRequested();
       await driver.get.result();
 
-      expect(driver.get.cacheModes()).toStrictEqual([
-        'default',
-        'reload',
-        'reload',
-      ]);
+      expect(driver.get.cacheModes()).toStrictEqual(['default', 'reload']);
     });
 
     it('should reject with the HTTP status when the network refetch fails', async () => {

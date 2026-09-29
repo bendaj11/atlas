@@ -86,6 +86,27 @@ export function checkContentType(options: {
     );
 }
 
+export function checkCompression(options: {
+  checks: VerificationChecks;
+  response: Response;
+  subject: string;
+}): void {
+  const { checks, response, subject } = options;
+  const encoding =
+    response.headers.get('content-encoding')?.toLowerCase() ?? '';
+
+  const contentLength = Number(response.headers.get('content-length'));
+
+  if (COMPRESSION_ENCODINGS.some((name) => encoding.includes(name)))
+    checks.pass(`${subject} compression`, encoding);
+  else if (contentLength > 0 && contentLength < COMPRESSION_MIN_BYTES) return;
+  else
+    checks.warn(
+      `${subject} compression`,
+      'Response was not compressed; serve JavaScript and JSON with br or gzip.',
+    );
+}
+
 export function checkIntegrity(options: {
   checks: VerificationChecks;
   bytes: Uint8Array;
@@ -111,6 +132,10 @@ export function checkIntegrity(options: {
   else
     checks.fail(`${subject} integrity`, 'SHA-256 does not match the manifest.');
 }
+
+const COMPRESSION_MIN_BYTES = 1024;
+
+const COMPRESSION_ENCODINGS = ['br', 'gzip', 'zstd'];
 
 const CONTENT_TYPE_FRAGMENTS: Record<ExpectedContentType, string> = {
   json: 'json',

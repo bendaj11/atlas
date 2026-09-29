@@ -4,6 +4,7 @@ import { installHostSharedDependencies } from './shared-dependencies.js';
 
 export class SharedDependenciesDriver {
   private error: unknown;
+  private remove: (() => void) | undefined;
 
   constructor() {
     document.head.replaceChildren();
@@ -15,7 +16,7 @@ export class SharedDependenciesDriver {
       manifest: AtlasHostManifest;
     }) => {
       try {
-        installHostSharedDependencies({
+        this.remove = installHostSharedDependencies({
           ...input,
           dependencies: { document },
         });
@@ -23,6 +24,7 @@ export class SharedDependenciesDriver {
         this.error = error;
       }
     },
+    removed: () => this.remove?.(),
   };
 
   readonly get = {

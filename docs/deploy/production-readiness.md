@@ -48,6 +48,7 @@ Name an owner for each area before release:
 - [ ] Only protected CI identities can write to registry storage.
 - [ ] Every publish, deploy, and preview cleanup job uses the Atlas publication lock. For Artifactory, every writer runs inside the shared external lock described in [Publish with Artifactory](artifactory.md).
 - [ ] Every registry and Host file is served with the `Cache-Control` value in the [caching table](bootstrap.md#set-cache-headers), and your CDN passes it through or invalidates mutable files after each publish and deploy.
+- [ ] Text responses (`.js`, `.css`, `.json`, `.svg`, `.map`) are compressed with Brotli or gzip at the CDN, with `Vary: Accept-Encoding`, as described in [Compress responses](bootstrap.md#compress-responses).
 - [ ] JSON is served as `application/json`, JavaScript as `text/javascript`, and CSS as `text/css`.
 - [ ] Every registry file allows the Host origin through CORS for `GET` and `HEAD`.
 - [ ] Missing registry files return an error, never the Host's `index.html`.

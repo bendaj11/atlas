@@ -31,13 +31,19 @@ export interface PublicationFiles {
   readonly manifest: PublicationFile;
 }
 
-export async function preparePublicationFiles(
-  build: AtlasBuildResult,
-): Promise<PublicationFiles> {
+export async function preparePublicationFiles(options: {
+  build: AtlasBuildResult;
+  concurrency: number;
+}): Promise<PublicationFiles> {
+  const { build, concurrency } = options;
   const bytes = encodeManifestBytes(build.manifest);
   const prefix = resolveArtifactPrefix(build.manifest, bytes);
-  const payloads = await Promise.all(
-    build.manifest.files.map(async (file) => {
+  const payloadsByPath = new Map<string, PublicationFile>();
+
+  await forEachConcurrently({
+    items: build.manifest.files,
+    concurrency,
+    operation: async (file) => {
       const readSourceBytes = new Uint8Array(
         await readFile(join(build.sourceDirectory, file.path)),
       );
@@ -47,16 +53,18 @@ export async function preparePublicationFiles(
         expectedDigest: file.digest,
         expectedSize: file.size,
       });
-
-      return {
+      payloadsByPath.set(file.path, {
         path: `${prefix}/${file.path}`,
         bytes: readSourceBytes,
         metadata: {
           cacheControl: file.cacheControl,
           contentType: file.mediaType,
         },
-      };
-    }),
+      });
+    },
+  });
+  const payloads = build.manifest.files.map(({ path }) =>
+    payloadsByPath.get(path)!,
   );
 
   return {
@@ -101,6 +109,7 @@ export async function uploadAndVerify(options: {
   concurrency: number;
   lease?: AtlasPublicationLease;
   progress?: AtlasProgressReporter;
+  uploaded?: Set<string>;
 }): Promise<void> {
   const {
     storage,
@@ -108,18 +117,23 @@ export async function uploadAndVerify(options: {
     concurrency,
     lease,
     progress = silentProgress,
+    uploaded = new Set<string>(),
   } = options;
   const { count, bytes } = measurePublicationFiles(files);
   const size = formatBytes(bytes);
-  let uploaded = 0;
+  let done = 0;
 
   const upload = async (file: PublicationFile): Promise<void> => {
-    await createImmutable(storage, file);
+    if (!uploaded.has(file.path)) {
+      await createImmutable(storage, file);
 
-    if (!storage.verifiesWrites) await verifyStoredObject(storage, file);
+      if (!storage.verifiesWrites) await verifyStoredObject(storage, file);
 
-    uploaded += 1;
-    progress.update(`Uploading files ${uploaded}/${count} (${size})`);
+      uploaded.add(file.path);
+    }
+
+    done += 1;
+    progress.update(`Uploading files ${done}/${count} (${size})`);
   };
 
   await lease?.assertHeld();
@@ -194,12 +208,18 @@ async function createImmutable(
     await storage.create(file.path, file.bytes, file.metadata);
   } catch (error) {
     if (isUnknownOutcome(error)) throw error;
-    const existing = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
 
     if (
+      !metadata ||
+      (metadata.size !== undefined && metadata.size !== file.bytes.byteLength)
+    )
+      throw error;
+
+    const existing = await storage.read(file.path);
+
+    if (
       existing &&
-      metadata &&
       computeSha256Digest(existing) === computeSha256Digest(file.bytes)
     ) {
       assertMetadata(file.path, metadata, file.metadata);

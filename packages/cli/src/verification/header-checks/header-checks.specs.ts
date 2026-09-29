@@ -129,6 +129,46 @@ describe('header-checks', () => {
     });
   });
 
+  describe('checkCompression', () => {
+    it.each(['br', 'gzip', 'zstd'])(
+      'should pass when content-encoding is %s',
+      (encoding) => {
+        driver.given.headers({ 'content-encoding': encoding });
+
+        driver.when.compressionChecked();
+
+        expect(driver.get.checks()).toStrictEqual([
+          { status: 'pass', subject: 'asset compression', message: encoding },
+        ]);
+      },
+    );
+
+    it('should skip the check when the payload is below the size threshold', () => {
+      driver.given.headers({ 'content-length': '512' });
+
+      driver.when.compressionChecked();
+
+      expect(driver.get.checks()).toStrictEqual([]);
+    });
+
+    it('should warn when an uncompressed payload is above the size threshold', () => {
+      driver.given.headers({ 'content-length': '4096' });
+
+      driver.when.compressionChecked();
+
+      expect(driver.get.checks()[0]).toMatchObject({ status: 'warning' });
+    });
+
+    it('should warn when content-encoding is missing', () => {
+      driver.when.compressionChecked();
+
+      expect(driver.get.checks()[0]).toMatchObject({
+        status: 'warning',
+        subject: 'asset compression',
+      });
+    });
+  });
+
   describe('checkIntegrity', () => {
     it('should warn as skipped when a local manifest has no integrity', () => {
       driver.when.integrityChecked({

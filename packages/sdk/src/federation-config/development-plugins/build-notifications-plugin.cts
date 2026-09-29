@@ -5,6 +5,8 @@ interface EventStreamClient {
   write(chunk: string): void;
 }
 
+const REBUILD_NOTIFICATION_DEBOUNCE_MS = 75;
+
 export const BUILD_NOTIFICATIONS_ENDPOINT =
   '/@atlas/federation-build-notifications';
 
@@ -14,6 +16,7 @@ export function createFederationBuildNotificationsPlugin(
 ): Plugin {
   const clients = new Set<EventStreamClient>();
   const sourceRoot = resolveProjectSourceRoot(projectRoot);
+  let pendingNotification: NodeJS.Timeout | undefined;
 
   return {
     name: 'atlas-federation-build-notifications',
@@ -40,9 +43,17 @@ export function createFederationBuildNotificationsPlugin(
     handleHotUpdate({ file }) {
       if (!file.replaceAll('\\', '/').startsWith(sourceRoot)) return;
 
-      const event = formatEventStreamMessage('federation-rebuild-complete');
+      clearTimeout(pendingNotification);
+      pendingNotification = setTimeout(() => {
+        const event = formatEventStreamMessage('federation-rebuild-complete');
 
-      for (const client of clients) client.write(event);
+        for (const client of clients) client.write(event);
+      }, REBUILD_NOTIFICATION_DEBOUNCE_MS);
+      pendingNotification.unref();
+    },
+
+    closeBundle() {
+      clearTimeout(pendingNotification);
     },
   };
 }

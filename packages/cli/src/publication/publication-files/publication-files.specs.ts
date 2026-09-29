@@ -170,6 +170,36 @@ describe('publication-files', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('should not read an existing object when its size differs from the file', async () => {
+      const files = await driver.get.files();
+      const size = files.manifest.bytes.byteLength + 1;
+      driver.given.storedObject({
+        ...files.manifest,
+        bytes: new Uint8Array(size),
+        metadata: { ...files.manifest.metadata, size },
+      });
+
+      await driver.when
+        .uploaded({ payloads: [], manifest: files.manifest })
+        .catch(() => undefined);
+
+      expect(driver.get.readPaths()).toStrictEqual([]);
+    });
+
+    it('should not create files again when they were uploaded by an earlier attempt', async () => {
+      await driver.given.payload('main.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+      const uploaded = new Set<string>();
+      await driver.when.uploaded(files, uploaded);
+
+      await driver.when.uploaded(files, uploaded);
+
+      expect(driver.get.createdPaths()).toStrictEqual([
+        files.payloads[0]!.path,
+        files.manifest.path,
+      ]);
+    });
+
     it('should reject when an existing object holds different bytes', async () => {
       const files = await driver.get.files();
       driver.given.storedObject({
